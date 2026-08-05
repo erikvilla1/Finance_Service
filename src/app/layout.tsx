@@ -21,8 +21,10 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // data-scroll-behavior tells Next the smooth scrolling in globals.css is
+  // intentional, so it doesn't warn on every route transition.
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className="min-h-dvh antialiased">
         <a href="#main" className="skip-link">
           Skip to main content

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import {
   Button,
   Container,
@@ -34,7 +34,11 @@ export default async function PrequalPage({
   const params = await searchParams;
   const goal = findGoal(params.goal);
 
-  if (!goal) notFound();
+  // The goal lives only in the query string, so anything that drops it — a
+  // failed submission reloading the page, a truncated shared link, a typo —
+  // lands here. Send them back to pick a goal rather than showing a 404.
+  // A dead end mid-application is a lost applicant.
+  if (!goal) redirect("/start");
 
   const questions = await loadQuestions(["prequal"], goal.likelyTrack);
 
