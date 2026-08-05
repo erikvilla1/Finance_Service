@@ -164,7 +164,10 @@ export type ProfileRow = {
 
 export type ApplicationRow = {
   id: string;
+  /** Sequential and human-readable. For staff use — never put this in a URL. */
   reference_code: string;
+  /** Unguessable. This is what anonymous result links use. */
+  public_token: string;
   profile_id: string | null;
   business_id: string | null;
   category_id: string | null;
@@ -228,6 +231,76 @@ export type QualificationRulesetRow = {
   updated_at: string;
 }
 
+export type QuestionType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "currency"
+  | "percent"
+  | "select"
+  | "multiselect"
+  | "boolean"
+  | "date"
+  | "email"
+  | "phone"
+  | "address";
+
+export type ApplicationQuestionRow = {
+  id: string;
+  key: string;
+  /** core_business | financial_snapshot | owner | equipment | ar | cre | sba | prequal */
+  module: string;
+  track: ProductTrack | null;
+  product_id: string | null;
+  label: string;
+  help_text: string | null;
+  placeholder: string | null;
+  question_type: QuestionType;
+  is_required: boolean;
+  /** Drives redaction in logs and analytics. Spec §30. */
+  is_pii: boolean;
+  validation: Json;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type QuestionOptionRow = {
+  id: string;
+  question_id: string;
+  value: string;
+  label: string;
+  sort_order: number;
+  metadata: Json;
+  created_at: string;
+}
+
+export type QuestionRuleRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  track: ProductTrack | null;
+  product_id: string | null;
+  conditions: Json;
+  effect: Json;
+  priority: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ApplicationAnswerRow = {
+  id: string;
+  application_id: string;
+  question_key: string;
+  question_id: string | null;
+  value: Json;
+  is_pii: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type DocumentTypeDefinitionRow = {
   id: string;
   key: string;
@@ -273,6 +346,10 @@ export type Database = {
       qualification_results: Table<QualificationResultRow>;
       qualification_rulesets: Table<QualificationRulesetRow>;
       document_type_definitions: Table<DocumentTypeDefinitionRow>;
+      application_questions: Table<ApplicationQuestionRow>;
+      question_options: Table<QuestionOptionRow>;
+      question_rules: Table<QuestionRuleRow>;
+      application_answers: Table<ApplicationAnswerRow>;
     };
     Views: EmptyMap;
     Functions: EmptyMap;
