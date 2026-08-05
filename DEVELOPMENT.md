@@ -122,6 +122,25 @@ Two advisor warnings remain, both for those functions, both intentional and docu
 
 ---
 
+## Creating a staff account
+
+Sign-in is wired, but every new signup defaults to the `customer` role — staff roles must be granted explicitly (spec §22). To get into the CRM at `/admin`:
+
+1. Register the account. Supabase dashboard → Authentication → Users → **Add user**, with "auto confirm" checked so you skip the email step in development.
+2. Promote it. SQL Editor:
+
+```sql
+update public.profiles
+   set role = 'admin', full_name = 'Erik Villa'
+ where email = 'you@example.com';
+```
+
+Roles are `customer`, `specialist`, `manager`, `admin`. A non-admin cannot change their own role — the `guard_role_changes` trigger blocks it, so this has to be done here.
+
+**Before any real applicant data exists**, turn on MFA for staff in Supabase → Authentication → Providers → enable TOTP enrolment. Spec §22 requires it and password-only is not sufficient for production.
+
+---
+
 ## Current state
 
 Working: schema, RLS, seed catalog, design system, marketing pages, goal selector, prequal engine (pure function, no rules yet).

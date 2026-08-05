@@ -339,16 +339,30 @@ And it de-risks his single biggest dependency: right now if US Fund Advisors rai
 
 These are **unresolved decisions**, not errors. Do not silently pick a side while building — raise them.
 
-### 14.1 CRM scope — ⏸️ DEFERRED BY DECISION
+### 14.1 CRM scope — ✅ RESOLVED: BUILD IT IN
 
 | Source | Position |
 |---|---|
 | Platform spec §18, §35 (MVP item 17), §40 (Phase 3) | Build a first-party CRM into the platform. Full pipeline with 16 stages, notes, tasks, communications, audit history. |
-| This document §12, §10 | "Resist [building a full CRM] in Phase 1. Ship lead-capture + prequal first; let the portal grow into the CRM only if an off-the-shelf tool doesn't fit." Names Deal360 as the diagnostic's recommendation. |
+| This document §12, §10 | "Resist [building a full CRM] in Phase 1… let the portal grow into the CRM only if an off-the-shelf tool doesn't fit." Named Deal360. |
 
-**Status:** Explicitly deferred by Erik on Aug 3, 2026. To be settled in the Phase-0 session with Robert (§13.2). Until then, **do not scaffold CRM tables beyond what the application pipeline needs.**
+**Resolved Aug 4, 2026 in favour of the platform spec: the CRM is built in-house.**
 
-The deciding question is what Robert will actually use day-to-day — a license he ignores is worse than a lean tracker he opens.
+The deciding argument wasn't feature parity, it was scope. The platform is replacing the whole stack — Airtable for the lead record, Dropbox for documents, PandaDoc for signature, Gmail for the notifications between them. Once lead capture, the document checklist, and e-signature all live here, routing the pipeline out to a separate CRM would mean syncing the same deal across two systems. The lean-tracker argument assumed the platform stayed a lead-capture tool; it hasn't.
+
+Deal360 is no longer under consideration. Instantly.ai for outbound is unaffected — that's demand generation, not pipeline.
+
+**Built so far** (migration 0010): notes, tasks, and append-only status history, plus the pipeline list and application detail views. Deliberately still short of spec §18's full list — communications and lender submissions come later.
+
+### 14.1b Full SSN storage — ✅ RESOLVED: DO NOT STORE
+
+**Resolved Aug 4, 2026: the full SSN is never stored in the database.** `application_owners.ssn_last4` holds the last four for identification; the complete number lives only on the executed application document.
+
+This mirrors how the business already works. Robert's paper applications do capture the full SSN — but it sits on the signed PandaDoc, not in Airtable. Airtable holds the lead record. Storing the document rather than the field loses nothing operationally: the signed application is what the lender receives, and it's already legally sufficient.
+
+The reason to be firm about it: a database of full SSNs is the highest-liability asset this platform could hold. It expands GLBA safeguards obligations, triggers state breach-notification law if exposed, and turns an incident into an existential event for a solo operator.
+
+If the number is ever genuinely needed as a queryable field, the acceptable form is encryption at rest via Supabase Vault with decryption restricted and every access audit-logged — and that is a decision to make **with counsel**, not to drift into.
 
 ### 14.2 Product taxonomy mismatch — 🔴 OPEN
 

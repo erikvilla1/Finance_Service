@@ -301,6 +301,39 @@ export type ApplicationAnswerRow = {
   updated_at: string;
 }
 
+export type CrmNoteRow = {
+  id: string;
+  application_id: string;
+  author_profile_id: string | null;
+  body: string;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CrmTaskRow = {
+  id: string;
+  application_id: string;
+  assigned_to: string | null;
+  created_by: string | null;
+  title: string;
+  details: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ApplicationStatusHistoryRow = {
+  id: string;
+  application_id: string;
+  from_status: ApplicationStatus | null;
+  to_status: ApplicationStatus;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+}
+
 export type DocumentTypeDefinitionRow = {
   id: string;
   key: string;
@@ -350,6 +383,9 @@ export type Database = {
       question_options: Table<QuestionOptionRow>;
       question_rules: Table<QuestionRuleRow>;
       application_answers: Table<ApplicationAnswerRow>;
+      crm_notes: Table<CrmNoteRow>;
+      crm_tasks: Table<CrmTaskRow>;
+      application_status_history: Table<ApplicationStatusHistoryRow>;
     };
     Views: EmptyMap;
     Functions: EmptyMap;
