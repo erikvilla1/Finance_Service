@@ -10,7 +10,7 @@ import {
   STATUS_ORDER,
   SUBMITTAL_STATUSES,
   formatCurrency,
-  formatDate,
+  formatDateTime,
   humanize,
   statusTone,
   type StatusGroup,
@@ -184,7 +184,7 @@ export default async function PipelinePage({
                         {STATUS_LABELS[application.status]}
                       </Badge>
                       <span className="text-xs text-ink-500">
-                        {formatDate(application.created_at)}
+                        {formatDateTime(application.created_at)}
                       </span>
                     </div>
                   </div>

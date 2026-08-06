@@ -13,11 +13,16 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import type { ProductMatch } from "@/lib/qualification/types";
 import {
+  BUSINESS_TIMEZONE,
   STATUS_LABELS,
   STATUS_ORDER,
+  applicantLocalNow,
+  formatApplicantLocalTime,
   formatCurrency,
   formatDate,
+  formatDateTime,
   humanize,
+  isReasonableCallingHour,
   statusTone,
 } from "@/lib/crm";
 import { addNote, assignToMe, updateStatus } from "./actions";
@@ -279,7 +284,7 @@ export default async function ApplicationDetailPage({
                         {note.body}
                       </p>
                       <p className="mt-1.5 text-xs text-ink-500">
-                        {formatDate(note.created_at)}
+                        {formatDateTime(note.created_at)}
                       </p>
                     </li>
                   ))}
@@ -318,6 +323,43 @@ export default async function ApplicationDetailPage({
             </form>
           </Card>
 
+          {/*
+            Before dialling, the question isn't "when was this created" — it's
+            "is it a reasonable hour where they are". A national pipeline means
+            a 9am call from Los Angeles is 6am in New York.
+          */}
+          <Card>
+            <h2 className="text-base font-semibold text-ink-900">
+              Calling window
+            </h2>
+            {application.applicant_timezone ? (
+              <>
+                <p className="mt-3 text-sm text-ink-500">Their local time now</p>
+                <p className="text-2xl font-bold tabular-nums text-ink-900">
+                  {applicantLocalNow(application.applicant_timezone)}
+                </p>
+                {(() => {
+                  const ok = isReasonableCallingHour(application.applicant_timezone);
+                  if (ok === null) return null;
+                  return (
+                    <div className="mt-3">
+                      <Badge tone={ok ? "success" : "warning"}>
+                        {ok ? "Reasonable hour to call" : "Outside 8am–7pm local"}
+                      </Badge>
+                    </div>
+                  );
+                })()}
+                <p className="mt-3 font-mono text-xs text-ink-500">
+                  {application.applicant_timezone}
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-ink-600">
+                No timezone captured for this applicant.
+              </p>
+            )}
+          </Card>
+
           <Card>
             <h2 className="text-base font-semibold text-ink-900">Lead source</h2>
             <dl className="mt-3 space-y-2 text-sm">
@@ -330,13 +372,30 @@ export default async function ApplicationDetailPage({
                 <dd className="text-ink-900">{application.channel ?? "—"}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink-500">Created</dt>
-                <dd className="text-ink-900">{formatDate(application.created_at)}</dd>
+                <dt className="text-ink-500">Submitted</dt>
+                <dd className="text-right text-ink-900">
+                  {formatDateTime(application.created_at)}
+                  {(() => {
+                    const local = formatApplicantLocalTime(
+                      application.created_at,
+                      application.applicant_timezone,
+                    );
+                    // Only worth showing when it differs from the office zone.
+                    if (!local || application.applicant_timezone === BUSINESS_TIMEZONE) {
+                      return null;
+                    }
+                    return (
+                      <span className="block text-xs text-ink-500">
+                        {local} their time
+                      </span>
+                    );
+                  })()}
+                </dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-ink-500">First contact</dt>
                 <dd className="text-ink-900">
-                  {formatDate(application.first_contact_at)}
+                  {formatDateTime(application.first_contact_at)}
                 </dd>
               </div>
             </dl>
@@ -359,7 +418,7 @@ export default async function ApplicationDetailPage({
                       {STATUS_LABELS[entry.to_status]}
                     </p>
                     <p className="text-xs text-ink-500">
-                      {formatDate(entry.created_at)}
+                      {formatDateTime(entry.created_at)}
                     </p>
                   </li>
                 ))}

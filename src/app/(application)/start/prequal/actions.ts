@@ -72,6 +72,20 @@ export async function submitPrequal(formData: FormData) {
   const industryRaw = String(formData.get("prequal_industry") ?? "").trim();
   const industry = industryRaw ? industryRaw.slice(0, 120) : null;
 
+  // Reported by the browser. Validated rather than trusted — this arrives from
+  // the client, so a bad value should be dropped, not stored.
+  const timezoneRaw = String(formData.get("applicant_timezone") ?? "").trim();
+  const applicantTimezone =
+    timezoneRaw && /^[A-Za-z]+\/[A-Za-z_+-]+(\/[A-Za-z_+-]+)?$/.test(timezoneRaw)
+      ? timezoneRaw.slice(0, 64)
+      : null;
+
+  const offsetRaw = Number(formData.get("applicant_utc_offset_minutes"));
+  const applicantOffset =
+    Number.isInteger(offsetRaw) && offsetRaw >= -840 && offsetRaw <= 840
+      ? offsetRaw
+      : null;
+
   const track: ProductTrack | null = goal?.likelyTrack ?? null;
 
   const supabase = createServiceRoleClient();
@@ -91,6 +105,8 @@ export async function submitPrequal(formData: FormData) {
       time_in_business: timeInBusiness,
       urgency,
       industry,
+      applicant_timezone: applicantTimezone,
+      applicant_utc_offset_minutes: applicantOffset,
       status: "draft",
       source: "website",
       channel: "prequal",

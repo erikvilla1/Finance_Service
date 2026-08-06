@@ -181,6 +181,9 @@ export type ApplicationRow = {
   time_in_business: TimeInBusinessBand | null;
   urgency: UrgencyBand | null;
   industry: string | null;
+  /** IANA zone reported by the browser at submission. Timestamps stay UTC. */
+  applicant_timezone: string | null;
+  applicant_utc_offset_minutes: number | null;
   gross_annual_sales: number | null;
   avg_monthly_card_volume: number | null;
   has_existing_mca: boolean | null;
