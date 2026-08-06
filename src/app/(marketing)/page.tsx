@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import {
   ButtonLink,
   Card,
@@ -7,6 +8,7 @@ import {
   SelectableCard,
 } from "@/components/ui";
 import { FINANCING_GOALS } from "@/lib/products/goals";
+import { HeroVideo } from "@/components/marketing/hero-video";
 
 /**
  * Homepage.
@@ -66,25 +68,25 @@ export default function HomePage() {
   return (
     <>
       {/* ---------------------------------------------------------------- HERO */}
-      <div className="bg-brand-900">
-        <Container>
+      <div className="relative overflow-hidden bg-brand-900">
+        <HeroVideo className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-brand-900/60" />
+        <Container className="relative">
           <div className="py-20 sm:py-28 lg:py-32">
             <div className="max-w-3xl">
-              <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              <h1 className="animate-fade-in-up text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
                 Financing Solutions Built Around Your Goals
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-brand-100 sm:text-xl">
+              <p className="animate-fade-in-up mt-6 max-w-2xl text-lg leading-relaxed text-brand-100 [animation-delay:150ms] sm:text-xl">
                 Whether you&apos;re acquiring equipment, expanding your business,
                 investing in real estate, or looking for working capital,
                 Financial Lending Specialists can help you explore financing
                 options tailored to your situation.
               </p>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="animate-fade-in-up mt-9 [animation-delay:300ms]">
                 <ButtonLink href="/start" size="lg">
                   See My Financing Options
-                </ButtonLink>
-                <ButtonLink href="/contact" variant="inverted" size="lg">
-                  Talk With a Financing Specialist
+                  <ChevronRight className="h-5 w-5" />
                 </ButtonLink>
               </div>
             </div>
