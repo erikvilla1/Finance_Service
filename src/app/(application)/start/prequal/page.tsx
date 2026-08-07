@@ -7,6 +7,7 @@ import {
   ProgressBar,
 } from "@/components/ui";
 import { QuestionField } from "@/components/application/question-field";
+import { TimezoneField } from "@/components/application/timezone-field";
 import { loadQuestions } from "@/lib/questions";
 import { findGoal } from "@/lib/products/goals";
 import { submitPrequal } from "./actions";
@@ -70,6 +71,7 @@ export default async function PrequalPage({
         ) : (
           <form action={submitPrequal} className="mt-8 space-y-6">
             <input type="hidden" name="goal" value={goal.slug} />
+            <TimezoneField />
 
             {questions.map((question) => (
               <QuestionField key={question.key} question={question} />
