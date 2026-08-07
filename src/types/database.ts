@@ -98,6 +98,28 @@ export type UrgencyBand =
   | "within_90_days"
   | "just_exploring";
 
+/** Direction of deposits over the trailing three months (migration 0016). */
+export type DepositTrend =
+  | "consistent_growing"
+  | "declining"
+  | "seasonal_irregular";
+
+/** Prior credit events, as asked on the funding application (migration 0016). */
+export type PriorDefaultStatus =
+  | "none"
+  | "discharged_resolved"
+  | "active_recent";
+
+/** Collateral classes relevant to secured-product eligibility (migration 0016). */
+export type BusinessAssetType =
+  | "none"
+  | "real_estate"
+  | "equipment"
+  | "vehicles"
+  | "inventory"
+  | "receivables"
+  | "other";
+
 export type ConsentType =
   | "fcra_authorization"
   | "tcpa_sms"
@@ -177,10 +199,18 @@ export type ApplicationRow = {
   requested_amount: number | null;
   use_of_funds: string | null;
   revenue_band: RevenueBand | null;
+  /** Derived from owner_credit_score by trigger. Retained for existing readers. */
   credit_band: CreditBand | null;
+  /** Exact self-reported score. Authoritative for qualification (migration 0016). */
+  owner_credit_score: number | null;
   time_in_business: TimeInBusinessBand | null;
   urgency: UrgencyBand | null;
   industry: string | null;
+  /** Sizes every estimated range the engine produces (migration 0016). */
+  avg_monthly_revenue: number | null;
+  deposit_trend: DepositTrend | null;
+  total_monthly_debt_payments: number | null;
+  prior_default_status: PriorDefaultStatus | null;
   /** IANA zone reported by the browser at submission. Timestamps stay UTC. */
   applicant_timezone: string | null;
   applicant_utc_offset_minutes: number | null;
@@ -203,6 +233,19 @@ export type ApplicationRow = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+/** One asset offered as collateral. Repeatable per application (migration 0016). */
+export type BusinessAssetRow = {
+  id: string;
+  application_id: string;
+  asset_type: BusinessAssetType;
+  description: string | null;
+  estimated_value: number | null;
+  debt_owed: number | null;
+  position: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type QualificationResultRow = {
@@ -386,6 +429,7 @@ export type Database = {
       question_options: Table<QuestionOptionRow>;
       question_rules: Table<QuestionRuleRow>;
       application_answers: Table<ApplicationAnswerRow>;
+      business_assets: Table<BusinessAssetRow>;
       crm_notes: Table<CrmNoteRow>;
       crm_tasks: Table<CrmTaskRow>;
       application_status_history: Table<ApplicationStatusHistoryRow>;
@@ -403,6 +447,9 @@ export type Database = {
       time_in_business_band: TimeInBusinessBand;
       urgency_band: UrgencyBand;
       consent_type: ConsentType;
+      deposit_trend: DepositTrend;
+      prior_default_status: PriorDefaultStatus;
+      business_asset_type: BusinessAssetType;
     };
     CompositeTypes: EmptyMap;
   };

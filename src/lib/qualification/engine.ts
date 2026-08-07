@@ -6,12 +6,13 @@ import type {
   ProductMatch,
   QualificationInput,
   QualificationOutput,
+  RevenueMultipleSizing,
   Rule,
   Ruleset,
 } from "./types";
 import { CREDIT_BAND_ORDER, TIME_IN_BUSINESS_ORDER } from "./bands";
 
-export const ENGINE_VERSION = "1.0.0-rules";
+export const ENGINE_VERSION = "2.0.0-rules";
 
 /**
  * Prequalification engine.
@@ -22,9 +23,16 @@ export const ENGINE_VERSION = "1.0.0-rules";
  *     never a match. A shortlist we can't justify is worse than no shortlist.
  *  2. AUDITABLE. Every rule considered is recorded with the reason it did or
  *     did not fire (spec §26).
- *  3. NEVER AN APPROVAL. The outcome vocabulary has no "approved" (spec §26).
- *  4. NO UNVERIFIED NUMBERS. Indicative amounts appear only for products whose
- *     terms have been confirmed (BUSINESS_CONTEXT §5 critical notice).
+ *  3. NEVER AN APPROVAL. The outcome vocabulary has no "approved" (spec §26),
+ *     and reviewRequired is unconditionally true.
+ *  4. TWO KINDS OF NUMBER, NEVER CONFLATED.
+ *       indicative*  → taken from a product whose terms are VERIFIED. Absent
+ *                      today, because nothing in the catalog is verified yet.
+ *       estimated*   → MODELLED from average monthly revenue using multiples
+ *                      reverse-engineered from a competitor's tool (migration
+ *                      0017). Illustrative only; the UI must say so.
+ *     Keeping these in separate fields means a future reader cannot mistake a
+ *     modelled figure for a quoted one.
  *
  * The engine is pure: same inputs, same output, no I/O. That makes it testable
  * and makes the audit trail trustworthy.
@@ -41,6 +49,8 @@ export function evaluate(
   const missingInformation = new Set<string>();
   const riskFlags = new Set<string>();
   const reasonsBySlug = new Map<string, string[]>();
+  const blockersBySlug = new Map<string, string[]>();
+  const sizingBySlug = new Map<string, RevenueMultipleSizing>();
 
   let forceReview = false;
 
@@ -73,14 +83,30 @@ export function evaluate(
         detail,
       });
 
-      if (!matched) continue;
-
       const effect = rule.then;
+
+      // A rule that did not fire still tells the applicant something useful:
+      // it is the reason a product they might expect to see is missing. Record
+      // it against that product so the UI can explain the absence instead of
+      // silently omitting it.
+      if (!matched) {
+        effect.matchProducts?.forEach((slug) => {
+          const blockers = blockersBySlug.get(slug) ?? [];
+          blockers.push(rule.description);
+          blockersBySlug.set(slug, blockers);
+        });
+        continue;
+      }
+
       effect.matchProducts?.forEach((slug) => {
         matchedSlugs.add(slug);
         const reasons = reasonsBySlug.get(slug) ?? [];
         reasons.push(rule.description);
         reasonsBySlug.set(slug, reasons);
+
+        if (effect.sizeFromMonthlyRevenue) {
+          sizingBySlug.set(slug, effect.sizeFromMonthlyRevenue);
+        }
       });
       effect.excludeProducts?.forEach((slug) => excludedSlugs.add(slug));
       effect.requireInformation?.forEach((info) => missingInformation.add(info));
@@ -90,20 +116,32 @@ export function evaluate(
   }
 
   // ---------------------------------------------------------------------------
-  // Structural checks that hold regardless of the ruleset.
-  // These are facts about the catalog, not invented thresholds, so they are safe
-  // to apply today.
+  // Which products to report on.
+  //
+  // With a usable ruleset, the answer is "every product the rules have an
+  // opinion about" — matched or blocked — regardless of the track the applicant
+  // chose. Someone who came in asking about equipment should still be told a
+  // line of credit may be open to them; narrowing to the goal's track was
+  // hiding exactly the cross-sell the prequal exists to surface.
+  //
+  // Without a usable ruleset there are no opinions to report, so the old
+  // behaviour stands: show the goal's track and send all of it to review.
   // ---------------------------------------------------------------------------
-  const trackCandidates = input.track
-    ? candidates.filter((c) => c.track === input.track)
-    : candidates;
+  const consideredCandidates = hasUsableRules
+    ? candidates.filter(
+        (c) => matchedSlugs.has(c.slug) || blockersBySlug.has(c.slug),
+      )
+    : input.track
+      ? candidates.filter((c) => c.track === input.track)
+      : candidates;
 
   const productMatches: ProductMatch[] = [];
 
-  for (const candidate of trackCandidates) {
+  for (const candidate of consideredCandidates) {
     if (excludedSlugs.has(candidate.slug)) continue;
 
     const reasons = reasonsBySlug.get(candidate.slug) ?? [];
+    const blockers = blockersBySlug.get(candidate.slug) ?? [];
     let disqualified = false;
 
     // Requested amount outside a *verified* program range is a real signal.
@@ -136,30 +174,77 @@ export function evaluate(
 
     if (disqualified) continue;
 
-    const confidence: ProductMatch["confidence"] =
-      matchedSlugs.has(candidate.slug) && !forceReview
-        ? "potential_match"
+    const matchedThis = matchedSlugs.has(candidate.slug);
+
+    // Three states, not two. A product the rules explicitly ruled out is not
+    // the same as one they were inconclusive about, and telling the applicant
+    // *why* something is closed to them is the difference between a useful
+    // result and a list they can't act on.
+    const confidence: ProductMatch["confidence"] = matchedThis
+      ? forceReview
+        ? "requires_review"
+        : "potential_match"
+      : blockers.length > 0
+        ? "not_eligible"
         : "requires_review";
+
+    const sizing = sizingBySlug.get(candidate.slug) ?? null;
+    const estimate =
+      matchedThis && sizing
+        ? sizeFromRevenue(sizing, input.avgMonthlyRevenue, candidate)
+        : null;
+
+    if (estimate?.cappedByCatalog) {
+      rulesEvaluated.push({
+        ruleId: `__estimate_capped__${candidate.slug}`,
+        description: `Estimated maximum for ${candidate.name} reduced to the catalog maximum`,
+        matched: true,
+        detail: `Modelled ${estimate.rawMax} exceeded catalog maximum ${candidate.amountMax}; reported the lower figure.`,
+      });
+    }
 
     productMatches.push({
       productSlug: candidate.slug,
       productName: candidate.name,
       confidence,
       reasons,
+      blockers,
+      alignsWithGoal: input.track != null && candidate.track === input.track,
       // Never surface a number that hasn't been confirmed.
       indicativeAmountMin: candidate.termsVerified ? candidate.amountMin : null,
       indicativeAmountMax: candidate.termsVerified ? candidate.amountMax : null,
+      // Modelled, not quoted. Kept separate from the indicative fields above.
+      estimatedAmountMin: estimate?.min ?? null,
+      estimatedAmountMax: estimate?.max ?? null,
+      estimateBasis: estimate ? "monthly_revenue_multiple" : null,
+      estimateCappedByCatalog: estimate?.cappedByCatalog ?? false,
     });
   }
+
+  // Products the applicant can act on come first; within each group, the ones
+  // matching the goal they actually chose lead.
+  const CONFIDENCE_RANK = {
+    potential_match: 0,
+    requires_review: 1,
+    not_eligible: 2,
+  } as const;
+
+  productMatches.sort((a, b) => {
+    const byConfidence =
+      CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence];
+    if (byConfidence !== 0) return byConfidence;
+    if (a.alignsWithGoal !== b.alignsWithGoal) return a.alignsWithGoal ? -1 : 1;
+    return (b.estimatedAmountMax ?? 0) - (a.estimatedAmountMax ?? 0);
+  });
 
   // ---------------------------------------------------------------------------
   // Missing information the engine can detect on its own.
   // ---------------------------------------------------------------------------
   if (!input.requestedAmount) missingInformation.add("requested_amount");
   if (!input.timeInBusiness) missingInformation.add("time_in_business");
-  if (!input.revenueBand) missingInformation.add("revenue_band");
-  if (!input.creditBand || input.creditBand === "unknown") {
-    missingInformation.add("credit_band");
+  if (input.creditScore == null) missingInformation.add("credit_score");
+  if (input.avgMonthlyRevenue == null) {
+    missingInformation.add("avg_monthly_revenue");
   }
 
   // ---------------------------------------------------------------------------
@@ -169,11 +254,22 @@ export function evaluate(
     (m) => m.confidence === "potential_match",
   );
 
+  const actionable = productMatches.filter((m) => m.confidence !== "not_eligible");
+
+  // Without these two we cannot gate eligibility or size a range, so nothing the
+  // engine produced means anything. This is checked BEFORE the empty-shortlist
+  // case: an applicant who withheld their credit score has not been declined,
+  // and "no match identified" would read as though they had been.
+  const missingEssential =
+    input.creditScore == null || input.avgMonthlyRevenue == null;
+
   let outcome: QualificationOutput["outcome"];
-  if (productMatches.length === 0) {
-    outcome = "no_match_identified";
+  if (missingEssential) {
+    outcome = "insufficient_information";
   } else if (confirmedMatches.length > 0) {
     outcome = "potential_match";
+  } else if (actionable.length === 0) {
+    outcome = "no_match_identified";
   } else if (missingInformation.size > 2) {
     outcome = "insufficient_information";
   } else {
@@ -181,7 +277,8 @@ export function evaluate(
   }
 
   // A specialist reviews everything in v1. This stays true until the rules are
-  // real and have been observed against actual outcomes.
+  // real and have been observed against actual outcomes. It is not conditional
+  // and must not become conditional without Robert and a compliance review.
   const reviewRequired = true;
 
   const verifiedMatches = productMatches.filter(
@@ -197,12 +294,72 @@ export function evaluate(
     indicativeAmountMax: maxOrNull(
       verifiedMatches.map((m) => m.indicativeAmountMax),
     ),
+    // Headline figure. Drawn only from products the rules actually supported,
+    // so a "not eligible" product can never inflate it.
+    maxEstimatedAmount: maxOrNull(
+      confirmedMatches.map((m) => m.estimatedAmountMax),
+    ),
     missingInformation: [...missingInformation],
     riskFlags: [...riskFlags],
     reviewRequired,
     rulesEvaluated,
     rulesetVersion,
     engineVersion: ENGINE_VERSION,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Range sizing
+// -----------------------------------------------------------------------------
+
+/**
+ * Turns a revenue multiple into a dollar range.
+ *
+ * Capped at the catalog maximum where one exists. The catalog figures are
+ * themselves unverified, but a result that offers more than the product's own
+ * stated ceiling is incoherent on its face, and erring low is the safer
+ * direction to err in when the number is going in front of a borrower.
+ *
+ * Rounded to the nearest hundred so the output reads as an estimate rather than
+ * a computation — $69,000, not $68,999.97.
+ */
+function sizeFromRevenue(
+  sizing: RevenueMultipleSizing,
+  avgMonthlyRevenue: number | null | undefined,
+  candidate: CandidateProduct,
+): {
+  min: number;
+  max: number;
+  rawMax: number;
+  cappedByCatalog: boolean;
+} | null {
+  if (
+    avgMonthlyRevenue == null ||
+    !Number.isFinite(avgMonthlyRevenue) ||
+    avgMonthlyRevenue <= 0
+  ) {
+    return null;
+  }
+
+  const round = (n: number) => Math.round(n / 100) * 100;
+
+  const rawMin = avgMonthlyRevenue * sizing.minMultiple;
+  const rawMax = avgMonthlyRevenue * sizing.maxMultiple;
+
+  const cappedByCatalog =
+    candidate.amountMax != null && rawMax > candidate.amountMax;
+
+  const cappedMax = cappedByCatalog ? candidate.amountMax! : rawMax;
+
+  // The cap can pull the maximum below the minimum. When it does, the range has
+  // collapsed and reporting it would be misleading, so report the cap alone.
+  const min = round(Math.min(rawMin, cappedMax));
+
+  return {
+    min,
+    max: round(cappedMax),
+    rawMax: round(rawMax),
+    cappedByCatalog,
   };
 }
 
@@ -337,10 +494,20 @@ function resolveField(field: string, input: QualificationInput): unknown {
       return input.revenueBand ?? null;
     case "credit_band":
       return input.creditBand ?? null;
+    case "credit_score":
+      return input.creditScore ?? null;
     case "time_in_business":
       return input.timeInBusiness ?? null;
     case "industry":
       return input.industry ?? null;
+    case "avg_monthly_revenue":
+      return input.avgMonthlyRevenue ?? null;
+    case "deposit_trend":
+      return input.depositTrend ?? null;
+    case "prior_default_status":
+      return input.priorDefaultStatus ?? null;
+    case "has_real_estate_asset":
+      return input.hasRealEstateAsset ?? false;
     default:
       return input.answers?.[field] ?? null;
   }

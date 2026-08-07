@@ -10,7 +10,10 @@ import type {
 } from "@/lib/qualification/types";
 import { findGoal } from "@/lib/products/goals";
 import type {
+  BusinessAssetType,
   CreditBand,
+  DepositTrend,
+  PriorDefaultStatus,
   ProductTrack,
   RevenueBand,
   TimeInBusinessBand,
@@ -42,6 +45,16 @@ const TIB_BANDS = new Set([
 const URGENCY_BANDS = new Set([
   "immediately", "within_30_days", "within_90_days", "just_exploring",
 ]);
+const DEPOSIT_TRENDS = new Set([
+  "consistent_growing", "declining", "seasonal_irregular",
+]);
+const PRIOR_DEFAULT_STATUSES = new Set([
+  "none", "discharged_resolved", "active_recent",
+]);
+const ASSET_TYPES = new Set([
+  "none", "real_estate", "equipment", "vehicles", "inventory", "receivables",
+  "other",
+]);
 
 function pick<T extends string>(
   value: FormDataEntryValue | null,
@@ -49,6 +62,36 @@ function pick<T extends string>(
 ): T | null {
   const raw = typeof value === "string" ? value.trim() : "";
   return raw && allowed.has(raw) ? (raw as T) : null;
+}
+
+/**
+ * Currency and number fields, parsed defensively.
+ *
+ * Strips formatting the applicant may have typed ("$138,000") and rejects
+ * anything that isn't a finite non-negative number. Returns null rather than
+ * 0 for absent input — 0 is a meaningful answer for a debt balance and must not
+ * be manufactured from a blank field.
+ */
+function parseAmount(value: FormDataEntryValue | null): number | null {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return null;
+  const parsed = Number(raw.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+/**
+ * Credit score, constrained to the FICO range.
+ *
+ * Out-of-range values are dropped rather than clamped: a 63 is far more likely
+ * to be a typo than a real 630, and silently promoting it would change which
+ * products the applicant is shown.
+ */
+function parseCreditScore(value: FormDataEntryValue | null): number | null {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return null;
+  const parsed = Number(raw.replace(/[^0-9]/g, ""));
+  if (!Number.isInteger(parsed)) return null;
+  return parsed >= 300 && parsed <= 850 ? parsed : null;
 }
 
 export async function submitPrequal(formData: FormData) {
@@ -60,6 +103,9 @@ export async function submitPrequal(formData: FormData) {
   const requestedAmount =
     Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : null;
 
+  // Retained for applications submitted before migration 0016 replaced the
+  // banded question with an exact score. New submissions leave this null and
+  // the database trigger derives the band from the score instead.
   const creditBand = pick<CreditBand>(
     formData.get("prequal_credit_band"), CREDIT_BANDS);
   const revenueBand = pick<RevenueBand>(
@@ -71,6 +117,32 @@ export async function submitPrequal(formData: FormData) {
 
   const industryRaw = String(formData.get("prequal_industry") ?? "").trim();
   const industry = industryRaw ? industryRaw.slice(0, 120) : null;
+
+  // --- Business profile -------------------------------------------------------
+  const legalNameRaw = String(
+    formData.get("prequal_legal_business_name") ?? "").trim();
+  const legalBusinessName = legalNameRaw ? legalNameRaw.slice(0, 200) : null;
+  const creditScore = parseCreditScore(formData.get("prequal_credit_score"));
+
+  // --- Revenue ----------------------------------------------------------------
+  const avgMonthlyRevenue = parseAmount(
+    formData.get("prequal_avg_monthly_revenue"));
+  const depositTrend = pick<DepositTrend>(
+    formData.get("prequal_deposit_trend"), DEPOSIT_TRENDS);
+
+  // --- Existing obligations ---------------------------------------------------
+  const existingBalance = parseAmount(formData.get("prequal_existing_balance"));
+  const monthlyDebtPayments = parseAmount(
+    formData.get("prequal_monthly_debt_payments"));
+  const priorDefaultStatus = pick<PriorDefaultStatus>(
+    formData.get("prequal_prior_defaults"), PRIOR_DEFAULT_STATUSES);
+
+  // --- Current assets ---------------------------------------------------------
+  const assetType = pick<BusinessAssetType>(
+    formData.get("prequal_asset_type"), ASSET_TYPES);
+  const assetValue = parseAmount(formData.get("prequal_asset_value"));
+  const assetDebt = parseAmount(formData.get("prequal_asset_debt"));
+  const hasRealEstateAsset = assetType === "real_estate";
 
   // Reported by the browser. Validated rather than trusted — this arrives from
   // the client, so a bad value should be dropped, not stored.
@@ -101,10 +173,27 @@ export async function submitPrequal(formData: FormData) {
       track,
       requested_amount: requestedAmount,
       credit_band: creditBand,
+      owner_credit_score: creditScore,
       revenue_band: revenueBand,
       time_in_business: timeInBusiness,
       urgency,
       industry,
+      avg_monthly_revenue: avgMonthlyRevenue,
+      deposit_trend: depositTrend,
+      existing_debt_balance: existingBalance,
+      total_monthly_debt_payments: monthlyDebtPayments,
+      prior_default_status: priorDefaultStatus,
+      // Derived rather than asked twice: the applicant already told us their
+      // prior-default status, so re-asking "any bankruptcies?" on the full
+      // application would be a second chance to contradict themselves.
+      has_bankruptcy:
+        priorDefaultStatus == null ? null : priorDefaultStatus !== "none",
+      bankruptcy_discharged:
+        priorDefaultStatus == null
+          ? null
+          : priorDefaultStatus === "discharged_resolved",
+      has_existing_mca:
+        existingBalance == null ? null : existingBalance > 0,
       applicant_timezone: applicantTimezone,
       applicant_utc_offset_minutes: applicantOffset,
       status: "draft",
@@ -118,14 +207,36 @@ export async function submitPrequal(formData: FormData) {
     throw new Error("Could not start your application. Please try again.");
   }
 
+  // The asset row is only worth writing when something was actually offered.
+  // "none" is a real answer, but it does not describe an asset, so it belongs
+  // on the application rather than in a table of assets.
+  if (assetType && assetType !== "none") {
+    await supabase.from("business_assets").insert({
+      application_id: application.id,
+      asset_type: assetType,
+      estimated_value: assetValue,
+      debt_owed: assetDebt,
+      position: 1,
+    });
+  }
+
   // Store the raw answers too, so the dynamic engine has them keyed by question.
   const answers = [
     ["prequal_requested_amount", requestedAmount],
-    ["prequal_credit_band", creditBand],
+    ["prequal_legal_business_name", legalBusinessName],
+    ["prequal_credit_score", creditScore],
     ["prequal_revenue_band", revenueBand],
     ["prequal_time_in_business", timeInBusiness],
     ["prequal_urgency", urgency],
     ["prequal_industry", industry],
+    ["prequal_avg_monthly_revenue", avgMonthlyRevenue],
+    ["prequal_deposit_trend", depositTrend],
+    ["prequal_existing_balance", existingBalance],
+    ["prequal_monthly_debt_payments", monthlyDebtPayments],
+    ["prequal_prior_defaults", priorDefaultStatus],
+    ["prequal_asset_type", assetType],
+    ["prequal_asset_value", assetValue],
+    ["prequal_asset_debt", assetDebt],
   ] as const;
 
   await supabase.from("application_answers").insert(
@@ -160,20 +271,25 @@ export async function submitPrequal(formData: FormData) {
   let ruleset: Ruleset | null = null;
   let rulesetVersion: number | null = null;
 
-  if (track) {
-    const { data: rulesetRow } = await supabase
-      .from("qualification_rulesets")
-      .select("ruleset, version")
-      .eq("track", track)
-      .eq("is_active", true)
-      .order("version", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  // The v2 ruleset is universal — the same rules are written to every track,
+  // because eligibility is a property of the product, not of the goal the
+  // applicant happened to click. The track only decides which row we read, so
+  // an applicant who picked "I'm not sure" (track null) still gets rules rather
+  // than falling through to a blanket review.
+  const rulesetTrack: ProductTrack = track ?? "working_capital";
 
-    if (rulesetRow) {
-      ruleset = rulesetRow.ruleset as unknown as Ruleset;
-      rulesetVersion = rulesetRow.version;
-    }
+  const { data: rulesetRow } = await supabase
+    .from("qualification_rulesets")
+    .select("ruleset, version")
+    .eq("track", rulesetTrack)
+    .eq("is_active", true)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (rulesetRow) {
+    ruleset = rulesetRow.ruleset as unknown as Ruleset;
+    rulesetVersion = rulesetRow.version;
   }
 
   const input: QualificationInput = {
@@ -182,8 +298,13 @@ export async function submitPrequal(formData: FormData) {
     requestedAmount,
     revenueBand,
     creditBand,
+    creditScore,
     timeInBusiness,
     industry,
+    avgMonthlyRevenue,
+    depositTrend,
+    priorDefaultStatus,
+    hasRealEstateAsset,
   };
 
   const result = evaluate(input, candidates, ruleset, rulesetVersion);
