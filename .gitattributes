@@ -1,0 +1,28 @@
+# Normalize line endings.
+#
+# Without this, a Windows editor rewriting a file with CRLF makes git report
+# every line as changed. That produced an 18-file, 9,186-line phantom diff with
+# zero actual content changes, and would turn any merge into a conflict on
+# every line of every file.
+#
+# text=auto: git normalizes to LF in the repository.
+# eol=lf:    checkouts stay LF on every platform, including Windows.
+#            Modern Windows tooling handles LF fine, and pinning it means the
+#            repo looks identical to everyone regardless of editor.
+* text=auto eol=lf
+
+# Binary — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.mp4 binary
+*.webm binary
+*.woff binary
+*.woff2 binary
