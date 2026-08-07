@@ -162,6 +162,72 @@ export type ProfileRow = {
   updated_at: string;
 }
 
+export type EntityType =
+  | "sole_proprietorship" | "partnership" | "llc" | "s_corp"
+  | "c_corp" | "nonprofit" | "trust" | "other";
+
+export type BusinessRow = {
+  id: string;
+  owner_profile_id: string | null;
+  legal_name: string;
+  dba: string | null;
+  entity_type: EntityType | null;
+  state_of_incorporation: string | null;
+  /** Last four only. The full Tax ID is a signer field on the executed document. */
+  ein_last4: string | null;
+  business_start_date: string | null;
+  industry: string | null;
+  naics_code: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string;
+  billing_same_as_physical: boolean;
+  billing_address_line1: string | null;
+  billing_address_line2: string | null;
+  billing_city: string | null;
+  billing_state: string | null;
+  billing_postal_code: string | null;
+  phone: string | null;
+  preferred_contact_phone: string | null;
+  email: string | null;
+  website: string | null;
+  premises_status: string | null;
+  premises_monthly_payment: number | null;
+  landlord_name: string | null;
+  landlord_phone: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type ApplicationOwnerRow = {
+  id: string;
+  application_id: string;
+  full_name: string;
+  first_name: string | null;
+  last_name: string | null;
+  title: string | null;
+  ownership_pct: number | null;
+  /** Last four only. The full SSN is a signer field on the executed document. */
+  ssn_last4: string | null;
+  date_of_birth: string | null;
+  home_address_line1: string | null;
+  home_address_line2: string | null;
+  home_city: string | null;
+  home_state: string | null;
+  home_postal_code: string | null;
+  home_phone: string | null;
+  mobile_phone: string | null;
+  email: string | null;
+  credit_band: CreditBand | null;
+  is_primary: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ApplicationRow = {
   id: string;
   /** Sequential and human-readable. For staff use — never put this in a URL. */
@@ -191,6 +257,9 @@ export type ApplicationRow = {
   has_open_judgments_or_liens: boolean | null;
   has_bankruptcy: boolean | null;
   bankruptcy_discharged: boolean | null;
+  credit_card_processor: string | null;
+  judgment_lien_balance: number | null;
+  bankruptcy_year: number | null;
   status: ApplicationStatus;
   assigned_to: string | null;
   source: string | null;
@@ -304,6 +373,19 @@ export type ApplicationAnswerRow = {
   updated_at: string;
 }
 
+export type ExistingDebtRow = {
+  id: string;
+  application_id: string;
+  lender_name: string;
+  balance: number | null;
+  monthly_payment: number | null;
+  original_amount: number | null;
+  debt_type: string | null;
+  position: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type CrmNoteRow = {
   id: string;
   application_id: string;
@@ -379,6 +461,8 @@ export type Database = {
       financing_products: Table<FinancingProductRow>;
       profiles: Table<ProfileRow>;
       applications: Table<ApplicationRow>;
+      businesses: Table<BusinessRow>;
+      application_owners: Table<ApplicationOwnerRow>;
       qualification_results: Table<QualificationResultRow>;
       qualification_rulesets: Table<QualificationRulesetRow>;
       document_type_definitions: Table<DocumentTypeDefinitionRow>;
@@ -386,6 +470,7 @@ export type Database = {
       question_options: Table<QuestionOptionRow>;
       question_rules: Table<QuestionRuleRow>;
       application_answers: Table<ApplicationAnswerRow>;
+      existing_debts: Table<ExistingDebtRow>;
       crm_notes: Table<CrmNoteRow>;
       crm_tasks: Table<CrmTaskRow>;
       application_status_history: Table<ApplicationStatusHistoryRow>;
