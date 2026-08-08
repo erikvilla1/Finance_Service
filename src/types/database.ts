@@ -257,6 +257,13 @@ export type ApplicationRow = {
   has_open_judgments_or_liens: boolean | null;
   has_bankruptcy: boolean | null;
   bankruptcy_discharged: boolean | null;
+  /** Added by the prequal. credit_band is derived from this by a DB trigger. */
+  owner_credit_score: number | null;
+  avg_monthly_revenue: number | null;
+  deposit_trend: string | null;
+  total_monthly_debt_payments: number | null;
+  prior_default_status: string | null;
+  submission_token: string | null;
   credit_card_processor: string | null;
   judgment_lien_balance: number | null;
   bankruptcy_year: number | null;
