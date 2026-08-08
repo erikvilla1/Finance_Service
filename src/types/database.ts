@@ -387,6 +387,30 @@ export type ApplicationStatusHistoryRow = {
   created_at: string;
 }
 
+/**
+ * One document the applicant has been asked for.
+ *
+ * Seeded from document_type_definitions when an application is claimed, then
+ * owned by staff — BUSINESS_CONTEXT §8 models the request/fulfil loop
+ * explicitly because the checklist is where deals currently die.
+ */
+export type DocumentRequestRow = {
+  id: string;
+  application_id: string;
+  document_type_key: string;
+  is_required: boolean;
+  status: DocumentStatus;
+  instructions: string | null;
+  requested_by: string | null;
+  requested_at: string;
+  due_date: string | null;
+  reminder_count: number;
+  last_reminder_at: string | null;
+  satisfied_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type DocumentTypeDefinitionRow = {
   id: string;
   key: string;
@@ -432,6 +456,7 @@ export type Database = {
       qualification_results: Table<QualificationResultRow>;
       qualification_rulesets: Table<QualificationRulesetRow>;
       document_type_definitions: Table<DocumentTypeDefinitionRow>;
+      document_requests: Table<DocumentRequestRow>;
       application_questions: Table<ApplicationQuestionRow>;
       question_options: Table<QuestionOptionRow>;
       question_rules: Table<QuestionRuleRow>;

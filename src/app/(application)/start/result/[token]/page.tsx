@@ -100,25 +100,31 @@ export default async function ResultPage({
         <ProgressBar value={3} max={6} label="Your application" />
 
         {/* ------------------------------------------------------------------
-            Status first. The applicant just handed over their financials and
-            the question in their head is "did that work?" — answer it before
-            showing them anything to interpret.
+            Answer the question in their head — "did that work?" — without
+            overclaiming.
+
+            This page must NOT say an application has been created or that a
+            specialist is reviewing it. Neither is true here: the applicant
+            answered six questions and the engine ran. The row in `applications`
+            is a lead record, not something anyone has applied for.
+
+            It also must not tell them to sit tight. Every version of "you don't
+            need to do anything right now" argues against the CTA further down
+            the page, and the applicant will believe the reassurance over the
+            button.
         ------------------------------------------------------------------- */}
         <div className="mt-8 rounded-xl border border-success-200 bg-success-50 p-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge tone="success">Application created</Badge>
-            <Badge tone="warning">Pending specialist review</Badge>
-          </div>
+          <Badge tone="success">Prequalification complete</Badge>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
-            Your application form has been created
+            Here&apos;s what you could qualify for
           </h1>
           <p className="mt-3 leading-relaxed text-ink-700">
-            It&apos;s now with a financing specialist for review. You don&apos;t
-            need to do anything else right now — we&apos;ll reach out if we need
-            more from you.
+            Based on what you told us, these are the programs that look like a
+            fit. Nothing has been applied for yet — starting your application is
+            the next step, and you can do it below.
           </p>
           <p className="mt-4 font-mono text-sm text-ink-600">
-            Reference {application.reference_code}
+            Your reference: {application.reference_code}
           </p>
         </div>
 
@@ -300,17 +306,51 @@ export default async function ResultPage({
           </Card>
         )}
 
+        {/* ------------------------------------------------------------------
+            The conversion moment.
+
+            This sits directly under the figures, while the applicant is still
+            looking at what they might qualify for — that interest is the thing
+            being converted, and it decays with every screen. The disclosure
+            stays ABOVE the button so nobody clicks through without having
+            passed the caveat.
+        ------------------------------------------------------------------- */}
         <div className="mt-8">
           <IndicativeDisclosure />
+        </div>
+
+        <div className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-6">
+          <h2 className="text-xl font-bold tracking-tight text-ink-900">
+            Ready to move forward?
+          </h2>
+          <p className="mt-3 leading-relaxed text-ink-700">
+            Starting your application creates an account where you can upload
+            your documents, track where things stand, and pick up any time.
+          </p>
+
+          <div className="mt-5">
+            <ButtonLink
+              href={`/create-account?application=${token}`}
+              size="lg"
+              className="w-full sm:w-auto"
+            >
+              Start Application Now
+            </ButtonLink>
+          </div>
+
+          <p className="mt-4 text-sm leading-relaxed text-ink-600">
+            This doesn&apos;t submit an application for credit and doesn&apos;t
+            affect your credit score.
+          </p>
         </div>
 
         <div className="mt-8 border-t border-ink-200 pt-8">
           <h2 className="text-lg font-semibold text-ink-900">What happens next</h2>
           <ol className="mt-4 space-y-3">
             {[
-              "A financing specialist reviews what you've submitted.",
-              "We'll reach out if we need anything further to move forward.",
-              "If a program looks like a fit, we'll walk you through the next steps.",
+              "You start your application and create an account to keep track of it.",
+              "You send us your documents — we'll show you exactly what's needed.",
+              "A financing specialist reviews everything and walks you through the real options.",
             ].map((step, index) => (
               <li key={step} className="flex gap-3 text-sm leading-relaxed text-ink-600">
                 <span
