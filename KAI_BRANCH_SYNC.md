@@ -5,7 +5,7 @@ Context for whoever (human or Claude) is working from `Kai's-First-Branch`. Writ
 ## Repo / branch layout
 
 - `main` — integration branch.
-- `erik/phase-1` — Erik's active branch, currently ahead of `main` by 3 commits, pushed and clean.
+- `erik/phase-1` — Erik's active branch. Ahead of `main` by 8 commits as of 2026-08-07. **Not yet pushed at the time of writing** — check `git ls-remote origin` rather than trusting this line.
 - `Kai's-First-Branch` — Kai's branch.
 - No CI/CD is configured (no GitHub Actions workflow in the repo). Nothing runs automatically on push — merging is manual, and so is applying Supabase migrations.
 
@@ -22,7 +22,7 @@ As of the last commit visible on `Kai's-First-Branch` (`c7297be`, a merge of `ma
 
 ## Known collision risk: the `applications` table
 
-Erik added migration `0016_derive_credit_band_from_score.sql` — a trigger on `public.applications` that derives `credit_band` from `owner_credit_score`, plus a one-time backfill. It's already applied to the shared Supabase project (`crgvrzcifidcpfhazhxu`).
+Erik added migrations `0014`–`0017`, including `0016_derive_credit_band_from_score.sql` — a trigger on `public.applications` that derives `credit_band` from `owner_credit_score`, plus a one-time backfill. It's already applied to the shared Supabase project (`crgvrzcifidcpfhazhxu`).
 
 Kai's side has separately added columns to the same table: `avg_monthly_revenue`, `deposit_trend`, `total_monthly_debt_payments`, `prior_default_status`, `submission_token`. Different columns, so no direct SQL conflict expected — but:
 
@@ -51,3 +51,8 @@ Kai's side has separately added columns to the same table: `avg_monthly_revenue`
 - Has `Kai's-First-Branch` already been rebased onto current `main`? (This doc assumes not — correct if wrong.)
 - What migration number is Kai's `applications` schema change using?
 - Any other tables/files touched on both branches worth flagging before merge?
+
+
+---
+
+**See `CONTRIBUTING.md`** for the working agreement — branch flow, the rule that schema changes need a migration file, and the line-ending fix. It was written after this note and supersedes anything here that disagrees.
