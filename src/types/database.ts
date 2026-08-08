@@ -190,6 +190,13 @@ export type ApplicationRow = {
   reference_code: string;
   /** Unguessable. This is what anonymous result links use. */
   public_token: string;
+  /**
+   * Idempotency key minted per prequal form render (migration 0018). Unique
+   * where present, so resubmitting the same form resolves to the application
+   * that already exists instead of creating a second one. Null for applications
+   * not created through the public prequal form.
+   */
+  submission_token: string | null;
   profile_id: string | null;
   business_id: string | null;
   category_id: string | null;

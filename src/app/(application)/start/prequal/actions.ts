@@ -94,9 +94,21 @@ function parseCreditScore(value: FormDataEntryValue | null): number | null {
   return parsed >= 300 && parsed <= 850 ? parsed : null;
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Postgres unique_violation. Raised by applications_submission_token_idx. */
+const UNIQUE_VIOLATION = "23505";
+
 export async function submitPrequal(formData: FormData) {
   const goalSlug = String(formData.get("goal") ?? "");
   const goal = findGoal(goalSlug);
+
+  // Idempotency key minted by the page for this form render (migration 0018).
+  // Validated rather than trusted: it arrives from the client, and a malformed
+  // value must be dropped rather than sent to Postgres as a uuid.
+  const tokenRaw = String(formData.get("submission_token") ?? "").trim();
+  const submissionToken = UUID_PATTERN.test(tokenRaw) ? tokenRaw : null;
 
   const rawAmount = String(formData.get("prequal_requested_amount") ?? "").trim();
   const parsedAmount = Number(rawAmount.replace(/[^0-9.]/g, ""));
@@ -199,9 +211,38 @@ export async function submitPrequal(formData: FormData) {
       status: "draft",
       source: "website",
       channel: "prequal",
+      submission_token: submissionToken,
     })
     .select("id, public_token")
     .single();
+
+  // ---------------------------------------------------------------------------
+  // Duplicate submission.
+  //
+  // A unique violation on submission_token means this exact form render has
+  // already been submitted — the applicant clicked twice, the browser retried,
+  // or they came back and resubmitted. The first submission won and is already
+  // committed: Postgres blocks the second insert on the index until the first
+  // transaction commits, so by the time this error surfaces the row it conflicts
+  // with is readable.
+  //
+  // Send them to that application rather than surfacing an error. From where the
+  // applicant is standing, they asked for their options twice and got them —
+  // which is the correct outcome. Robert gets one lead instead of two.
+  // ---------------------------------------------------------------------------
+  if (insertError?.code === UNIQUE_VIOLATION && submissionToken) {
+    const { data: existing } = await supabase
+      .from("applications")
+      .select("public_token")
+      .eq("submission_token", submissionToken)
+      .maybeSingle();
+
+    // The result page tolerates a qualification_results row that has not landed
+    // yet — it renders the "a specialist will review this" state rather than
+    // failing — so redirecting here is safe even while the first request is
+    // still finishing its remaining writes.
+    if (existing) redirect(`/start/result/${existing.public_token}`);
+  }
 
   if (insertError || !application) {
     throw new Error("Could not start your application. Please try again.");

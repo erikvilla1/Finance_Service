@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import {
-  Button,
   Container,
   EmptyState,
   ProgressBar,
 } from "@/components/ui";
 import { QuestionField } from "@/components/application/question-field";
+import { SubmitButton } from "@/components/application/submit-button";
 import { TimezoneField } from "@/components/application/timezone-field";
 import { loadQuestions } from "@/lib/questions";
 import { findGoal } from "@/lib/products/goals";
@@ -43,6 +43,12 @@ export default async function PrequalPage({
 
   const questions = await loadQuestions(["prequal"], goal.likelyTrack);
 
+  // Idempotency key for this form render (migration 0018). Minted here rather
+  // than in the browser so it cannot be replayed or omitted by the client, and
+  // per render rather than per session so a deliberate second application —
+  // reloading the page and filling it in again — is still allowed through.
+  const submissionToken = crypto.randomUUID();
+
   return (
     <Container>
       <div className="mx-auto max-w-2xl">
@@ -71,6 +77,11 @@ export default async function PrequalPage({
         ) : (
           <form action={submitPrequal} className="mt-8 space-y-6">
             <input type="hidden" name="goal" value={goal.slug} />
+            <input
+              type="hidden"
+              name="submission_token"
+              value={submissionToken}
+            />
             <TimezoneField />
 
             {questions.map((question) => (
@@ -78,9 +89,7 @@ export default async function PrequalPage({
             ))}
 
             <div className="border-t border-ink-200 pt-6">
-              <Button type="submit" size="lg" className="w-full sm:w-auto">
-                See my financing options
-              </Button>
+              <SubmitButton>See my financing options</SubmitButton>
               <p className="mt-4 text-sm leading-relaxed text-ink-500">
                 Submitting this does not affect your credit and is not an
                 application for credit. A financing specialist reviews every
