@@ -153,3 +153,42 @@
     left: 0;
   }
 }
+
+/* =============================================================================
+   PRINT
+   The funding application is a real document that goes to a lender, so the
+   application chrome must not appear on paper. Backgrounds are forced to print
+   because form field rules are otherwise dropped by default browser settings.
+   ========================================================================== */
+@media print {
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
+
+  header:not(.print-page header),
+  footer:not(.print-page footer),
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .print-page {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* Keep a section and its fields on the same sheet where possible. */
+  .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
