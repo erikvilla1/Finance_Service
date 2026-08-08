@@ -294,13 +294,12 @@ export type ApplicationRow = {
   has_open_judgments_or_liens: boolean | null;
   has_bankruptcy: boolean | null;
   bankruptcy_discharged: boolean | null;
-  /** Added by the prequal. credit_band is derived from this by a DB trigger. */
-  owner_credit_score: number | null;
-  avg_monthly_revenue: number | null;
-  deposit_trend: string | null;
-  total_monthly_debt_payments: number | null;
-  prior_default_status: string | null;
-  submission_token: string | null;
+  // NOTE: owner_credit_score, avg_monthly_revenue, deposit_trend,
+  // total_monthly_debt_payments, prior_default_status and submission_token were
+  // declared a second time here by the merge — both branches added them. The
+  // duplicates were removed rather than the originals above: deposit_trend and
+  // prior_default_status are Postgres enums, and the second set typed them as
+  // plain strings, which would have let any string past the compiler.
   credit_card_processor: string | null;
   judgment_lien_balance: number | null;
   bankruptcy_year: number | null;
