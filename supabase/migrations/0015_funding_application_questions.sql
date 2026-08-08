@@ -1,3 +1,12 @@
+-- =============================================================================
+-- 0015 — QUESTIONS FOR THE NEW FUNDING APPLICATION FIELDS
+--
+-- Configuration, not code (spec §9). Each new column from 0014 gets a question,
+-- and the conditional ones only surface when they are actually relevant — the
+-- form should never ask a business that owns its premises outright for a
+-- landlord's phone number.
+-- =============================================================================
+
 insert into public.application_questions
   (key, module, track, label, help_text, question_type, is_required, is_pii, sort_order, validation) values
 ('business_preferred_contact_phone','core_business',null,'Preferred contact phone','The best number to reach you on.','phone',false,false,205,'{}'),
@@ -9,7 +18,6 @@ insert into public.application_questions
 ('owner_first_name','owner',null,'First name',null,'text',true,true,401,'{}'),
 ('owner_last_name','owner',null,'Last name',null,'text',true,true,402,'{}');
 
--- Landlord details are only relevant when the premises are not owned outright.
 insert into public.question_rules (name, description, conditions, effect, priority) values
 ('landlord_details_followup',
  'Ask for landlord details only when the premises are rented or mortgaged',
@@ -31,8 +39,8 @@ insert into public.question_rules (name, description, conditions, effect, priori
  '{"all":[{"key":"fin_avg_monthly_card_volume","op":"is_present"}]}',
  '{"show_questions":["fin_credit_card_processor"]}', 10);
 
--- The owner full_name question is superseded by first/last, which is what the
--- funding application actually asks for.
+-- Superseded by first/last, which is what the funding application asks for.
+-- Deactivated rather than deleted so existing answers keep their question link.
 update public.application_questions
    set is_active = false
  where key = 'owner_full_name';

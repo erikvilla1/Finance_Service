@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import {
   Badge,
   Button,
+  ButtonLink,
   Card,
   Container,
-  EmptyState,
+  ProgressBar,
   Select,
   Textarea,
 } from "@/components/ui";
@@ -25,6 +26,8 @@ import {
   isReasonableCallingHour,
   statusTone,
 } from "@/lib/crm";
+import { assessCompleteness } from "@/lib/funding-application/completeness";
+import { loadFundingApplication } from "@/lib/funding-application/load";
 import { addNote, assignToMe, updateStatus } from "./actions";
 
 export const metadata: Metadata = {
@@ -83,6 +86,13 @@ export default async function ApplicationDetailPage({
         .order("created_at", { ascending: false }),
     ]);
 
+  const fundingData = await loadFundingApplication(id);
+  const completeness = assessCompleteness(
+    fundingData?.context ?? {
+      application: null, business: null, owners: [], answers: {}, debtCount: 0,
+    },
+  );
+
   const matches = (result?.product_matches ?? []) as unknown as ProductMatch[];
   const rulesEvaluated = (result?.rules_evaluated ?? []) as unknown as {
     ruleId: string;
@@ -122,6 +132,80 @@ export default async function ApplicationDetailPage({
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* ------------------------------------------------------- MAIN */}
         <div className="space-y-6 lg:col-span-2">
+          {/*
+            Lender package readiness. This is the screen that replaces reading a
+            form looking for blanks (BUSINESS_CONTEXT §3) — it names what is
+            missing, and lists the signer-collected fields separately so they
+            read as accounted for rather than absent.
+          */}
+          <Card>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-ink-900">
+                  Lender package
+                </h2>
+                <p className="mt-1 text-sm text-ink-600">
+                  {completeness.requiredPresent} of {completeness.requiredTotal}{" "}
+                  required fields complete
+                </p>
+              </div>
+              <Badge tone={completeness.readyToSend ? "success" : "warning"}>
+                {completeness.readyToSend ? "Ready to send" : "Incomplete"}
+              </Badge>
+            </div>
+
+            <div className="mt-4">
+              <ProgressBar
+                value={completeness.requiredPresent}
+                max={completeness.requiredTotal}
+                label="Application completeness"
+              />
+            </div>
+
+            {completeness.missingBySection.length > 0 && (
+              <div className="mt-5 space-y-3 border-t border-ink-100 pt-4">
+                {completeness.missingBySection.map((group) => (
+                  <div key={group.section}>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+                      {group.label}
+                    </h3>
+                    <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                      {group.fields.map((field) => (
+                        <li key={field.key} className="text-sm text-ink-800">
+                          {field.formLabel}
+                          {field.conditional && (
+                            <span className="ml-1 text-xs text-ink-400">
+                              (needed for this file)
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {completeness.collectedAtSigning.length > 0 && (
+              <p className="mt-5 rounded-lg bg-ink-50 p-3 text-sm leading-relaxed text-ink-600">
+                Collected at signing, not stored here:{" "}
+                {completeness.collectedAtSigning
+                  .map((f) => f.formLabel)
+                  .join(", ")}
+                .
+              </p>
+            )}
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <ButtonLink
+                href={`/admin/applications/${application.id}/print`}
+                size="sm"
+              >
+                Open funding application
+              </ButtonLink>
+            </div>
+          </Card>
+
           <Card>
             <h2 className="text-base font-semibold text-ink-900">
               What they told us

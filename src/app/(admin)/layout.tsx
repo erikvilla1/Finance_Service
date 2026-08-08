@@ -47,9 +47,30 @@ export default async function AdminLayout({
                   FLS
                 </span>
                 <span className="text-sm font-semibold text-ink-900">
-                  Pipeline
+                  Financial Lending Specialists
                 </span>
               </Link>
+
+              <nav aria-label="Admin">
+                <ul className="flex items-center gap-5">
+                  <li>
+                    <Link
+                      href="/admin"
+                      className="text-sm font-medium text-ink-600 hover:text-brand-700"
+                    >
+                      Pipeline
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/admin/overview"
+                      className="text-sm font-medium text-ink-600 hover:text-brand-700"
+                    >
+                      Overview
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
             </div>
 
             <div className="flex items-center gap-4">
