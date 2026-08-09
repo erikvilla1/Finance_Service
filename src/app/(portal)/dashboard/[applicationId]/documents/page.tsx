@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   Badge,
   Card,
@@ -36,10 +36,17 @@ export const metadata: Metadata = {
  * reads as "send another copy", because a crooked scan is not a rejection and
  * "rejected" is on the forbidden list in customer-status.ts for a reason.
  *
- * There is no ownership check in this file. RLS scopes both queries to
- * applications the caller owns, so a guessed id returns nothing and falls
- * through to notFound() — which is also the honest answer, since "this exists
- * but isn't yours" is itself a disclosure.
+ * THE OWNERSHIP CHECK IS THE profile_id FILTER, and it has to be here rather
+ * than left to RLS. The applications policy is `profile_id = auth.uid() or
+ * public.is_staff()`, which would let a specialist open an applicant's portal
+ * page — a view written entirely in customer vocabulary, showing customer-facing
+ * wording for decisions the specialist made themselves. /admin is where staff
+ * read other people's files.
+ *
+ * A guessed id therefore returns nothing and falls through to notFound(), which
+ * is also the honest answer: "this exists but isn't yours" is itself a
+ * disclosure. Everything after this gate is scoped by application id, so this
+ * one query is what stands between a URL and someone else's paperwork.
  */
 export default async function DocumentsPage({
   params,
@@ -49,10 +56,17 @@ export default async function DocumentsPage({
   const { applicationId } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/sign-in?next=/dashboard");
+
   const { data: application } = await supabase
     .from("applications")
     .select("id, reference_code, financing_goal")
     .eq("id", applicationId)
+    .eq("profile_id", user.id)
     .is("deleted_at", null)
     .maybeSingle();
 
