@@ -14,6 +14,7 @@ import {
   customerStatus,
 } from "@/lib/customer-status";
 import { formatCurrency, formatDate } from "@/lib/crm";
+import { loadOutstandingCounts } from "@/lib/documents/checklist";
 
 export const metadata: Metadata = {
   title: "Your applications",
@@ -42,6 +43,14 @@ export default async function DashboardPage() {
 
   const list = applications ?? [];
 
+  // One query for every card rather than one per card. The dashboard is the
+  // first thing someone sees after signing in, and it is the only place the
+  // outstanding count appears before they have decided to go looking for it.
+  const outstandingByApplication = await loadOutstandingCounts(
+    supabase,
+    list.map((application) => application.id),
+  );
+
   return (
     <Container>
       <div className="mx-auto max-w-3xl">
@@ -61,6 +70,8 @@ export default async function DashboardPage() {
           <ul className="mt-8 space-y-5">
             {list.map((application) => {
               const view = customerStatus(application.status);
+              const outstanding =
+                outstandingByApplication.get(application.id) ?? 0;
 
               return (
                 <Card as="li" key={application.id}>
@@ -114,20 +125,39 @@ export default async function DashboardPage() {
                     {view.description}
                   </p>
 
-                  {view.actionNeeded && (
+                  {/* The checklist and the pipeline stage can disagree — a
+                      specialist can request a document without moving the file,
+                      and a stage can advance while an item is still open. The
+                      checklist is the concrete one, so it wins the wording and
+                      the stage only widens when the box appears. */}
+                  {(outstanding > 0 || view.actionNeeded) && (
                     <div className="mt-5 rounded-lg bg-warning-50 p-4">
                       <p className="text-sm font-semibold text-warning-700">
-                        Something needs your attention
+                        {outstanding === 0
+                          ? "Something needs your attention"
+                          : outstanding === 1
+                            ? "One document still to send"
+                            : `${outstanding} documents still to send`}
                       </p>
                       <p className="mt-1 text-sm leading-relaxed text-ink-700">
-                        Your document checklist will appear here. Uploading is
-                        not built yet — your specialist will reach out in the
-                        meantime.
+                        {outstanding === 0
+                          ? "Your specialist will be in touch about what's needed."
+                          : "Sending these is usually what moves a file forward fastest."}
                       </p>
+                      {outstanding > 0 && (
+                        <div className="mt-3">
+                          <ButtonLink
+                            href={`/dashboard/${application.id}/documents`}
+                            size="sm"
+                          >
+                            Send documents
+                          </ButtonLink>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div className="mt-5 border-t border-ink-100 pt-4">
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-ink-100 pt-4">
                     <p className="text-sm text-ink-600">
                       Questions about this application?{" "}
                       <Link
@@ -137,6 +167,12 @@ export default async function DashboardPage() {
                         Talk with your specialist
                       </Link>
                     </p>
+                    <Link
+                      href={`/dashboard/${application.id}/documents`}
+                      className="text-sm font-semibold text-brand-700 hover:underline"
+                    >
+                      Your documents
+                    </Link>
                   </div>
                 </Card>
               );

@@ -499,6 +499,38 @@ export type DocumentRequestRow = {
   updated_at: string;
 }
 
+/**
+ * One file the applicant actually sent.
+ *
+ * storage_path is a path inside the private `application-documents` bucket, and
+ * never a URL — spec §23 requires signed, time-limited access, so a URL held on
+ * a row would either be permanently valid or already expired. The first path
+ * segment is the application id, which is what the storage RLS policy in 0005
+ * matches on.
+ *
+ * Several documents can hang off one request: a rejected first attempt, its
+ * replacement, a specialist's own copy. The request's own status is derived from
+ * them by the trigger in 0021 rather than set by whoever uploaded last.
+ */
+export type DocumentRow = {
+  id: string;
+  application_id: string;
+  document_request_id: string | null;
+  document_type_key: string | null;
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  uploaded_by: string | null;
+  status: DocumentStatus;
+  verification_note: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export type DocumentTypeDefinitionRow = {
   id: string;
   key: string;
@@ -547,6 +579,7 @@ export type Database = {
       qualification_rulesets: Table<QualificationRulesetRow>;
       document_type_definitions: Table<DocumentTypeDefinitionRow>;
       document_requests: Table<DocumentRequestRow>;
+      documents: Table<DocumentRow>;
       application_questions: Table<ApplicationQuestionRow>;
       question_options: Table<QuestionOptionRow>;
       question_rules: Table<QuestionRuleRow>;
@@ -558,7 +591,18 @@ export type Database = {
       application_status_history: Table<ApplicationStatusHistoryRow>;
     };
     Views: EmptyMap;
-    Functions: EmptyMap;
+    Functions: {
+      /**
+       * Retract an upload that is still awaiting review. Defined in migration
+       * 0021 and callable by design — it is the only write customers have on
+       * public.documents beyond the initial insert, and it authorises itself
+       * against auth.uid() rather than trusting the caller.
+       */
+      withdraw_document: {
+        Args: { document_id: string };
+        Returns: boolean;
+      };
+    };
     Enums: {
       product_track: ProductTrack;
       application_status: ApplicationStatus;
