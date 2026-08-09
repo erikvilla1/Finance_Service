@@ -50,8 +50,11 @@ export interface QuestionStep {
 const MODULE_META: Record<string, { title: string; description?: string }> = {
   prequal: {
     title: "Your situation",
+    // Deliberately uncounted. Migration 0016 took this module from six questions
+    // to fifteen and this line went on saying six; the prequal page counts its
+    // own required fields at render instead, which cannot go stale.
     description:
-      "Six quick questions. No documents, and nothing that affects your credit.",
+      "A few quick questions. No documents, and nothing that affects your credit.",
   },
   core_business: {
     title: "About your business",
