@@ -121,8 +121,31 @@ be two sources of truth for what an applicant is asked for. Read from
 `document_type_definitions` at render time, or a specialist's edits to a
 request will be invisible.
 
-### Still missing for uploads
+### Uploads — built
 
-Storage RLS policies on the private `application-documents` bucket, signed-URL
-generation, and the `documents` row write. The bucket exists and the
-`documents` **table** has RLS policies; the storage **object** policies do not.
+All three items previously listed here as missing exist. The storage object
+policies were in `0005` all along (four of them, keyed on the first path
+segment of the object name); signed-URL generation is
+`src/lib/documents/links.ts`; the `documents` row write is the `recordUpload`
+action under `(portal)/dashboard/[applicationId]/documents`.
+
+The file goes **browser → storage directly**, not through a Server Action.
+Action bodies cap at 1MB and the bucket accepts 25MB, so the alternative was
+streaming bank statements through the Next server or rejecting most real
+documents. The action records the row afterwards.
+
+`document_requests.status` is **derived, not written**. Migration `0021`
+recomputes it from the documents attached to the request. Nothing in the
+application should set that column by hand — the one exception is waiving,
+which is a decision about the request rather than a fact about any document.
+
+### Still outstanding
+
+- **Notification email.** Nothing tells the applicant a document was requested,
+  and nothing tells a specialist one arrived. Today an upload is silent.
+  `RESEND_API_KEY` is a commented placeholder in `.env.example`; there is no
+  send path anywhere in the code. Separate from Supabase's auth mail above.
+- **E-signature.** `signed_application` is currently an ordinary checklist row
+  — print, sign, scan, upload. BUSINESS_CONTEXT §8 notes Robert already pays
+  for PandaDoc, which makes it the cheap choice over DocuSign when this is
+  built.

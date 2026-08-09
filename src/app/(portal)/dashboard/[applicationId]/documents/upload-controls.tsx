@@ -15,11 +15,8 @@ import {
   DOCUMENT_STATUS_LABEL,
   documentStatusTone,
 } from "@/lib/documents/checklist";
-import {
-  createDocumentLink,
-  recordUpload,
-  withdrawUpload,
-} from "./actions";
+import { createDocumentLink } from "@/lib/documents/links";
+import { recordUpload, withdrawUpload } from "./actions";
 
 /**
  * The upload control, and the list of what has already been sent.

@@ -152,41 +152,6 @@ export async function withdrawUpload(
   return { ok: true };
 }
 
-/**
- * A short-lived link to a file the applicant sent us.
- *
- * Spec §23: private bucket, signed time-limited URLs, never a public one. Five
- * minutes is enough to open a document and short enough that a link forwarded in
- * an email is dead before it arrives anywhere.
- *
- * Takes a document id and reads the path from the row rather than accepting the
- * path from the browser. Two reasons: the caller can only name rows RLS already
- * shows them, and the bucket's internal layout never reaches a client bundle
- * where it could be guessed at.
- */
-export async function createDocumentLink(
-  documentId: string,
-): Promise<{ url?: string; error?: string }> {
-  if (!UUID_PATTERN.test(documentId)) {
-    return { error: "We couldn't open that file." };
-  }
-
-  const supabase = await createClient();
-
-  const { data: document } = await supabase
-    .from("documents")
-    .select("storage_path")
-    .eq("id", documentId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (!document) return { error: "We couldn't open that file." };
-
-  const { data, error } = await supabase.storage
-    .from("application-documents")
-    .createSignedUrl(document.storage_path, 300);
-
-  if (error || !data?.signedUrl) return { error: "We couldn't open that file." };
-
-  return { url: data.signedUrl };
-}
+// Signing a URL lives in @/lib/documents/links — the specialist reviewing a
+// document and the applicant reviewing their own upload are the same operation,
+// and the select policy on public.documents already answers who may do it.

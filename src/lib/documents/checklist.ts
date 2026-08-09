@@ -89,6 +89,23 @@ export const DOCUMENT_STATUS_LABEL: Record<DocumentStatus, string> = {
   waived: "Not needed",
 };
 
+/**
+ * The same states, in the words staff actually use.
+ *
+ * Deliberately blunt where the customer wording is careful. A specialist
+ * scanning a pipeline needs "Sent back" to read as a thing they did, not as
+ * something softened for the reader — and the softening is what makes the
+ * customer label unusable internally.
+ */
+export const STAFF_DOCUMENT_STATUS_LABEL: Record<DocumentStatus, string> = {
+  requested: "Waiting on applicant",
+  uploaded: "Needs review",
+  under_review: "Being reviewed",
+  accepted: "Accepted",
+  rejected: "Sent back",
+  waived: "Waived",
+};
+
 export function documentStatusTone(
   status: DocumentStatus,
 ): "neutral" | "brand" | "success" | "warning" {
