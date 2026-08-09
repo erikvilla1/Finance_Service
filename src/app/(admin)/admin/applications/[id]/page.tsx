@@ -29,6 +29,7 @@ import {
 import { assessCompleteness } from "@/lib/funding-application/completeness";
 import { loadFundingApplication } from "@/lib/funding-application/load";
 import { addNote, assignToMe, updateStatus } from "./actions";
+import { DocumentsCard } from "./documents-card";
 
 export const metadata: Metadata = {
   title: "Application",
@@ -205,6 +206,14 @@ export default async function ApplicationDetailPage({
               </ButtonLink>
             </div>
           </Card>
+
+          {/*
+            Directly under the lender package, because the two answer the same
+            question from different sides: the package names the fields that are
+            blank, this names the paperwork that hasn't arrived. Both are reasons
+            a file cannot go out.
+          */}
+          <DocumentsCard applicationId={application.id} />
 
           <Card>
             <h2 className="text-base font-semibold text-ink-900">
