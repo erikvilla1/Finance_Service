@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Badge,
   ButtonLink,
@@ -29,15 +30,32 @@ export const metadata: Metadata = {
  * that is the mechanism keeping internal state off a customer's screen
  * (spec §18), and it should stay that way.
  *
- * RLS does the real isolation: the query below has no user filter, because
- * "users read own applications" already restricts it to the signed-in person.
+ * THE PROFILE FILTER BELOW IS NOT REDUNDANT, though it reads that way. The
+ * policy behind it is `profile_id = auth.uid() or public.is_staff()`, so RLS
+ * answers "may this person see this row", not "is this person the applicant".
+ * The moment the first staff account existed, the unfiltered version of this
+ * query started rendering every applicant's file inside the customer portal —
+ * not a leak, since staff are entitled to that data, but the wrong data on the
+ * wrong screen, and one refactor away from being shown to the wrong person.
+ *
+ * Staff are deliberately not redirected away from here. A specialist can also
+ * be a customer, and /admin is where they go to see other people's files.
  */
 export default async function DashboardPage() {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // The layout already redirected an unauthenticated visitor. This is belt and
+  // braces: without a user id the filter below would be silently dropped.
+  if (!user) redirect("/sign-in?next=/dashboard");
+
   const { data: applications } = await supabase
     .from("applications")
     .select("id, reference_code, status, financing_goal, requested_amount, created_at")
+    .eq("profile_id", user.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
