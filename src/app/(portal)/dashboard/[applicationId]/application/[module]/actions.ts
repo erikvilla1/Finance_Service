@@ -16,7 +16,12 @@ import { saveSection } from "@/lib/application-form/save";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type SectionState = { error?: string; saved?: boolean };
+export type SectionState = {
+  error?: string;
+  saved?: boolean;
+  /** Keyed by question key, rendered under the field it belongs to. */
+  fieldErrors?: Record<string, string>;
+};
 
 export async function saveSectionAction(
   _prevState: SectionState,
@@ -33,7 +38,9 @@ export async function saveSectionAction(
 
   const result = await saveSection(applicationId, moduleKey, formData);
 
-  if (!result.ok) return { error: result.error };
+  if (!result.ok) {
+    return { error: result.error, fieldErrors: result.fieldErrors };
+  }
 
   revalidatePath(`/dashboard/${applicationId}/application`);
   revalidatePath(`/dashboard/${applicationId}/application/${moduleKey}`);

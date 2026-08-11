@@ -3,6 +3,7 @@ import { loadQuestions, type Question } from "@/lib/questions";
 import type { ProductTrack } from "@/types/database";
 import { coerceValue, isAnswered, targetFor, type FormModule } from "./mapping";
 import { isEditable } from "./load";
+import { normalizeAndValidate } from "./validate";
 
 /**
  * Writing one section of the full application.
@@ -26,7 +27,7 @@ import { isEditable } from "./load";
 
 export type SaveResult =
   | { ok: true }
-  | { ok: false; error: string };
+  | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
 interface Loaded {
   id: string;
@@ -90,8 +91,43 @@ export async function saveSection(
     answers: [] as { question: Question; value: unknown }[],
   };
 
+  // Validate the whole section before writing any of it.
+  //
+  // All-or-nothing here, unlike blank fields, which save happily. A section
+  // that wrote its nine valid fields and dropped the tenth would report success
+  // while quietly discarding something the applicant typed — and they would
+  // find out weeks later, from a lender package with a missing phone number.
+  // Blank is a state someone chose; invalid is a mistake they want to know
+  // about now.
+  const fieldErrors: Record<string, string> = {};
+  const validated = new Map<string, unknown>();
+
   for (const question of questions) {
-    const value = coerceValue(question, formData.get(question.key));
+    const raw = coerceValue(question, formData.get(question.key));
+    const checked = normalizeAndValidate(question, raw);
+
+    if (checked.error) {
+      fieldErrors[question.key] = checked.error;
+      continue;
+    }
+
+    validated.set(question.key, checked.value);
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    const count = Object.keys(fieldErrors).length;
+    return {
+      ok: false,
+      error:
+        count === 1
+          ? "One field needs another look — nothing has been saved yet."
+          : `${count} fields need another look — nothing has been saved yet.`,
+      fieldErrors,
+    };
+  }
+
+  for (const question of questions) {
+    const value = validated.get(question.key) ?? null;
     const target = targetFor(question.key);
 
     switch (target.table) {

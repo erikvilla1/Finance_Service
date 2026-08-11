@@ -41,11 +41,18 @@ export function SectionForm({
       <input type="hidden" name="application_id" value={applicationId} />
       <input type="hidden" name="module" value={module} />
 
+      {/*
+        Uncontrolled inputs are what makes a rejected save survivable. The
+        action re-renders this component, but defaultValue only applies on
+        mount, so what someone typed is still sitting in the DOM — they fix the
+        one field that was wrong instead of retyping the section.
+      */}
       {questions.map((question) => (
         <QuestionField
           key={question.key}
           question={question}
           value={values[question.key]}
+          error={state.fieldErrors?.[question.key]}
           disabled={readOnly}
         />
       ))}
@@ -79,10 +86,12 @@ export function SectionForm({
 function QuestionField({
   question,
   value,
+  error,
   disabled,
 }: {
   question: Question;
   value: unknown;
+  error?: string;
   disabled: boolean;
 }) {
   const id = question.key;
@@ -93,6 +102,7 @@ function QuestionField({
       label={question.label}
       htmlFor={id}
       hint={question.helpText ?? undefined}
+      error={error}
       required={question.isRequired}
     >
       {renderControl(question, id, current, disabled)}
@@ -190,7 +200,22 @@ function renderControl(
       return <Input {...shared} type="email" autoComplete="email" defaultValue={current} />;
 
     case "phone":
-      return <Input {...shared} type="tel" autoComplete="tel" defaultValue={current} />;
+      // pattern and maxLength come from the question row, not from here — the
+      // rules live in the database (migration 0023) so the next validated field
+      // is an insert rather than an edit to this switch. They are enforced
+      // again on save, because a pattern attribute stops honest mistakes and
+      // nothing else.
+      return (
+        <Input
+          {...shared}
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          maxLength={question.validation.max}
+          pattern={question.validation.pattern}
+          defaultValue={current}
+        />
+      );
 
     default:
       return (
