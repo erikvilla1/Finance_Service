@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, Button, Card, Container, EmptyState, Input } from "@/components/ui";
+import { Badge, Button, Container, EmptyState, Input } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import type { ApplicationStatus, ProductTrack } from "@/types/database";
 import {
@@ -15,12 +15,55 @@ import {
   statusTone,
   type StatusGroup,
 } from "@/lib/crm";
-import { findApplicationIdsByPerson, loadLeadSummaries } from "@/lib/leads";
+import {
+  findApplicationIdsByPerson,
+  loadLeadSummaries,
+  type LeadSummary,
+} from "@/lib/leads";
 
 export const metadata: Metadata = {
   title: "Pipeline",
   robots: { index: false, follow: false },
 };
+
+/**
+ * The three questions the top cards answer, as a filter.
+ *
+ * Separate from status on purpose. A status says where a file sits in the
+ * pipeline; these say what it is waiting on, and the two disagree constantly —
+ * a lead can be 'contacted' for a week while nobody has looked at the documents
+ * that arrived on day one.
+ */
+type Need = "review" | "applicant" | "package";
+
+const NEEDS: Need[] = ["review", "applicant", "package"];
+
+function isNeed(value: string | undefined): value is Need {
+  return NEEDS.includes(value as Need);
+}
+
+function isStatusGroup(value: string | undefined): value is StatusGroup {
+  return value !== undefined && value in GROUP_LABELS;
+}
+
+function matchesNeed(summary: LeadSummary, need: Need): boolean {
+  switch (need) {
+    case "review":
+      return summary.docsAwaitingReview > 0;
+    case "applicant":
+      return summary.docsOutstanding > 0;
+    case "package":
+      // Both halves complete. A file with no checklist at all is not "ready" —
+      // it is a file nobody has asked anything of yet, and counting it here
+      // would put unstarted leads at the front of the queue to be packaged.
+      return (
+        summary.formRequired > 0 &&
+        summary.formAnswered === summary.formRequired &&
+        summary.docsTotal > 0 &&
+        summary.docsSettled === summary.docsTotal
+      );
+  }
+}
 
 /**
  * The pipeline list — the screen Robert opens every morning.
@@ -36,7 +79,13 @@ export const metadata: Metadata = {
 export default async function PipelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; track?: string; q?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    track?: string;
+    q?: string;
+    group?: string;
+    needs?: string;
+  }>;
 }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -56,6 +105,17 @@ export default async function PipelinePage({
   const status = params.status as ApplicationStatus | undefined;
   if (status && STATUS_ORDER.includes(status)) {
     query = query.eq("status", status);
+  }
+
+  // A stage card filters to every status in its group. Done in the query rather
+  // than in memory because a group is a fixed set of statuses — the database can
+  // answer it, and the row cap then applies to the right hundred rows.
+  const group = isStatusGroup(params.group) ? params.group : undefined;
+  if (group) {
+    query = query.in(
+      "status",
+      STATUS_ORDER.filter((s) => STATUS_GROUP[s] === group),
+    );
   }
 
   const track = params.track as ProductTrack | undefined;
@@ -117,19 +177,41 @@ export default async function PipelinePage({
   let readyToPackage = 0;
 
   for (const summary of summaries.values()) {
-    if (summary.docsAwaitingReview > 0) awaitingReview += 1;
-    if (summary.docsOutstanding > 0) waitingOnApplicant += 1;
-    if (
-      summary.formRequired > 0 &&
-      summary.formAnswered === summary.formRequired &&
-      summary.docsTotal > 0 &&
-      summary.docsSettled === summary.docsTotal
-    ) {
-      readyToPackage += 1;
-    }
+    if (matchesNeed(summary, "review")) awaitingReview += 1;
+    if (matchesNeed(summary, "applicant")) waitingOnApplicant += 1;
+    if (matchesNeed(summary, "package")) readyToPackage += 1;
   }
 
-  const filtered = Boolean(status || track || search);
+  // The `needs` filter is applied after the counts, not before, so clicking a
+  // card does not change the numbers on the cards. Same behaviour as the status
+  // pills, and it means you can move between them without losing your place.
+  //
+  // Filtered here rather than in the query because these are derived from three
+  // other tables — expressing "has an unreviewed upload" as SQL against
+  // `applications` is not possible without a view, and a view is a migration for
+  // something the page can do in a loop.
+  const needs = isNeed(params.needs) ? params.needs : undefined;
+  const visible = needs
+    ? (applications ?? []).filter((application) => {
+        const summary = summaries.get(application.id);
+        return summary ? matchesNeed(summary, needs) : false;
+      })
+    : (applications ?? []);
+
+  const filtered = Boolean(status || track || search || group || needs);
+
+  /** Preserves the filters already applied when building a card's link. */
+  const linkWith = (next: Record<string, string | undefined>) => {
+    const query = new URLSearchParams();
+    const merged = { status, track, q: search, group, needs, ...next };
+
+    for (const [key, value] of Object.entries(merged)) {
+      if (value) query.set(key, value);
+    }
+
+    const qs = query.toString();
+    return qs ? `/admin?${qs}` : "/admin";
+  };
 
   return (
     <Container>
@@ -182,45 +264,71 @@ export default async function PipelinePage({
         one of those is a morning's work.
       */}
       <ul className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Card as="li">
-          <p className="text-sm text-ink-600">Files to review</p>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900">
-            {awaitingReview}
-          </p>
-          <p className="mt-1 text-xs text-ink-500">
-            Documents sent in and not yet looked at
-          </p>
-        </Card>
-        <Card as="li">
-          <p className="text-sm text-ink-600">Waiting on the applicant</p>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900">
-            {waitingOnApplicant}
-          </p>
-          <p className="mt-1 text-xs text-ink-500">
-            Still owe us at least one document
-          </p>
-        </Card>
-        <Card as="li">
-          <p className="text-sm text-ink-600">Ready to package</p>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900">
-            {readyToPackage}
-          </p>
-          <p className="mt-1 text-xs text-ink-500">
-            Application complete, every document settled
-          </p>
-        </Card>
+        {(
+          [
+            ["review", "Files to review", awaitingReview, "Documents sent in and not yet looked at"],
+            ["applicant", "Waiting on the applicant", waitingOnApplicant, "Still owe us at least one document"],
+            ["package", "Ready to package", readyToPackage, "Application complete, every document settled"],
+          ] as const
+        ).map(([key, label, count, hint]) => {
+          const active = needs === key;
+          return (
+            <li key={key}>
+              <Link
+                // Clicking the active card clears it, so the same card is both
+                // the way in and the way out.
+                href={linkWith({ needs: active ? undefined : key })}
+                aria-pressed={active}
+                className={
+                  active
+                    ? "block rounded-card bg-brand-700 p-6 text-white shadow-card ring-1 ring-brand-700"
+                    : "block rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-brand-300"
+                }
+              >
+                <p className={active ? "text-sm text-brand-100" : "text-sm text-ink-600"}>
+                  {label}
+                </p>
+                <p className="mt-1 text-3xl font-bold tabular-nums">{count}</p>
+                <p className={active ? "mt-1 text-xs text-brand-100" : "mt-1 text-xs text-ink-500"}>
+                  {hint}
+                </p>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
 
       {/* Stage counts */}
       <ul className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {(Object.keys(GROUP_LABELS) as StatusGroup[]).map((group) => (
-          <Card as="li" key={group}>
-            <p className="text-sm text-ink-600">{GROUP_LABELS[group]}</p>
-            <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900">
-              {groupCounts.get(group) ?? 0}
-            </p>
-          </Card>
-        ))}
+        {(Object.keys(GROUP_LABELS) as StatusGroup[]).map((stageGroup) => {
+          const active = group === stageGroup;
+          return (
+            <li key={stageGroup}>
+              <Link
+                href={linkWith({
+                  group: active ? undefined : stageGroup,
+                  // A stage and a single status are two ways of saying the same
+                  // thing, and holding both produces an empty list whenever they
+                  // disagree.
+                  status: undefined,
+                })}
+                aria-pressed={active}
+                className={
+                  active
+                    ? "block rounded-card bg-brand-700 p-6 text-white shadow-card ring-1 ring-brand-700"
+                    : "block rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-brand-300"
+                }
+              >
+                <p className={active ? "text-sm text-brand-100" : "text-sm text-ink-600"}>
+                  {GROUP_LABELS[stageGroup]}
+                </p>
+                <p className="mt-1 text-3xl font-bold tabular-nums">
+                  {groupCounts.get(stageGroup) ?? 0}
+                </p>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
 
       {/* Status filter */}
@@ -230,7 +338,10 @@ export default async function PipelinePage({
         ).map((s) => (
           <Link
             key={s}
-            href={`/admin?status=${s}`}
+            href={linkWith({
+              status: status === s ? undefined : s,
+              group: undefined,
+            })}
             className={
               status === s
                 ? "rounded-full bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white"
@@ -250,7 +361,7 @@ export default async function PipelinePage({
           />
         )}
 
-        {!error && (applications?.length ?? 0) === 0 && (
+        {!error && visible.length === 0 && (
           <EmptyState
             title={filtered ? "No applications match this filter" : "No applications yet"}
             description={
@@ -261,9 +372,9 @@ export default async function PipelinePage({
           />
         )}
 
-        {!error && (applications?.length ?? 0) > 0 && (
+        {!error && visible.length > 0 && (
           <ul className="space-y-3">
-            {(applications ?? []).map((application) => {
+            {visible.map((application) => {
               const lead = summaries.get(application.id);
 
               return (
