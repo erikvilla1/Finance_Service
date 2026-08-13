@@ -1,4 +1,5 @@
 import { Field, Input, Select, Textarea } from "@/components/ui";
+import { AmountInput } from "@/components/application/amount-input";
 import type { Question } from "@/lib/questions";
 
 /**
@@ -82,13 +83,11 @@ export function QuestionField({
             >
               $
             </span>
-            <Input
+            {/* Grouped with commas as you type — see amount-input.tsx for why
+                this is not a number input. Range is enforced server-side; a
+                text input cannot carry min/max. */}
+            <AmountInput
               {...shared}
-              type="number"
-              inputMode="decimal"
-              step="any"
-              min={validation.min}
-              max={validation.max}
               placeholder={question.placeholder ?? "0"}
               className="pl-7"
             />

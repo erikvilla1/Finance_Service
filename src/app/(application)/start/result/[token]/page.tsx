@@ -97,7 +97,7 @@ export default async function ResultPage({
   return (
     <Container>
       <div className="mx-auto max-w-2xl">
-        <ProgressBar value={3} max={6} label="Your application" />
+        <ProgressBar value={3} max={4} label="Your application" />
 
         {/* ------------------------------------------------------------------
             Answer the question in their head — "did that work?" — without

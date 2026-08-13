@@ -33,7 +33,7 @@ export default async function StartPage({
   return (
     <Container>
       <div className="mx-auto max-w-3xl">
-        <ProgressBar value={1} max={6} label="Your application" />
+        <ProgressBar value={1} max={4} label="Your application" />
 
         <div className="mt-8">
           <h1 className="text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">

@@ -9,6 +9,7 @@ import { QuestionField } from "@/components/application/question-field";
 import { SubmitButton } from "@/components/application/submit-button";
 import { TimezoneField } from "@/components/application/timezone-field";
 import { loadQuestions } from "@/lib/questions";
+import { isNarrow, splitPrequal } from "@/lib/questions/prequal-layout";
 import { findGoal } from "@/lib/products/goals";
 import { submitPrequal } from "./actions";
 
@@ -43,6 +44,11 @@ export default async function PrequalPage({
 
   const questions = await loadQuestions(["prequal"], goal.likelyTrack);
 
+  // What the engine reads, and what merely helps. See prequal-layout.ts — the
+  // split is derived from requiredness, so it follows the database rather than
+  // needing to be maintained here.
+  const { essential, details } = splitPrequal(questions);
+
   // Idempotency key for this form render (migration 0018). Minted here rather
   // than in the browser so it cannot be replayed or omitted by the client, and
   // per render rather than per session so a deliberate second application —
@@ -52,7 +58,7 @@ export default async function PrequalPage({
   return (
     <Container>
       <div className="mx-auto max-w-2xl">
-        <ProgressBar value={2} max={6} label="Your application" />
+        <ProgressBar value={2} max={4} label="Your application" />
 
         <div className="mt-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">
@@ -62,8 +68,8 @@ export default async function PrequalPage({
             Tell us about your situation
           </h1>
           <p className="mt-4 leading-relaxed text-ink-600">
-            A few quick questions. No documents, and nothing here affects your
-            credit.
+            {essential.length} quick questions. No documents, and nothing here
+            affects your credit.
           </p>
         </div>
 
@@ -84,9 +90,63 @@ export default async function PrequalPage({
             />
             <TimezoneField />
 
-            {questions.map((question) => (
-              <QuestionField key={question.key} question={question} />
-            ))}
+            {/* Short controls pair up; free text keeps the full width. Two
+                columns is what takes fifteen stacked rows down to a form the
+                applicant can see the end of. */}
+            <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
+              {essential.map((question) => (
+                <div
+                  key={question.key}
+                  className={isNarrow(question) ? undefined : "sm:col-span-2"}
+                >
+                  <QuestionField question={question} />
+                </div>
+              ))}
+            </div>
+
+            {details.length > 0 && (
+              /* Collapsed, but still submitted — a closed <details> posts its
+                 inputs like any other. Open by default would defeat the point;
+                 removed entirely would cost Robert the fields that make a
+                 match specific. */
+              <details className="group rounded-lg border border-ink-200 bg-ink-50/60">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3.5 text-sm font-medium text-ink-800 [&::-webkit-details-marker]:hidden">
+                  <span>
+                    Add more detail for a closer match
+                    <span className="ml-2 font-normal text-ink-500">
+                      optional
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="text-ink-400 transition-transform duration-200 group-open:rotate-180"
+                  >
+                    ▾
+                  </span>
+                </summary>
+
+                <div className="border-t border-ink-200 px-4 py-5">
+                  <p className="mb-5 text-sm leading-relaxed text-ink-500">
+                    None of this is required, and leaving it blank won&apos;t
+                    hold anything up. It helps a specialist narrow the options
+                    before you speak.
+                  </p>
+
+                  <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
+                    {details.map((question) => (
+                      <div
+                        key={question.key}
+                        className={
+                          isNarrow(question) ? undefined : "sm:col-span-2"
+                        }
+                      >
+                        <QuestionField question={question} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            )}
 
             <div className="border-t border-ink-200 pt-6">
               <SubmitButton>See my financing options</SubmitButton>
