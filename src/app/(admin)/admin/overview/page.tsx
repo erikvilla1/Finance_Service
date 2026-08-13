@@ -229,12 +229,23 @@ export default async function OverviewPage() {
                         <ActivityIcon kind={entry.kind} />
                       </span>
                       <span className="min-w-0 flex-1">
+                        {/*
+                          Who it is leads, and what happened follows. A feed of
+                          "New application · FLS-2026-000025" tells a specialist
+                          nothing they can act on without opening it first.
+
+                          "No name given" is stated rather than left blank: an
+                          empty space reads as a rendering fault, and an
+                          anonymous prequal that never became an account is a
+                          real and expected thing to see here.
+                        */}
                         <span className="block truncate text-sm font-medium text-ink-900 dark:text-ink-100">
-                          {entry.title}
+                          {entry.leadName ?? "No name given"}
                         </span>
                         <span className="block truncate text-xs text-ink-500 dark:text-ink-400">
-                          {entry.referenceCode ? `${entry.referenceCode} · ` : ""}
-                          {entry.detail}
+                          {entry.title}
+                          {entry.referenceCode ? ` · ${entry.referenceCode}` : ""}
+                          {entry.detail ? ` · ${entry.detail}` : ""}
                         </span>
                       </span>
                       <span className="shrink-0 text-xs text-ink-400 dark:text-ink-500">
