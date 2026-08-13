@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, Card, Container, EmptyState } from "@/components/ui";
+import { Badge, Button, Card, Container, EmptyState, Input } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import type { ApplicationStatus, ProductTrack } from "@/types/database";
 import {
@@ -15,6 +15,7 @@ import {
   statusTone,
   type StatusGroup,
 } from "@/lib/crm";
+import { findApplicationIdsByPerson, loadLeadSummaries } from "@/lib/leads";
 
 export const metadata: Metadata = {
   title: "Pipeline",
@@ -46,7 +47,7 @@ export default async function PipelinePage({
     // it, and a concatenated expression makes every column resolve to an error
     // type instead.
     .select(
-      "id, reference_code, financing_goal, track, requested_amount, status, revenue_band, credit_band, time_in_business, industry, created_at, submitted_at",
+      "id, reference_code, financing_goal, track, requested_amount, status, revenue_band, credit_band, time_in_business, industry, created_at, submitted_at, profile_id, business_id",
     )
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -62,9 +63,29 @@ export default async function PipelinePage({
 
   const search = params.q?.trim();
   if (search) {
-    query = query.or(
-      `reference_code.ilike.%${search}%,industry.ilike.%${search}%,financing_goal.ilike.%${search}%`,
-    );
+    // Names are not on this table, so the people matching the term are resolved
+    // to ids first and folded into the same filter. Without this, searching for
+    // a person returns nothing — which reads as "no such lead" rather than
+    // "this box doesn't search names".
+    const people = await findApplicationIdsByPerson(supabase, search);
+
+    const clauses = [
+      `reference_code.ilike.%${search}%`,
+      `industry.ilike.%${search}%`,
+      `financing_goal.ilike.%${search}%`,
+    ];
+
+    if (people.profileIds.length) {
+      clauses.push(`profile_id.in.(${people.profileIds.join(",")})`);
+    }
+    if (people.businessIds.length) {
+      clauses.push(`business_id.in.(${people.businessIds.join(",")})`);
+    }
+    if (people.applicationIds.length) {
+      clauses.push(`id.in.(${people.applicationIds.join(",")})`);
+    }
+
+    query = query.or(clauses.join(","));
   }
 
   const { data: applications, error } = await query;
@@ -82,6 +103,30 @@ export default async function PipelinePage({
     const group = STATUS_GROUP[row.status];
     groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
     if (SUBMITTAL_STATUSES.includes(row.status)) submittals++;
+  }
+
+  // Who these people are, and what each file is still missing. One pass for the
+  // whole page rather than a lookup per row.
+  const summaries = await loadLeadSummaries(supabase, applications ?? []);
+
+  // What is outstanding, as distinct from where a file sits. The stage counts
+  // above answer "where is this in the pipeline"; these answer "what is it
+  // waiting on", which is the question that decides who gets called today.
+  let awaitingReview = 0;
+  let waitingOnApplicant = 0;
+  let readyToPackage = 0;
+
+  for (const summary of summaries.values()) {
+    if (summary.docsAwaitingReview > 0) awaitingReview += 1;
+    if (summary.docsOutstanding > 0) waitingOnApplicant += 1;
+    if (
+      summary.formRequired > 0 &&
+      summary.formAnswered === summary.formRequired &&
+      summary.docsTotal > 0 &&
+      summary.docsSettled === summary.docsTotal
+    ) {
+      readyToPackage += 1;
+    }
   }
 
   const filtered = Boolean(status || track || search);
@@ -107,8 +152,67 @@ export default async function PipelinePage({
         )}
       </div>
 
+      {/*
+        A plain GET form, so a search is a URL. That is the same reasoning the
+        status filters use — a view worth looking at is a view worth sending to
+        someone, and it also means the back button behaves.
+
+        The `q` parameter has been read by this page all along with nothing to
+        set it: searching was possible only by editing the address bar.
+      */}
+      <form action="/admin" className="mt-6 flex flex-wrap gap-2">
+        {status && <input type="hidden" name="status" value={status} />}
+        {track && <input type="hidden" name="track" value={track} />}
+        <Input
+          type="search"
+          name="q"
+          defaultValue={search ?? ""}
+          placeholder="Search by name, business, email or reference code"
+          aria-label="Search the pipeline"
+          className="max-w-md flex-1"
+        />
+        <Button type="submit" variant="secondary">
+          Search
+        </Button>
+      </form>
+
+      {/*
+        What is waiting on whom. Deliberately above the stage counts: a stage
+        tells you where a file is, this tells you what to do about it, and only
+        one of those is a morning's work.
+      */}
+      <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+        <Card as="li">
+          <p className="text-sm text-ink-600">Files to review</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900">
+            {awaitingReview}
+          </p>
+          <p className="mt-1 text-xs text-ink-500">
+            Documents sent in and not yet looked at
+          </p>
+        </Card>
+        <Card as="li">
+          <p className="text-sm text-ink-600">Waiting on the applicant</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900">
+            {waitingOnApplicant}
+          </p>
+          <p className="mt-1 text-xs text-ink-500">
+            Still owe us at least one document
+          </p>
+        </Card>
+        <Card as="li">
+          <p className="text-sm text-ink-600">Ready to package</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900">
+            {readyToPackage}
+          </p>
+          <p className="mt-1 text-xs text-ink-500">
+            Application complete, every document settled
+          </p>
+        </Card>
+      </ul>
+
       {/* Stage counts */}
-      <ul className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <ul className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {(Object.keys(GROUP_LABELS) as StatusGroup[]).map((group) => (
           <Card as="li" key={group}>
             <p className="text-sm text-ink-600">{GROUP_LABELS[group]}</p>
@@ -159,7 +263,10 @@ export default async function PipelinePage({
 
         {!error && (applications?.length ?? 0) > 0 && (
           <ul className="space-y-3">
-            {(applications ?? []).map((application) => (
+            {(applications ?? []).map((application) => {
+              const lead = summaries.get(application.id);
+
+              return (
               <li key={application.id}>
                 <Link
                   href={`/admin/applications/${application.id}`}
@@ -170,12 +277,35 @@ export default async function PipelinePage({
                       <p className="font-mono text-sm text-ink-500">
                         {application.reference_code}
                       </p>
+
+                      {/*
+                        The person leads. A pipeline that opens with a reference
+                        code is a list of applications; Robert works a list of
+                        people, and he has never once known a deal by its
+                        number. The business name sits alongside because it is
+                        how a lender will refer to the same file.
+                      */}
                       <h2 className="mt-1 text-base font-semibold text-ink-900">
-                        {application.financing_goal ?? "Financing application"}
+                        {lead?.businessName ??
+                          lead?.contactName ??
+                          "Name not given yet"}
                       </h2>
-                      <p className="mt-1 text-sm text-ink-600">
+
+                      <p className="mt-0.5 text-sm text-ink-600">
+                        {[
+                          lead?.businessName && lead?.contactName
+                            ? lead.contactName
+                            : null,
+                          lead?.contactEmail,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "No contact details yet"}
+                      </p>
+
+                      <p className="mt-1.5 text-sm text-ink-600">
+                        {application.financing_goal ?? "Financing application"}
+                        {" · "}
                         {formatCurrency(application.requested_amount)}
-                        {application.industry ? ` · ${application.industry}` : ""}
                         {application.track ? ` · ${humanize(application.track)}` : ""}
                       </p>
                     </div>
@@ -202,10 +332,49 @@ export default async function PipelinePage({
                       <dt className="text-ink-400">In business</dt>
                       <dd>{humanize(application.time_in_business)}</dd>
                     </div>
+
+                    {/* What the file is missing, next to what it is worth. */}
+                    {lead && lead.formRequired > 0 && (
+                      <div className="flex gap-1.5">
+                        <dt className="text-ink-400">Application</dt>
+                        <dd
+                          className={
+                            lead.formAnswered === lead.formRequired
+                              ? "font-semibold text-success-700"
+                              : lead.formAnswered === 0
+                                ? "text-ink-500"
+                                : "font-semibold text-warning-700"
+                          }
+                        >
+                          {lead.formAnswered === 0
+                            ? "Not started"
+                            : `${lead.formAnswered}/${lead.formRequired}`}
+                        </dd>
+                      </div>
+                    )}
+
+                    {lead && lead.docsTotal > 0 && (
+                      <div className="flex gap-1.5">
+                        <dt className="text-ink-400">Documents</dt>
+                        <dd
+                          className={
+                            lead.docsSettled === lead.docsTotal
+                              ? "font-semibold text-success-700"
+                              : "font-semibold text-warning-700"
+                          }
+                        >
+                          {lead.docsSettled}/{lead.docsTotal}
+                          {lead.docsAwaitingReview > 0
+                            ? ` · ${lead.docsAwaitingReview} to review`
+                            : ""}
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

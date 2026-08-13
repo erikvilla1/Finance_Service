@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Card, Container, EmptyState } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import type { ApplicationStatus } from "@/types/database";
 import {
-  STATUS_GROUP,
   STATUS_LABELS,
   SUBMITTAL_STATUSES,
   formatCurrency,
@@ -17,6 +15,22 @@ export const metadata: Metadata = {
   title: "Overview",
   robots: { index: false, follow: false },
 };
+
+/** Five days without a first contact. Kept out of render — see the call site. */
+const STALE_AFTER_DAYS = 5;
+
+function selectStalled<T extends { created_at: string; first_contact_at: string | null }>(
+  open: T[],
+): T[] {
+  const now = Date.now();
+
+  return open
+    .filter((a) => {
+      if (a.first_contact_at) return false;
+      return (now - new Date(a.created_at).getTime()) / 86_400_000 > STALE_AFTER_DAYS;
+    })
+    .slice(0, 8);
+}
 
 /**
  * The whole operation on one screen.
@@ -89,13 +103,12 @@ export default async function OverviewPage() {
 
   // Stalled: open, untouched for more than five days. Speed to first contact is
   // what converts, so age on an untouched file is the number worth surfacing.
-  const now = Date.now();
-  const stalled = open
-    .filter((a) => {
-      if (a.first_contact_at) return false;
-      return (now - new Date(a.created_at).getTime()) / 86_400_000 > 5;
-    })
-    .slice(0, 8);
+  //
+  // Computed in a helper rather than inline: reading the clock during render
+  // makes a component that returns something different every time it runs, and
+  // react-hooks/purity rejects it. Behaviour is identical — the boundary just
+  // sits outside the render.
+  const stalled = selectStalled(open);
 
   const byTrack = new Map<string, number>();
   for (const a of all) {
