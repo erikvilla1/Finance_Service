@@ -26,6 +26,7 @@ import {
   isReasonableCallingHour,
   statusTone,
 } from "@/lib/crm";
+import { loadLeadSummaries } from "@/lib/leads";
 import { assessCompleteness } from "@/lib/funding-application/completeness";
 import { loadFundingApplication } from "@/lib/funding-application/load";
 import { addNote, assignToMe, updateStatus } from "./actions";
@@ -87,6 +88,11 @@ export default async function ApplicationDetailPage({
         .order("created_at", { ascending: false }),
     ]);
 
+  // Same loader the pipeline uses, so a lead is named identically in the list
+  // and on its own page.
+  const summaries = await loadLeadSummaries(supabase, [application]);
+  const lead = summaries.get(application.id);
+
   const fundingData = await loadFundingApplication(id);
   const completeness = assessCompleteness(
     fundingData?.context ?? {
@@ -111,19 +117,46 @@ export default async function ApplicationDetailPage({
         ← Back to pipeline
       </Link>
 
+      {/*
+        Who this is, above what they want.
+
+        The heading used to be the financing goal — "Finance Equipment" — which
+        is true of a great many files and identifies none of them. A specialist
+        arriving here from a phone call needs to confirm in one glance that they
+        are looking at the right company.
+
+        Business first, then the person, because that is the order a lender
+        package reads and the order the pipeline list uses. Neither present yet
+        means the prequal was submitted and nothing since, which is worth saying
+        plainly rather than papering over with a reference number.
+      */}
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-mono text-sm text-ink-500">
             {application.reference_code}
+            {lead?.contactName && lead?.businessName
+              ? ` · ${lead.contactName}`
+              : ""}
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink-900">
-            {application.financing_goal ?? "Financing application"}
+            {lead?.businessName ?? lead?.contactName ?? "Name not given yet"}
           </h1>
           <p className="mt-1 text-ink-600">
-            {formatCurrency(application.requested_amount)}
+            {application.financing_goal ?? "Financing application"}
+            {` · ${formatCurrency(application.requested_amount)}`}
             {application.track ? ` · ${humanize(application.track)} track` : ""}
             {` · created ${formatDate(application.created_at)}`}
           </p>
+          {lead?.contactEmail && (
+            <p className="mt-1 text-sm text-ink-600">
+              <a
+                href={`mailto:${lead.contactEmail}`}
+                className="hover:text-brand-700 hover:underline"
+              >
+                {lead.contactEmail}
+              </a>
+            </p>
+          )}
         </div>
         <Badge tone={statusTone(application.status)}>
           {STATUS_LABELS[application.status]}
