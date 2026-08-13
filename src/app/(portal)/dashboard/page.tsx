@@ -185,12 +185,20 @@ export default async function DashboardPage() {
                         Talk with your specialist
                       </Link>
                     </p>
-                    <Link
-                      href={`/dashboard/${application.id}/documents`}
-                      className="text-sm font-semibold text-brand-700 hover:underline"
-                    >
-                      Your documents
-                    </Link>
+                    <span className="flex flex-wrap items-center gap-4">
+                      <Link
+                        href={`/dashboard/${application.id}/application`}
+                        className="text-sm font-semibold text-brand-700 hover:underline"
+                      >
+                        Your application
+                      </Link>
+                      <Link
+                        href={`/dashboard/${application.id}/documents`}
+                        className="text-sm font-semibold text-brand-700 hover:underline"
+                      >
+                        Your documents
+                      </Link>
+                    </span>
                   </div>
                 </Card>
               );
