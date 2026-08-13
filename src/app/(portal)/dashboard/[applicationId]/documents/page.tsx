@@ -94,6 +94,7 @@ export default async function DocumentsPage({
   }
 
   const { outstanding, requiredSettled, requiredTotal } = checklist;
+  const allSettled = requiredTotal > 0 && requiredSettled === requiredTotal;
 
   return (
     <Container>
@@ -109,17 +110,29 @@ export default async function DocumentsPage({
         </p>
 
         <Card className="mt-6">
+          {/*
+            Three states, not two. "Nothing outstanding" and "everything has
+            been checked and accepted" feel the same to this page but are very
+            different to the person reading it: one means we are looking, the
+            other means we are done looking. Collapsing them left someone who
+            had just been accepted staring at the same sentence as someone
+            whose upload had not been opened yet.
+          */}
           <p className="text-lg font-semibold text-ink-900">
-            {outstanding === 0
-              ? "You're all caught up"
-              : outstanding === 1
-                ? "One item still to send"
-                : `${outstanding} items still to send`}
+            {allSettled
+              ? "Everything's been accepted"
+              : outstanding === 0
+                ? "Nothing outstanding right now"
+                : outstanding === 1
+                  ? "One item still to send"
+                  : `${outstanding} items still to send`}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-ink-600">
-            {outstanding === 0
-              ? "We have everything we've asked for so far. If we need anything else, it will show up here."
-              : "Photos of paper are fine as long as every corner is in the frame and the text is readable."}
+            {allSettled
+              ? "Your specialist has checked everything we asked for. If anything else is needed, it will appear here."
+              : outstanding === 0
+                ? "Everything you've sent is with your specialist to look over. There's nothing for you to do right now."
+                : "Photos of paper are fine as long as every corner is in the frame and the text is readable."}
           </p>
 
           <div className="mt-5">

@@ -3,6 +3,8 @@ import Link from "next/link";
 import {
   Activity,
   ArrowRight,
+  CheckCircle2,
+  ClipboardList,
   FileText,
   MessageSquare,
   Package,
@@ -22,8 +24,22 @@ import {
   statusTone,
   type StatusGroup,
 } from "@/lib/crm";
-import { loadLeadSummaries } from "@/lib/leads";
+import {
+  NEEDS,
+  NEED_LABELS,
+  loadLeadSummaries,
+  matchesNeed,
+  type Need,
+} from "@/lib/leads";
 import { loadRecentActivity, type ActivityKind } from "@/lib/admin/activity";
+
+const NEED_ICONS: Record<Need, React.ComponentType<{ className?: string }>> = {
+  review: FileText,
+  applicant: Users,
+  docs_done: CheckCircle2,
+  app_unfinished: ClipboardList,
+  package: Send,
+};
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -97,20 +113,14 @@ export default async function OverviewPage() {
     groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
   }
 
-  let awaitingReview = 0;
-  let waitingOnApplicant = 0;
-  let readyToPackage = 0;
-
+  // Counted with the same matchers the pipeline uses, so the two screens cannot
+  // report different numbers for the same question.
+  const needCounts = new Map(NEEDS.map((need) => [need, 0]));
   for (const summary of summaries.values()) {
-    if (summary.docsAwaitingReview > 0) awaitingReview += 1;
-    if (summary.docsOutstanding > 0) waitingOnApplicant += 1;
-    if (
-      summary.formRequired > 0 &&
-      summary.formAnswered === summary.formRequired &&
-      summary.docsTotal > 0 &&
-      summary.docsSettled === summary.docsTotal
-    ) {
-      readyToPackage += 1;
+    for (const need of NEEDS) {
+      if (matchesNeed(summary, need)) {
+        needCounts.set(need, (needCounts.get(need) ?? 0) + 1);
+      }
     }
   }
 
@@ -152,29 +162,18 @@ export default async function OverviewPage() {
         </Link>
       </div>
 
-      {/* What is waiting on whom — the same three the pipeline leads with. */}
-      <ul className="mt-6 grid gap-3 sm:grid-cols-3">
-        <StatCard
-          href="/admin?needs=review"
-          label="Files to review"
-          value={awaitingReview}
-          hint="Documents sent in and not yet looked at"
-          Icon={FileText}
-        />
-        <StatCard
-          href="/admin?needs=applicant"
-          label="Waiting on the applicant"
-          value={waitingOnApplicant}
-          hint="Still owe us at least one document"
-          Icon={Users}
-        />
-        <StatCard
-          href="/admin?needs=package"
-          label="Ready to package"
-          value={readyToPackage}
-          hint="Application complete, every document settled"
-          Icon={Send}
-        />
+      {/* What is waiting on whom — the same five the pipeline leads with. */}
+      <ul className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {NEEDS.map((need) => (
+          <StatCard
+            key={need}
+            href={`/admin?needs=${need}`}
+            label={NEED_LABELS[need].label}
+            value={needCounts.get(need) ?? 0}
+            hint={NEED_LABELS[need].hint}
+            Icon={NEED_ICONS[need]}
+          />
+        ))}
       </ul>
 
       {/* Where things sit. */}

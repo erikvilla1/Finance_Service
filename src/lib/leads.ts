@@ -38,6 +38,16 @@ export interface LeadSummary {
   /** Required application questions answered, out of the total. */
   formAnswered: number;
   formRequired: number;
+  /**
+   * The labels of the required questions still unanswered, in the order they
+   * are asked.
+   *
+   * "31 of 33" tells a specialist the file is nearly done and nothing about
+   * whether the two gaps are a missing middle initial or the entire ownership
+   * section. Carrying the labels costs nothing — the questions were loaded to
+   * produce the count in the first place.
+   */
+  formMissing: string[];
   /** Checklist items still sitting with the applicant. */
   docsOutstanding: number;
   docsTotal: number;
@@ -50,6 +60,94 @@ export interface LeadRef {
   id: string;
   profile_id: string | null;
   business_id: string | null;
+}
+
+/**
+ * The questions the summary cards answer, defined once.
+ *
+ * These live here rather than on the pipeline page because the dashboard asks
+ * the same questions, and two copies of "ready to package" that disagree is a
+ * specialist ringing someone about a file that is not ready.
+ *
+ * Deliberately separate from status. A status says where a file sits; these say
+ * what it is waiting on, and the two disagree constantly — a lead can sit at
+ * 'contacted' for a week while nobody has opened the documents that arrived on
+ * day one.
+ */
+export type Need =
+  | "review"
+  | "applicant"
+  | "docs_done"
+  | "app_unfinished"
+  | "package";
+
+export const NEEDS: Need[] = [
+  "review",
+  "applicant",
+  "docs_done",
+  "app_unfinished",
+  "package",
+];
+
+export const NEED_LABELS: Record<Need, { label: string; hint: string }> = {
+  review: {
+    label: "Files to review",
+    hint: "Documents sent in and not yet looked at",
+  },
+  applicant: {
+    label: "Waiting on the applicant",
+    hint: "Still owe us at least one document",
+  },
+  docs_done: {
+    label: "Documents complete",
+    hint: "Every document accepted or waived",
+  },
+  app_unfinished: {
+    label: "Application unfinished",
+    hint: "Sent documents but haven't completed the form",
+  },
+  package: {
+    label: "Ready to package",
+    hint: "Application complete, every document settled",
+  },
+};
+
+export function isNeed(value: string | undefined): value is Need {
+  return NEEDS.includes(value as Need);
+}
+
+const formComplete = (s: LeadSummary) =>
+  s.formRequired > 0 && s.formAnswered === s.formRequired;
+
+const docsComplete = (s: LeadSummary) =>
+  s.docsTotal > 0 && s.docsSettled === s.docsTotal;
+
+export function matchesNeed(summary: LeadSummary, need: Need): boolean {
+  switch (need) {
+    case "review":
+      return summary.docsAwaitingReview > 0;
+
+    case "applicant":
+      return summary.docsOutstanding > 0;
+
+    case "docs_done":
+      return docsComplete(summary);
+
+    case "app_unfinished":
+      // Someone who has engaged — sent something in — but whose form is not
+      // finished. Both halves matter: a lead who has sent nothing at all is a
+      // lead nobody has chased yet, which is a different problem with a
+      // different fix, and mixing them makes the number useless for both.
+      return (
+        summary.docsTotal > summary.docsOutstanding && !formComplete(summary)
+      );
+
+    case "package":
+      // A file with no checklist at all is not "ready" — it is one nobody has
+      // asked anything of yet, and counting it here would put untouched leads
+      // at the front of the queue to be sent to a funder.
+      return formComplete(summary) && docsComplete(summary);
+  }
 }
 
 export async function loadLeadSummaries(
@@ -143,6 +241,8 @@ export async function loadLeadSummaries(
     const bag = answersByApplication.get(application.id) ?? {};
 
     let formAnswered = 0;
+    const formMissing: string[] = [];
+
     for (const question of requiredQuestions) {
       const target = targetFor(question.key);
       const value =
@@ -150,7 +250,11 @@ export async function loadLeadSummaries(
           ? bag[question.key]
           : sources[target.table]?.[target.column];
 
-      if (isAnswered(value)) formAnswered += 1;
+      if (isAnswered(value)) {
+        formAnswered += 1;
+      } else {
+        formMissing.push(question.label);
+      }
     }
 
     const appRequests = (requests ?? []).filter(
@@ -167,6 +271,7 @@ export async function loadLeadSummaries(
       businessName: business?.legal_name ?? business?.dba ?? null,
       formAnswered,
       formRequired: requiredQuestions.length,
+      formMissing,
       docsTotal: appRequests.length,
       docsOutstanding: appRequests.filter((r) => needsApplicant(r.status)).length,
       docsSettled: appRequests.filter(

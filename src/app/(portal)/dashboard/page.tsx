@@ -88,8 +88,9 @@ export default async function DashboardPage() {
           <ul className="mt-8 space-y-5">
             {list.map((application) => {
               const view = customerStatus(application.status);
-              const outstanding =
-                outstandingByApplication.get(application.id) ?? 0;
+              const counts = outstandingByApplication.get(application.id);
+              const outstanding = counts?.outstanding ?? 0;
+              const settled = counts?.settled ?? 0;
 
               return (
                 <Card as="li" key={application.id}>
@@ -142,6 +143,25 @@ export default async function DashboardPage() {
                   <p className="mt-5 leading-relaxed text-ink-700">
                     {view.description}
                   </p>
+
+                  {/*
+                    Being finished is worth saying out loud. Previously this box
+                    simply disappeared once everything was accepted, so the only
+                    difference between "your documents were approved" and
+                    "nothing has happened yet" was the absence of a warning —
+                    which is not something anyone notices.
+                  */}
+                  {outstanding === 0 && settled > 0 && !view.actionNeeded && (
+                    <div className="mt-5 rounded-lg bg-success-50 p-4">
+                      <p className="text-sm font-semibold text-success-700">
+                        Your documents have been accepted
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-700">
+                        Your specialist has everything they asked for. Nothing
+                        needed from you right now.
+                      </p>
+                    </div>
+                  )}
 
                   {/* The checklist and the pipeline stage can disagree — a
                       specialist can request a document without moving the file,
