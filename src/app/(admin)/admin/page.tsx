@@ -421,10 +421,17 @@ export default async function PipelinePage({
                       <dd>{humanize(application.time_in_business)}</dd>
                     </div>
 
-                    {/* What the file is missing, next to what it is worth. */}
+                    {/*
+                      Two numbers because they answer two questions. The form is
+                      how far the applicant got, which decides whether to chase
+                      them. The package is whether the file can go out, which
+                      decides everything else — and the two differ, because the
+                      form does not collect everything the funding application
+                      needs.
+                    */}
                     {lead && lead.formRequired > 0 && (
                       <div className="flex gap-1.5">
-                        <dt className="text-ink-400">Application</dt>
+                        <dt className="text-ink-400">Form</dt>
                         <dd
                           className={
                             lead.formAnswered === lead.formRequired
@@ -437,6 +444,21 @@ export default async function PipelinePage({
                           {lead.formAnswered === 0
                             ? "Not started"
                             : `${lead.formAnswered}/${lead.formRequired}`}
+                        </dd>
+                      </div>
+                    )}
+
+                    {lead && lead.packageTotal > 0 && (
+                      <div className="flex gap-1.5">
+                        <dt className="text-ink-400">Package</dt>
+                        <dd
+                          className={
+                            lead.packageReady
+                              ? "font-semibold text-success-700"
+                              : "font-semibold text-warning-700"
+                          }
+                        >
+                          {lead.packagePresent}/{lead.packageTotal}
                         </dd>
                       </div>
                     )}
@@ -469,12 +491,14 @@ export default async function PipelinePage({
                     Capped at four: past that it is a form to fill in, not a gap
                     to mention on a phone call.
                   */}
-                  {lead && lead.formMissing.length > 0 && lead.formAnswered > 0 && (
+                  {lead && lead.packageMissing.length > 0 && (
                     <p className="mt-2 text-xs text-ink-500 dark:text-ink-400">
-                      <span className="text-ink-400 dark:text-ink-500">Still needs </span>
-                      {lead.formMissing.slice(0, 4).join(", ")}
-                      {lead.formMissing.length > 4 &&
-                        ` and ${lead.formMissing.length - 4} more`}
+                      <span className="text-ink-400 dark:text-ink-500">
+                        Package still needs{" "}
+                      </span>
+                      {lead.packageMissing.slice(0, 4).join(", ")}
+                      {lead.packageMissing.length > 4 &&
+                        ` and ${lead.packageMissing.length - 4} more`}
                     </p>
                   )}
                 </Link>

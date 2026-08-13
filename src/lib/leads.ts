@@ -3,6 +3,7 @@ import type { Database } from "@/types/database";
 import { loadQuestions } from "@/lib/questions";
 import { FORM_MODULES, isAnswered, targetFor } from "@/lib/application-form/mapping";
 import { needsApplicant } from "@/lib/documents/checklist";
+import { assessCompleteness } from "@/lib/funding-application/completeness";
 
 /**
  * Who each lead actually is, and what is still outstanding on it.
@@ -35,9 +36,28 @@ export interface LeadSummary {
   contactName: string | null;
   contactEmail: string | null;
   businessName: string | null;
-  /** Required application questions answered, out of the total. */
+  /**
+   * How far through the form the applicant has got.
+   *
+   * NOT the same question as whether the file can be sent, and the two are
+   * routinely different — see packageReady. This one exists to answer "have
+   * they finished their bit", which is what decides whether to chase them.
+   */
   formAnswered: number;
   formRequired: number;
+  /**
+   * Whether the lender package has everything it needs.
+   *
+   * Assessed against FUNDING_APPLICATION_FIELDS, which is the single source of
+   * truth for what Robert's funding application requires. This is the one that
+   * decides whether a file can go out, because it is the one measuring the
+   * document that actually leaves the building.
+   */
+  packageReady: boolean;
+  packagePresent: number;
+  packageTotal: number;
+  /** What the lender package is still missing, by its own field labels. */
+  packageMissing: string[];
   /**
    * The labels of the required questions still unanswered, in the order they
    * are asked.
@@ -108,7 +128,7 @@ export const NEED_LABELS: Record<Need, { label: string; hint: string }> = {
   },
   package: {
     label: "Ready to package",
-    hint: "Application complete, every document settled",
+    hint: "Lender package complete, every document settled",
   },
 };
 
@@ -143,10 +163,21 @@ export function matchesNeed(summary: LeadSummary, need: Need): boolean {
       );
 
     case "package":
-      // A file with no checklist at all is not "ready" — it is one nobody has
-      // asked anything of yet, and counting it here would put untouched leads
-      // at the front of the queue to be sent to a funder.
-      return formComplete(summary) && docsComplete(summary);
+      // Measured against the lender package, not against how far through the
+      // form the applicant got. Those are different questions and they were
+      // giving different answers on the same file: the pipeline called Iwa
+      // Media ready to package while its own detail page said 34 of 36, because
+      // the form does not ask for everything the funding application needs —
+      // owner title and existing obligations among them.
+      //
+      // Of the two, the package check is the one that matters. It measures the
+      // document that actually leaves the building, and being wrong about it
+      // means sending a lender an incomplete file.
+      //
+      // A file with no checklist at all is still not ready: it is one nobody
+      // has asked anything of yet, and counting it here would put untouched
+      // leads at the front of the queue.
+      return summary.packageReady && docsComplete(summary);
   }
 }
 
@@ -167,6 +198,7 @@ export async function loadLeadSummaries(
     { data: owners },
     { data: requests },
     { data: answers },
+    { data: debts },
     questions,
   ] = await Promise.all([
     profileIds.length
@@ -196,6 +228,9 @@ export async function loadLeadSummaries(
       .from("application_answers")
       .select("application_id, question_key, value")
       .in("application_id", ids),
+    // Needed only for its count: the lender package requires at least one
+    // existing-obligation row, and nothing else here reads the rows themselves.
+    supabase.from("existing_debts").select("application_id").in("application_id", ids),
     // Track is deliberately null: every module in FORM_MODULES is universal, so
     // the required set is the same for every lead and can be loaded once. When
     // the track modules land this becomes a per-track lookup.
@@ -268,6 +303,18 @@ export async function loadLeadSummaries(
       (r) => r.application_id === application.id,
     );
 
+    // The authoritative readiness check, run against the same field list the
+    // application detail page uses — so the card and the page cannot disagree
+    // about whether a file can go out.
+    const report = assessCompleteness({
+      application: sources.application,
+      business: sources.business,
+      owners: owner ? [owner as unknown as Record<string, unknown>] : [],
+      answers: bag,
+      debtCount: (debts ?? []).filter((d) => d.application_id === application.id)
+        .length,
+    });
+
     summaries.set(application.id, {
       // The owner named on the application beats the account holder's name: a
       // bookkeeper often creates the account, and the person a lender needs is
@@ -279,6 +326,10 @@ export async function loadLeadSummaries(
       formAnswered,
       formRequired: requiredQuestions.length,
       formMissing,
+      packageReady: report.readyToSend,
+      packagePresent: report.requiredPresent,
+      packageTotal: report.requiredTotal,
+      packageMissing: report.missing.map((field) => field.formLabel),
       docsTotal: appRequests.length,
       docsOutstanding: appRequests.filter((r) => needsApplicant(r.status)).length,
       docsSettled: appRequests.filter(
