@@ -39,6 +39,37 @@ the repo back up.
 sequence, committed alongside the code that needs it. Applying it to the live
 database is the second step, not the only one.
 
+### Claim the number before you write it
+
+This broke a second time on 13 Aug, worse than the first. Both of us applied
+migrations from branches the other could not see, so both of us reached for
+`0024` and then `0025` on the same afternoon. Two files ended up numbered `0022`
+in the repo, and three migrations reached the live database with no file
+anywhere — including one that created the `contact_submissions` table.
+
+The rule is not "pick the next free number". Nothing on your machine knows what
+the other person is about to apply.
+
+**Say the number out loud before you use it.** A message is enough. Then:
+
+```bash
+git fetch origin && git log --oneline origin/main -3   # what has landed
+```
+
+**Push the branch before applying to the shared database.** Applying first makes
+the number real for everyone while the file is still invisible to them. If you
+apply from an unpushed branch you have taken a number nobody else can see.
+
+**Check for drift when something feels off:**
+
+```bash
+ls supabase/migrations/            # what the repo thinks exists
+npx supabase migration list        # what the database has actually run
+```
+
+If those two disagree, a fresh environment cannot rebuild production, which is
+the entire reason the files exist.
+
 ### Don't deactivate a question the other side reads
 
 Setting `is_active = false` on an `application_questions` row is a schema change
