@@ -5,7 +5,11 @@ import {
   loadQuestionRules,
   type Question,
 } from "@/lib/questions";
-import type { ApplicationStatus, ProductTrack } from "@/types/database";
+import type {
+  ApplicationStatus,
+  ProductTrack,
+  QuestionRuleRow,
+} from "@/types/database";
 import {
   FORM_MODULES,
   isAnswered,
@@ -31,7 +35,16 @@ export interface FormSection {
   module: FormModule;
   title: string;
   description?: string;
+  /** Visible as of the last save. Used for counting, not for rendering. */
   questions: Question[];
+  /**
+   * Every question in the section, including ones currently hidden by a rule.
+   *
+   * The form renders from this and decides visibility itself, so answering
+   * "yes, there was a bankruptcy" reveals the follow-up immediately rather than
+   * after a save and a reload.
+   */
+  allQuestions: Question[];
   /** Current value per question key, ready to render as defaultValue. */
   values: Record<string, unknown>;
   requiredTotal: number;
@@ -46,6 +59,13 @@ export interface ApplicationForm {
   sections: FormSection[];
   requiredTotal: number;
   requiredAnswered: number;
+  /** Passed to the form so it can re-evaluate visibility as fields change. */
+  rules: QuestionRuleRow[];
+  /**
+   * Every saved answer across every section, so a rule that reaches into
+   * another section still resolves in the browser.
+   */
+  allValues: Record<string, unknown>;
   /**
    * False once a specialist is packaging the file. The form renders read-only
    * rather than disappearing — someone who filled it in should still be able to
@@ -159,8 +179,13 @@ export async function loadApplicationForm(
     );
     if (visible.length === 0) continue;
 
+    // Seeded from every question in the section, not just the visible ones — a
+    // field revealed mid-typing must arrive carrying whatever was saved for it
+    // last time, not empty.
     const values: Record<string, unknown> = {};
-    for (const question of visible) values[question.key] = flatValues[question.key];
+    for (const question of step.questions) {
+      values[question.key] = flatValues[question.key];
+    }
 
     const required = visible.filter((question) => question.isRequired);
     const requiredAnswered = required.filter((question) =>
@@ -172,6 +197,7 @@ export async function loadApplicationForm(
       title: step.title,
       description: step.description,
       questions: visible,
+      allQuestions: step.questions,
       values,
       requiredTotal: required.length,
       requiredAnswered,
@@ -184,6 +210,8 @@ export async function loadApplicationForm(
     sections,
     requiredTotal: sections.reduce((sum, s) => sum + s.requiredTotal, 0),
     requiredAnswered: sections.reduce((sum, s) => sum + s.requiredAnswered, 0),
+    rules,
+    allValues: flatValues,
     editable: isEditable(application.status),
     status: application.status,
   };

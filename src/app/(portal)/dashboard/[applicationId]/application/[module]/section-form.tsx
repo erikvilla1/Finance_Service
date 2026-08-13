@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import type { Question } from "@/lib/questions";
+import { hiddenQuestionKeys } from "@/lib/questions/rules";
+import type { QuestionRuleRow } from "@/types/database";
 import { saveSectionAction, type SectionState } from "./actions";
 
 /**
@@ -32,12 +34,16 @@ export function SectionForm({
   module,
   questions,
   values,
+  rules,
+  baseValues,
   readOnly,
 }: {
   applicationId: string;
   module: string;
   questions: Question[];
   values: Record<string, unknown>;
+  rules: QuestionRuleRow[];
+  baseValues: Record<string, unknown>;
   readOnly: boolean;
 }) {
   const [state, formAction, pending] = useActionState<SectionState, FormData>(
@@ -48,6 +54,23 @@ export function SectionForm({
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     seedFrom(questions, values),
   );
+
+  /**
+   * Which follow-up questions the current answers have earned.
+   *
+   * Evaluated here rather than on the server, where it used to happen once at
+   * page load. Answering "yes, there was a bankruptcy" now reveals the year
+   * immediately, instead of doing nothing until a save and reload.
+   *
+   * `baseValues` underneath the draft so a rule that reads a field from another
+   * section still resolves — the browser only holds this section's fields.
+   */
+  const hidden = hiddenQuestionKeys(rules, {
+    ...baseValues,
+    ...typedDraft(questions, draft),
+  });
+
+  const visible = questions.filter((question) => !hidden.has(question.key));
 
   const errorRef = useRef<HTMLParagraphElement>(null);
 
@@ -64,12 +87,16 @@ export function SectionForm({
     .filter((question) => failed[question.key])
     .map((question) => question.label);
 
+  // A hidden field is not submitted, and the save path only writes what it is
+  // sent — so a question that stops applying keeps whatever it had rather than
+  // being nulled behind the applicant's back.
+
   return (
     <form action={formAction} className="mt-6 space-y-6">
       <input type="hidden" name="application_id" value={applicationId} />
       <input type="hidden" name="module" value={module} />
 
-      {questions.map((question) => (
+      {visible.map((question) => (
         <QuestionField
           key={question.key}
           question={question}
@@ -125,6 +152,47 @@ export function SectionForm({
  * columns and `<input type="date">` renders nothing at all for anything that is
  * not exactly yyyy-mm-dd — silently, so the field looks unanswered.
  */
+/**
+ * Draft strings back into the shapes the rules compare against.
+ *
+ * Rules test `=== true`, so a boolean sitting in form state as the string
+ * "true" would never match and its follow-up would never appear. Same coercion
+ * the save path applies, kept deliberately simple: only the types any rule
+ * actually reads need converting.
+ */
+function typedDraft(
+  questions: Question[],
+  draft: Record<string, string>,
+): Record<string, unknown> {
+  const typed: Record<string, unknown> = {};
+
+  for (const question of questions) {
+    const raw = draft[question.key];
+
+    if (raw === undefined || raw === "") {
+      typed[question.key] = null;
+      continue;
+    }
+
+    switch (question.type) {
+      case "boolean":
+        typed[question.key] = raw === "true";
+        break;
+      case "number":
+      case "currency":
+      case "percent": {
+        const value = Number(raw.replace(/[$,\s%]/g, ""));
+        typed[question.key] = Number.isFinite(value) ? value : null;
+        break;
+      }
+      default:
+        typed[question.key] = raw;
+    }
+  }
+
+  return typed;
+}
+
 function seedFrom(
   questions: Question[],
   values: Record<string, unknown>,

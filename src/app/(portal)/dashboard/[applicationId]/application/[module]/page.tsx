@@ -99,8 +99,12 @@ export default async function SectionPage({
           <SectionForm
             applicationId={applicationId}
             module={module}
-            questions={section.questions}
+            // Every question, hidden ones included — the form decides what to
+            // show from what is currently typed, not from what was saved.
+            questions={section.allQuestions}
             values={section.values}
+            rules={form.rules}
+            baseValues={form.allValues}
             readOnly={!form.editable}
           />
         </Card>
