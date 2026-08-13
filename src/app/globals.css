@@ -1,6 +1,28 @@
 @import "tailwindcss";
 
 /* =============================================================================
+   DARK MODE — SCOPED, NOT GLOBAL
+
+   Tailwind's default `dark:` variant follows the operating system. This
+   replaces it with an explicit class, and the class is deliberately NOT put on
+   <html>: it lives on the admin shell only.
+
+   The reason is containment. Nothing in the customer portal, the prequal, or
+   the marketing site has dark variants, so a global toggle would leave those
+   pages with dark backgrounds and near-black text on them. `&:where(.dark, .dark *)`
+   means the variant applies inside the admin wrapper and nowhere else, so a
+   specialist flipping the theme cannot half-darken a page an applicant is
+   looking at.
+
+   `:where()` keeps specificity at zero, so a dark: utility still loses to a
+   later plain utility in the same way every other variant does.
+
+   When someone does a proper pass over the customer side, moving the class to
+   <html> is the only change needed here.
+   ========================================================================== */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =============================================================================
    DESIGN TOKENS
    Platform spec §32: professional, trustworthy, modern, financial,
    approachable, fast, premium, clear.

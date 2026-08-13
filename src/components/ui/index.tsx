@@ -188,6 +188,10 @@ export function Card({
     <Tag
       className={cx(
         "rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70",
+        // Only ever applies inside the admin shell — the dark variant is scoped
+        // to that wrapper in globals.css, so these classes are inert on every
+        // customer-facing page that uses this same component.
+        "dark:bg-brand-900 dark:ring-brand-800",
         className,
       )}
     >
@@ -250,11 +254,14 @@ export function Badge({
   tone?: BadgeTone;
 }) {
   const tones: Record<BadgeTone, string> = {
-    neutral: "bg-ink-100 text-ink-700",
-    brand: "bg-brand-50 text-brand-700",
-    success: "bg-success-50 text-success-700",
-    warning: "bg-warning-50 text-warning-700",
-    danger: "bg-danger-50 text-danger-700",
+    neutral: "bg-ink-100 text-ink-700 dark:bg-brand-800 dark:text-ink-300",
+    brand: "bg-brand-50 text-brand-700 dark:bg-brand-800 dark:text-ink-200",
+    // The status scales only define 50/600/700 — no light steps exist to use as
+    // dark-mode text. A translucent fill of the 600 with the 600 as text keeps
+    // the same hue readable on a dark surface without inventing tokens.
+    success: "bg-success-50 text-success-700 dark:bg-success-600/20 dark:text-success-600",
+    warning: "bg-warning-50 text-warning-700 dark:bg-warning-600/20 dark:text-warning-600",
+    danger: "bg-danger-50 text-danger-700 dark:bg-danger-600/20 dark:text-danger-600",
   };
   return (
     <span
