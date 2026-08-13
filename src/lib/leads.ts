@@ -3,6 +3,7 @@ import type { Database } from "@/types/database";
 import { loadQuestions } from "@/lib/questions";
 import { FORM_MODULES, isAnswered, targetFor } from "@/lib/application-form/mapping";
 import { needsApplicant } from "@/lib/documents/checklist";
+import { assessCompleteness } from "@/lib/funding-application/completeness";
 
 /**
  * Who each lead actually is, and what is still outstanding on it.
@@ -35,9 +36,38 @@ export interface LeadSummary {
   contactName: string | null;
   contactEmail: string | null;
   businessName: string | null;
-  /** Required application questions answered, out of the total. */
+  /**
+   * How far through the form the applicant has got.
+   *
+   * NOT the same question as whether the file can be sent, and the two are
+   * routinely different — see packageReady. This one exists to answer "have
+   * they finished their bit", which is what decides whether to chase them.
+   */
   formAnswered: number;
   formRequired: number;
+  /**
+   * Whether the lender package has everything it needs.
+   *
+   * Assessed against FUNDING_APPLICATION_FIELDS, which is the single source of
+   * truth for what Robert's funding application requires. This is the one that
+   * decides whether a file can go out, because it is the one measuring the
+   * document that actually leaves the building.
+   */
+  packageReady: boolean;
+  packagePresent: number;
+  packageTotal: number;
+  /** What the lender package is still missing, by its own field labels. */
+  packageMissing: string[];
+  /**
+   * The labels of the required questions still unanswered, in the order they
+   * are asked.
+   *
+   * "31 of 33" tells a specialist the file is nearly done and nothing about
+   * whether the two gaps are a missing middle initial or the entire ownership
+   * section. Carrying the labels costs nothing — the questions were loaded to
+   * produce the count in the first place.
+   */
+  formMissing: string[];
   /** Checklist items still sitting with the applicant. */
   docsOutstanding: number;
   docsTotal: number;
@@ -50,6 +80,105 @@ export interface LeadRef {
   id: string;
   profile_id: string | null;
   business_id: string | null;
+}
+
+/**
+ * The questions the summary cards answer, defined once.
+ *
+ * These live here rather than on the pipeline page because the dashboard asks
+ * the same questions, and two copies of "ready to package" that disagree is a
+ * specialist ringing someone about a file that is not ready.
+ *
+ * Deliberately separate from status. A status says where a file sits; these say
+ * what it is waiting on, and the two disagree constantly — a lead can sit at
+ * 'contacted' for a week while nobody has opened the documents that arrived on
+ * day one.
+ */
+export type Need =
+  | "review"
+  | "applicant"
+  | "docs_done"
+  | "app_unfinished"
+  | "package";
+
+export const NEEDS: Need[] = [
+  "review",
+  "applicant",
+  "docs_done",
+  "app_unfinished",
+  "package",
+];
+
+export const NEED_LABELS: Record<Need, { label: string; hint: string }> = {
+  review: {
+    label: "Files to review",
+    hint: "Documents sent in and not yet looked at",
+  },
+  applicant: {
+    label: "Waiting on the applicant",
+    hint: "Still owe us at least one document",
+  },
+  docs_done: {
+    label: "Documents complete",
+    hint: "Every document accepted or waived",
+  },
+  app_unfinished: {
+    label: "Application unfinished",
+    hint: "Sent documents but haven't completed the form",
+  },
+  package: {
+    label: "Ready to package",
+    hint: "Lender package complete, every document settled",
+  },
+};
+
+export function isNeed(value: string | undefined): value is Need {
+  return NEEDS.includes(value as Need);
+}
+
+const formComplete = (s: LeadSummary) =>
+  s.formRequired > 0 && s.formAnswered === s.formRequired;
+
+const docsComplete = (s: LeadSummary) =>
+  s.docsTotal > 0 && s.docsSettled === s.docsTotal;
+
+export function matchesNeed(summary: LeadSummary, need: Need): boolean {
+  switch (need) {
+    case "review":
+      return summary.docsAwaitingReview > 0;
+
+    case "applicant":
+      return summary.docsOutstanding > 0;
+
+    case "docs_done":
+      return docsComplete(summary);
+
+    case "app_unfinished":
+      // Someone who has engaged — sent something in — but whose form is not
+      // finished. Both halves matter: a lead who has sent nothing at all is a
+      // lead nobody has chased yet, which is a different problem with a
+      // different fix, and mixing them makes the number useless for both.
+      return (
+        summary.docsTotal > summary.docsOutstanding && !formComplete(summary)
+      );
+
+    case "package":
+      // Measured against the lender package, not against how far through the
+      // form the applicant got. Those are different questions and they were
+      // giving different answers on the same file: the pipeline called Iwa
+      // Media ready to package while its own detail page said 34 of 36, because
+      // the form does not ask for everything the funding application needs —
+      // owner title and existing obligations among them.
+      //
+      // Of the two, the package check is the one that matters. It measures the
+      // document that actually leaves the building, and being wrong about it
+      // means sending a lender an incomplete file.
+      //
+      // A file with no checklist at all is still not ready: it is one nobody
+      // has asked anything of yet, and counting it here would put untouched
+      // leads at the front of the queue.
+      return summary.packageReady && docsComplete(summary);
+  }
 }
 
 export async function loadLeadSummaries(
@@ -69,17 +198,25 @@ export async function loadLeadSummaries(
     { data: owners },
     { data: requests },
     { data: answers },
+    { data: debts },
     questions,
   ] = await Promise.all([
     profileIds.length
       ? supabase.from("profiles").select("id, full_name, email").in("id", profileIds)
       : Promise.resolve({ data: [] }),
+    // WHOLE ROWS, NOT JUST THE DISPLAY COLUMNS. These are read twice: once for
+    // the name on the card, and once by the completeness check below, which
+    // looks up whatever column the mapping points a question at. Selecting
+    // `legal_name, dba` was enough for the first and quietly broke the second —
+    // every business and owner field came back undefined and counted as
+    // unanswered, so a finished application reported 7 of 18 with every field
+    // visibly filled in.
     businessIds.length
-      ? supabase.from("businesses").select("id, legal_name, dba").in("id", businessIds)
+      ? supabase.from("businesses").select("*").in("id", businessIds)
       : Promise.resolve({ data: [] }),
     supabase
       .from("application_owners")
-      .select("application_id, full_name, email, is_primary")
+      .select("*")
       .in("application_id", ids)
       .eq("is_primary", true),
     supabase
@@ -91,6 +228,9 @@ export async function loadLeadSummaries(
       .from("application_answers")
       .select("application_id, question_key, value")
       .in("application_id", ids),
+    // Needed only for its count: the lender package requires at least one
+    // existing-obligation row, and nothing else here reads the rows themselves.
+    supabase.from("existing_debts").select("application_id").in("application_id", ids),
     // Track is deliberately null: every module in FORM_MODULES is universal, so
     // the required set is the same for every lead and can be loaded once. When
     // the track modules land this becomes a per-track lookup.
@@ -143,6 +283,8 @@ export async function loadLeadSummaries(
     const bag = answersByApplication.get(application.id) ?? {};
 
     let formAnswered = 0;
+    const formMissing: string[] = [];
+
     for (const question of requiredQuestions) {
       const target = targetFor(question.key);
       const value =
@@ -150,12 +292,28 @@ export async function loadLeadSummaries(
           ? bag[question.key]
           : sources[target.table]?.[target.column];
 
-      if (isAnswered(value)) formAnswered += 1;
+      if (isAnswered(value)) {
+        formAnswered += 1;
+      } else {
+        formMissing.push(question.label);
+      }
     }
 
     const appRequests = (requests ?? []).filter(
       (r) => r.application_id === application.id,
     );
+
+    // The authoritative readiness check, run against the same field list the
+    // application detail page uses — so the card and the page cannot disagree
+    // about whether a file can go out.
+    const report = assessCompleteness({
+      application: sources.application,
+      business: sources.business,
+      owners: owner ? [owner as unknown as Record<string, unknown>] : [],
+      answers: bag,
+      debtCount: (debts ?? []).filter((d) => d.application_id === application.id)
+        .length,
+    });
 
     summaries.set(application.id, {
       // The owner named on the application beats the account holder's name: a
@@ -167,6 +325,11 @@ export async function loadLeadSummaries(
       businessName: business?.legal_name ?? business?.dba ?? null,
       formAnswered,
       formRequired: requiredQuestions.length,
+      formMissing,
+      packageReady: report.readyToSend,
+      packagePresent: report.requiredPresent,
+      packageTotal: report.requiredTotal,
+      packageMissing: report.missing.map((field) => field.formLabel),
       docsTotal: appRequests.length,
       docsOutstanding: appRequests.filter((r) => needsApplicant(r.status)).length,
       docsSettled: appRequests.filter(

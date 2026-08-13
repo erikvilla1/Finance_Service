@@ -15,7 +15,79 @@ import {
   customerStatus,
 } from "@/lib/customer-status";
 import { formatCurrency, formatDate } from "@/lib/crm";
-import { loadOutstandingCounts } from "@/lib/documents/checklist";
+import { loadLeadSummaries } from "@/lib/leads";
+
+/**
+ * One half of what we are waiting for, as a tile.
+ *
+ * Reads "Complete" rather than "5 of 5" when it is done. A ratio is what you
+ * need while there is work left; once there isn't, the only thing worth saying
+ * is that there isn't.
+ */
+function ProgressTile({
+  href,
+  label,
+  done,
+  total,
+  awaitingReview = false,
+}: {
+  href: string;
+  label: string;
+  done: number;
+  total: number;
+  /** Everything has been sent, but a specialist has not signed it all off yet. */
+  awaitingReview?: boolean;
+}) {
+  const complete = total > 0 && done === total;
+  const started = done > 0;
+
+  const status = awaitingReview
+    ? "With your specialist"
+    : complete
+      ? "Complete"
+      : started
+        ? "In progress"
+        : "Not started";
+
+  return (
+    <Link
+      href={href}
+      className="block rounded-lg p-4 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50 hover:ring-brand-300"
+    >
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-ink-900">{label}</span>
+        <span
+          className={
+            awaitingReview
+              ? "text-xs font-semibold text-brand-700"
+              : complete
+                ? "text-xs font-semibold text-success-700"
+                : started
+                  ? "text-xs font-semibold text-warning-700"
+                  : "text-xs font-semibold text-ink-500"
+          }
+        >
+          {status}
+        </span>
+      </span>
+
+      <span className="mt-2 block h-2 w-full overflow-hidden rounded-full bg-ink-200">
+        <span
+          className={
+            complete
+              ? "block h-full rounded-full bg-success-600"
+              : "block h-full rounded-full bg-brand-600"
+          }
+          style={{ width: total > 0 ? `${(done / total) * 100}%` : "0%" }}
+        />
+      </span>
+
+      <span className="mt-1.5 block text-xs tabular-nums text-ink-500">
+        {total === 0 ? "Nothing needed yet" : `${done} of ${total}`}
+      </span>
+    </Link>
+  );
+}
 
 export const metadata: Metadata = {
   title: "Your applications",
@@ -54,20 +126,18 @@ export default async function DashboardPage() {
 
   const { data: applications } = await supabase
     .from("applications")
-    .select("id, reference_code, status, financing_goal, requested_amount, created_at")
+    .select(
+      "id, reference_code, status, financing_goal, requested_amount, created_at, profile_id, business_id",
+    )
     .eq("profile_id", user.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   const list = applications ?? [];
 
-  // One query for every card rather than one per card. The dashboard is the
-  // first thing someone sees after signing in, and it is the only place the
-  // outstanding count appears before they have decided to go looking for it.
-  const outstandingByApplication = await loadOutstandingCounts(
-    supabase,
-    list.map((application) => application.id),
-  );
+  // One pass for every card rather than a lookup per card. Carries the business
+  // name and both progress counts, which is everything a card needs.
+  const summaries = await loadLeadSummaries(supabase, list);
 
   return (
     <Container>
@@ -88,20 +158,34 @@ export default async function DashboardPage() {
           <ul className="mt-8 space-y-5">
             {list.map((application) => {
               const view = customerStatus(application.status);
-              const outstanding =
-                outstandingByApplication.get(application.id) ?? 0;
+              const lead = summaries.get(application.id);
+              const outstanding = lead?.docsOutstanding ?? 0;
+              const settled = lead?.docsSettled ?? 0;
 
               return (
                 <Card as="li" key={application.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-mono text-sm text-ink-500">
-                        {application.reference_code}
-                      </p>
-                      <h2 className="mt-1 text-lg font-semibold text-ink-900">
-                        {application.financing_goal ?? "Financing application"}
+                      {/*
+                        The reference code is ours, not theirs. An applicant
+                        knows their own company; FLS-2026-000011 is a filing
+                        number that means something to a specialist and nothing
+                        to the person who typed the form. It still exists on the
+                        application and documents pages, where someone might be
+                        reading it out on a call.
+                      */}
+                      <h2 className="text-lg font-semibold text-ink-900">
+                        {lead?.businessName ?? (
+                          <Link
+                            href={`/dashboard/${application.id}/application/core_business`}
+                            className="text-accent-700 hover:underline"
+                          >
+                            Add your business name
+                          </Link>
+                        )}
                       </h2>
                       <p className="mt-1 text-sm text-ink-600">
+                        {application.financing_goal ?? "Financing application"} ·{" "}
                         {formatCurrency(application.requested_amount)} · started{" "}
                         {formatDate(application.created_at)}
                       </p>
@@ -143,6 +227,60 @@ export default async function DashboardPage() {
                     {view.description}
                   </p>
 
+                  {/*
+                    The two halves of what we need, side by side and phrased the
+                    same way. Previously the card only mentioned documents, so
+                    someone who had finished those saw nothing about the
+                    half-empty application form and reasonably assumed they were
+                    done.
+                  */}
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <ProgressTile
+                      href={`/dashboard/${application.id}/application`}
+                      label="Your application"
+                      done={lead?.formAnswered ?? 0}
+                      total={lead?.formRequired ?? 0}
+                    />
+                    {/*
+                      Counts what they have SENT, not what a specialist has
+                      accepted. Someone who has uploaded all five and is waiting
+                      on review was being told "0 of 5 · Not started", which
+                      reads as their files having vanished.
+
+                      The distinction still exists — it is the status word, not
+                      the bar. "With your specialist" is not the same as
+                      "Complete", and neither is the applicant's problem.
+                    */}
+                    <ProgressTile
+                      href={`/dashboard/${application.id}/documents`}
+                      label="Your documents"
+                      done={(lead?.docsTotal ?? 0) - outstanding}
+                      total={lead?.docsTotal ?? 0}
+                      awaitingReview={
+                        outstanding === 0 && settled < (lead?.docsTotal ?? 0)
+                      }
+                    />
+                  </div>
+
+                  {/*
+                    Being finished is worth saying out loud. Previously this box
+                    simply disappeared once everything was accepted, so the only
+                    difference between "your documents were approved" and
+                    "nothing has happened yet" was the absence of a warning —
+                    which is not something anyone notices.
+                  */}
+                  {outstanding === 0 && settled > 0 && !view.actionNeeded && (
+                    <div className="mt-5 rounded-lg bg-success-50 p-4">
+                      <p className="text-sm font-semibold text-success-700">
+                        Your documents have been accepted
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-700">
+                        Your specialist has everything they asked for. Nothing
+                        needed from you right now.
+                      </p>
+                    </div>
+                  )}
+
                   {/* The checklist and the pipeline stage can disagree — a
                       specialist can request a document without moving the file,
                       and a stage can advance while an item is still open. The
@@ -175,7 +313,7 @@ export default async function DashboardPage() {
                     </div>
                   )}
 
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-ink-100 pt-4">
+                  <div className="mt-5 border-t border-ink-100 pt-4">
                     <p className="text-sm text-ink-600">
                       Questions about this application?{" "}
                       <Link
@@ -185,20 +323,6 @@ export default async function DashboardPage() {
                         Talk with your specialist
                       </Link>
                     </p>
-                    <span className="flex flex-wrap items-center gap-4">
-                      <Link
-                        href={`/dashboard/${application.id}/application`}
-                        className="text-sm font-semibold text-brand-700 hover:underline"
-                      >
-                        Your application
-                      </Link>
-                      <Link
-                        href={`/dashboard/${application.id}/documents`}
-                        className="text-sm font-semibold text-brand-700 hover:underline"
-                      >
-                        Your documents
-                      </Link>
-                    </span>
                   </div>
                 </Card>
               );

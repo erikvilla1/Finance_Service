@@ -231,11 +231,19 @@ export async function loadChecklist(
  * card. Doing that with loadChecklist in a loop is a query per application on
  * the critical path of the page they land on after signing in.
  */
+export interface ChecklistCounts {
+  /** Items the applicant still has to act on. */
+  outstanding: number;
+  /** Items accepted or waived — done with, from their point of view. */
+  settled: number;
+  total: number;
+}
+
 export async function loadOutstandingCounts(
   supabase: Client,
   applicationIds: string[],
-): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
+): Promise<Map<string, ChecklistCounts>> {
+  const counts = new Map<string, ChecklistCounts>();
   if (applicationIds.length === 0) return counts;
 
   const { data } = await supabase
@@ -244,11 +252,17 @@ export async function loadOutstandingCounts(
     .in("application_id", applicationIds)
     .eq("is_required", true);
 
-  for (const id of applicationIds) counts.set(id, 0);
+  for (const id of applicationIds) {
+    counts.set(id, { outstanding: 0, settled: 0, total: 0 });
+  }
 
   for (const row of data ?? []) {
-    if (!needsApplicant(row.status)) continue;
-    counts.set(row.application_id, (counts.get(row.application_id) ?? 0) + 1);
+    const entry = counts.get(row.application_id);
+    if (!entry) continue;
+
+    entry.total += 1;
+    if (needsApplicant(row.status)) entry.outstanding += 1;
+    if (isSettled(row.status)) entry.settled += 1;
   }
 
   return counts;

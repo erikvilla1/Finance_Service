@@ -11,6 +11,10 @@ import {
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { loadApplicationForm } from "@/lib/application-form/load";
+import {
+  loadObligations,
+  obligationsRequired,
+} from "@/lib/application-form/obligations";
 
 export const metadata: Metadata = {
   title: "Your application",
@@ -45,7 +49,7 @@ export default async function ApplicationPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, reference_code, financing_goal")
+    .select("id, reference_code, financing_goal, has_existing_mca")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -54,6 +58,14 @@ export default async function ApplicationPage({
   if (!application) notFound();
 
   const form = await loadApplicationForm(applicationId);
+
+  // The debt schedule is not a question, so it cannot come from the question
+  // engine — but it is required by the lender package whenever someone says
+  // they carry existing debt, and leaving it off this list is what let an
+  // applicant be told they were finished while the file could not be sent.
+  const needsObligations = obligationsRequired(application);
+  const obligations = needsObligations ? await loadObligations(applicationId) : [];
+  const obligationsDone = obligations.length > 0;
 
   if (!form || form.sections.length === 0) {
     return (
@@ -74,8 +86,18 @@ export default async function ApplicationPage({
     );
   }
 
-  const remaining = form.requiredTotal - form.requiredAnswered;
+  const remaining =
+    form.requiredTotal -
+    form.requiredAnswered +
+    (needsObligations && !obligationsDone ? 1 : 0);
+
   const firstIncomplete = form.sections.find((section) => !section.complete);
+  const nextHref =
+    firstIncomplete
+      ? `/dashboard/${applicationId}/application/${firstIncomplete.module}`
+      : needsObligations && !obligationsDone
+        ? `/dashboard/${applicationId}/application/obligations`
+        : null;
 
   return (
     <Container>
@@ -103,17 +125,17 @@ export default async function ApplicationPage({
 
           <div className="mt-5">
             <ProgressBar
-              value={form.requiredAnswered}
-              max={form.requiredTotal}
+              value={
+                form.requiredAnswered + (needsObligations && obligationsDone ? 1 : 0)
+              }
+              max={form.requiredTotal + (needsObligations ? 1 : 0)}
               label="Application complete"
             />
           </div>
 
-          {form.editable && firstIncomplete && (
+          {form.editable && nextHref && (
             <div className="mt-5">
-              <ButtonLink
-                href={`/dashboard/${applicationId}/application/${firstIncomplete.module}`}
-              >
+              <ButtonLink href={nextHref}>
                 {form.requiredAnswered === 0 ? "Start" : "Pick up where you left off"}
               </ButtonLink>
             </div>
@@ -164,6 +186,43 @@ export default async function ApplicationPage({
               </div>
             </Card>
           ))}
+
+          {needsObligations && (
+            <Card as="li">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-ink-400">
+                    Section {form.sections.length + 1}
+                  </p>
+                  <h2 className="mt-0.5 text-base font-semibold text-ink-900">
+                    <Link
+                      href={`/dashboard/${applicationId}/application/obligations`}
+                      className="hover:text-brand-700 hover:underline"
+                    >
+                      Existing obligations
+                    </Link>
+                  </h2>
+                  <p className="mt-1 text-sm text-ink-600">
+                    {obligationsDone
+                      ? `${obligations.length} listed`
+                      : "Needed because you have an existing advance or loan"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Badge tone={obligationsDone ? "success" : "warning"}>
+                    {obligationsDone ? "Complete" : "Not started"}
+                  </Badge>
+                  <Link
+                    href={`/dashboard/${applicationId}/application/obligations`}
+                    className="text-sm font-semibold text-brand-700 hover:underline"
+                  >
+                    {!form.editable ? "View" : obligationsDone ? "Edit" : "Start"}
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          )}
         </ul>
 
         <p className="mt-8 text-sm leading-relaxed text-ink-600">

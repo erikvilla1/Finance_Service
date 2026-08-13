@@ -29,6 +29,13 @@ export interface ActivityEntry {
   at: string;
   applicationId: string;
   referenceCode: string | null;
+  /**
+   * Who this is, in the order a specialist would recognise them: the business
+   * first, the person if there is no business yet, and null when nobody has
+   * told us either. Null rather than a placeholder string, so the page decides
+   * how to say "we don't know" — the feed's job is to report, not to phrase.
+   */
+  leadName: string | null;
 }
 
 export async function loadRecentActivity(
@@ -64,24 +71,18 @@ export async function loadRecentActivity(
         .limit(limit),
     ]);
 
-  // Reference codes for the sources that do not carry one.
-  const referenceIds = new Set<string>();
-  for (const row of history ?? []) referenceIds.add(row.application_id);
-  for (const row of documents ?? []) referenceIds.add(row.application_id);
-  for (const row of notes ?? []) referenceIds.add(row.application_id);
+  // Every application any of the four sources mentioned.
+  const involved = new Set<string>();
+  for (const row of applications ?? []) involved.add(row.id);
+  for (const row of history ?? []) involved.add(row.application_id);
+  for (const row of documents ?? []) involved.add(row.application_id);
+  for (const row of notes ?? []) involved.add(row.application_id);
 
   const codeById = new Map<string, string>();
   for (const row of applications ?? []) codeById.set(row.id, row.reference_code);
 
-  const missing = [...referenceIds].filter((id) => !codeById.has(id));
-  if (missing.length > 0) {
-    const { data: extra } = await supabase
-      .from("applications")
-      .select("id, reference_code")
-      .in("id", missing);
-
-    for (const row of extra ?? []) codeById.set(row.id, row.reference_code);
-  }
+  const { names, codes } = await resolveNames(supabase, [...involved]);
+  for (const [id, code] of codes) codeById.set(id, code);
 
   const entries: ActivityEntry[] = [];
 
@@ -94,6 +95,7 @@ export async function loadRecentActivity(
       at: row.created_at,
       applicationId: row.id,
       referenceCode: row.reference_code,
+      leadName: names.get(row.id) ?? null,
     });
   }
 
@@ -106,6 +108,7 @@ export async function loadRecentActivity(
       at: row.created_at,
       applicationId: row.application_id,
       referenceCode: codeById.get(row.application_id) ?? null,
+      leadName: names.get(row.application_id) ?? null,
     });
   }
 
@@ -119,6 +122,7 @@ export async function loadRecentActivity(
       at: row.created_at,
       applicationId: row.application_id,
       referenceCode: codeById.get(row.application_id) ?? null,
+      leadName: names.get(row.application_id) ?? null,
     });
   }
 
@@ -131,6 +135,7 @@ export async function loadRecentActivity(
       at: row.created_at,
       applicationId: row.application_id,
       referenceCode: codeById.get(row.application_id) ?? null,
+      leadName: names.get(row.application_id) ?? null,
     });
   }
 
@@ -141,4 +146,86 @@ export async function loadRecentActivity(
 
 function label(status: ApplicationStatus): string {
   return STATUS_LABELS[status] ?? status;
+}
+
+/**
+ * Names and reference codes for a set of applications.
+ *
+ * Deliberately not loadLeadSummaries(), which answers a much bigger question —
+ * document progress, required-question counts, the lot. The feed needs a
+ * display name, and paying for a completeness calculation per row to get one
+ * would make the cheapest panel on the page the most expensive.
+ *
+ * The fallback order is the same as the pipeline's, so the same lead reads the
+ * same way in both places: the business, then whoever is named on the
+ * application, then the account holder. The owner beats the account because a
+ * bookkeeper often creates the login and the person on the file is the one a
+ * specialist needs.
+ */
+async function resolveNames(
+  supabase: Client,
+  applicationIds: string[],
+): Promise<{ names: Map<string, string>; codes: Map<string, string> }> {
+  const names = new Map<string, string>();
+  const codes = new Map<string, string>();
+
+  if (applicationIds.length === 0) return { names, codes };
+
+  const { data: applications } = await supabase
+    .from("applications")
+    .select("id, reference_code, profile_id, business_id")
+    .in("id", applicationIds);
+
+  const rows = applications ?? [];
+  for (const row of rows) codes.set(row.id, row.reference_code);
+
+  const businessIds = rows.map((r) => r.business_id).filter(isPresent);
+  const profileIds = rows.map((r) => r.profile_id).filter(isPresent);
+
+  const [{ data: businesses }, { data: owners }, { data: profiles }] =
+    await Promise.all([
+      businessIds.length
+        ? supabase.from("businesses").select("id, legal_name, dba").in("id", businessIds)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("application_owners")
+        .select("application_id, full_name")
+        .in("application_id", applicationIds)
+        .eq("is_primary", true),
+      profileIds.length
+        ? supabase.from("profiles").select("id, full_name").in("id", profileIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+  const businessById = new Map((businesses ?? []).map((b) => [b.id, b]));
+  const ownerByApplication = new Map(
+    (owners ?? []).map((o) => [o.application_id, o]),
+  );
+  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  for (const row of rows) {
+    const business = row.business_id ? businessById.get(row.business_id) : undefined;
+    const owner = ownerByApplication.get(row.id);
+    const profile = row.profile_id ? profileById.get(row.profile_id) : undefined;
+
+    const name =
+      trimmed(business?.legal_name) ??
+      trimmed(business?.dba) ??
+      trimmed(owner?.full_name) ??
+      trimmed(profile?.full_name);
+
+    if (name) names.set(row.id, name);
+  }
+
+  return { names, codes };
+}
+
+/** Whitespace is not a name — a business row can exist with an empty dba. */
+function trimmed(value: string | null | undefined): string | undefined {
+  const text = value?.trim();
+  return text ? text : undefined;
+}
+
+function isPresent(value: string | null): value is string {
+  return typeof value === "string";
 }

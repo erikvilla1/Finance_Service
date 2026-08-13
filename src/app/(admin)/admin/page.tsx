@@ -16,9 +16,12 @@ import {
   type StatusGroup,
 } from "@/lib/crm";
 import {
+  NEEDS,
+  NEED_LABELS,
   findApplicationIdsByPerson,
+  isNeed,
   loadLeadSummaries,
-  type LeadSummary,
+  matchesNeed,
 } from "@/lib/leads";
 
 export const metadata: Metadata = {
@@ -26,43 +29,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * The three questions the top cards answer, as a filter.
- *
- * Separate from status on purpose. A status says where a file sits in the
- * pipeline; these say what it is waiting on, and the two disagree constantly —
- * a lead can be 'contacted' for a week while nobody has looked at the documents
- * that arrived on day one.
- */
-type Need = "review" | "applicant" | "package";
-
-const NEEDS: Need[] = ["review", "applicant", "package"];
-
-function isNeed(value: string | undefined): value is Need {
-  return NEEDS.includes(value as Need);
-}
-
 function isStatusGroup(value: string | undefined): value is StatusGroup {
   return value !== undefined && value in GROUP_LABELS;
-}
-
-function matchesNeed(summary: LeadSummary, need: Need): boolean {
-  switch (need) {
-    case "review":
-      return summary.docsAwaitingReview > 0;
-    case "applicant":
-      return summary.docsOutstanding > 0;
-    case "package":
-      // Both halves complete. A file with no checklist at all is not "ready" —
-      // it is a file nobody has asked anything of yet, and counting it here
-      // would put unstarted leads at the front of the queue to be packaged.
-      return (
-        summary.formRequired > 0 &&
-        summary.formAnswered === summary.formRequired &&
-        summary.docsTotal > 0 &&
-        summary.docsSettled === summary.docsTotal
-      );
-  }
 }
 
 /**
@@ -172,14 +140,13 @@ export default async function PipelinePage({
   // What is outstanding, as distinct from where a file sits. The stage counts
   // above answer "where is this in the pipeline"; these answer "what is it
   // waiting on", which is the question that decides who gets called today.
-  let awaitingReview = 0;
-  let waitingOnApplicant = 0;
-  let readyToPackage = 0;
-
+  const needCounts = new Map(NEEDS.map((need) => [need, 0]));
   for (const summary of summaries.values()) {
-    if (matchesNeed(summary, "review")) awaitingReview += 1;
-    if (matchesNeed(summary, "applicant")) waitingOnApplicant += 1;
-    if (matchesNeed(summary, "package")) readyToPackage += 1;
+    for (const need of NEEDS) {
+      if (matchesNeed(summary, need)) {
+        needCounts.set(need, (needCounts.get(need) ?? 0) + 1);
+      }
+    }
   }
 
   // The `needs` filter is applied after the counts, not before, so clicking a
@@ -263,33 +230,43 @@ export default async function PipelinePage({
         tells you where a file is, this tells you what to do about it, and only
         one of those is a morning's work.
       */}
-      <ul className="mt-6 grid gap-3 sm:grid-cols-3">
-        {(
-          [
-            ["review", "Files to review", awaitingReview, "Documents sent in and not yet looked at"],
-            ["applicant", "Waiting on the applicant", waitingOnApplicant, "Still owe us at least one document"],
-            ["package", "Ready to package", readyToPackage, "Application complete, every document settled"],
-          ] as const
-        ).map(([key, label, count, hint]) => {
-          const active = needs === key;
+      <ul className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {NEEDS.map((need) => {
+          const active = needs === need;
+          const { label, hint } = NEED_LABELS[need];
+
           return (
-            <li key={key}>
+            <li key={need}>
               <Link
                 // Clicking the active card clears it, so the same card is both
                 // the way in and the way out.
-                href={linkWith({ needs: active ? undefined : key })}
+                href={linkWith({ needs: active ? undefined : need })}
                 aria-pressed={active}
                 className={
                   active
-                    ? "block rounded-card bg-brand-700 p-6 text-white shadow-card ring-1 ring-brand-700"
-                    : "block rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-brand-300"
+                    ? "block h-full rounded-card bg-brand-700 p-6 text-white shadow-card ring-1 ring-brand-700 dark:bg-accent-700 dark:ring-accent-700"
+                    : "block h-full rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-brand-300 dark:bg-brand-900 dark:ring-brand-800 dark:hover:ring-accent-600"
                 }
               >
-                <p className={active ? "text-sm text-brand-100" : "text-sm text-ink-600"}>
+                <p
+                  className={
+                    active
+                      ? "text-sm text-brand-100"
+                      : "text-sm text-ink-600 dark:text-ink-400"
+                  }
+                >
                   {label}
                 </p>
-                <p className="mt-1 text-3xl font-bold tabular-nums">{count}</p>
-                <p className={active ? "mt-1 text-xs text-brand-100" : "mt-1 text-xs text-ink-500"}>
+                <p className="mt-1 text-3xl font-bold tabular-nums">
+                  {needCounts.get(need) ?? 0}
+                </p>
+                <p
+                  className={
+                    active
+                      ? "mt-1 text-xs text-brand-100"
+                      : "mt-1 text-xs text-ink-500 dark:text-ink-400"
+                  }
+                >
                   {hint}
                 </p>
               </Link>
@@ -444,10 +421,17 @@ export default async function PipelinePage({
                       <dd>{humanize(application.time_in_business)}</dd>
                     </div>
 
-                    {/* What the file is missing, next to what it is worth. */}
+                    {/*
+                      Two numbers because they answer two questions. The form is
+                      how far the applicant got, which decides whether to chase
+                      them. The package is whether the file can go out, which
+                      decides everything else — and the two differ, because the
+                      form does not collect everything the funding application
+                      needs.
+                    */}
                     {lead && lead.formRequired > 0 && (
                       <div className="flex gap-1.5">
-                        <dt className="text-ink-400">Application</dt>
+                        <dt className="text-ink-400">Form</dt>
                         <dd
                           className={
                             lead.formAnswered === lead.formRequired
@@ -460,6 +444,21 @@ export default async function PipelinePage({
                           {lead.formAnswered === 0
                             ? "Not started"
                             : `${lead.formAnswered}/${lead.formRequired}`}
+                        </dd>
+                      </div>
+                    )}
+
+                    {lead && lead.packageTotal > 0 && (
+                      <div className="flex gap-1.5">
+                        <dt className="text-ink-400">Package</dt>
+                        <dd
+                          className={
+                            lead.packageReady
+                              ? "font-semibold text-success-700"
+                              : "font-semibold text-warning-700"
+                          }
+                        >
+                          {lead.packagePresent}/{lead.packageTotal}
                         </dd>
                       </div>
                     )}
@@ -482,6 +481,26 @@ export default async function PipelinePage({
                       </div>
                     )}
                   </dl>
+
+                  {/*
+                    A file at 31 of 33 is nearly done, and the number alone does
+                    not say whether the two gaps are a middle initial or the
+                    whole ownership section. Named here so the decision to chase
+                    can be made from the list rather than by opening every row.
+
+                    Capped at four: past that it is a form to fill in, not a gap
+                    to mention on a phone call.
+                  */}
+                  {lead && lead.packageMissing.length > 0 && (
+                    <p className="mt-2 text-xs text-ink-500 dark:text-ink-400">
+                      <span className="text-ink-400 dark:text-ink-500">
+                        Package still needs{" "}
+                      </span>
+                      {lead.packageMissing.slice(0, 4).join(", ")}
+                      {lead.packageMissing.length > 4 &&
+                        ` and ${lead.packageMissing.length - 4} more`}
+                    </p>
+                  )}
                 </Link>
               </li>
               );
