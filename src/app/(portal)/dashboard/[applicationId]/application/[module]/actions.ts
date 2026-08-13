@@ -38,13 +38,16 @@ export async function saveSectionAction(
 
   const result = await saveSection(applicationId, moduleKey, formData);
 
-  if (!result.ok) {
-    return { error: result.error, fieldErrors: result.fieldErrors };
-  }
-
+  // Revalidated even when the result is not ok, because a rejected field no
+  // longer means a rejected section — the valid ones were written, and the
+  // progress shown on the hub and the dashboard has genuinely changed.
   revalidatePath(`/dashboard/${applicationId}/application`);
   revalidatePath(`/dashboard/${applicationId}/application/${moduleKey}`);
   revalidatePath("/dashboard");
+
+  if (!result.ok) {
+    return { error: result.error, fieldErrors: result.fieldErrors };
+  }
 
   return { saved: true };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import type { Question } from "@/lib/questions";
 import { saveSectionAction, type SectionState } from "./actions";
@@ -13,10 +13,19 @@ import { saveSectionAction, type SectionState } from "./actions";
  * (spec §9). Adding a field to the funding application is an insert, and this
  * component never learns its name.
  *
- * Values are uncontrolled, with defaultValue from what is already saved. A
- * controlled form here would mean holding forty pieces of state to solve a
- * problem nobody has: the browser is perfectly good at remembering what someone
- * typed into an input, and the save posts the whole section anyway.
+ * THE INPUTS ARE CONTROLLED, AND THEY HAVE TO BE.
+ *
+ * The first version left them uncontrolled on the reasoning that the browser
+ * already remembers what someone typed, so a rejected save would leave their
+ * work in the DOM to correct. That is wrong, and it destroyed real data during
+ * testing: React 19 resets a form automatically once a `<form action={...}>`
+ * submission completes. Not on success — on completion. A section rejected for
+ * one malformed phone number came back with all eighteen fields blank and the
+ * applicant no way to recover them.
+ *
+ * The cost is one piece of state holding every field, which is a good deal less
+ * than the "forty pieces of state" the original comment worried about, and it
+ * was never worth trading a form people fill in on a phone for.
  */
 export function SectionForm({
   applicationId,
@@ -36,30 +45,56 @@ export function SectionForm({
     {},
   );
 
+  const [draft, setDraft] = useState<Record<string, string>>(() =>
+    seedFrom(questions, values),
+  );
+
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // The summary sits under the last field, so on a long section a rejection can
+  // land entirely below the fold — which reads as the button doing nothing.
+  useEffect(() => {
+    if (state.error) {
+      errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [state.error]);
+
+  const failed = state.fieldErrors ?? {};
+  const failedLabels = questions
+    .filter((question) => failed[question.key])
+    .map((question) => question.label);
+
   return (
     <form action={formAction} className="mt-6 space-y-6">
       <input type="hidden" name="application_id" value={applicationId} />
       <input type="hidden" name="module" value={module} />
 
-      {/*
-        Uncontrolled inputs are what makes a rejected save survivable. The
-        action re-renders this component, but defaultValue only applies on
-        mount, so what someone typed is still sitting in the DOM — they fix the
-        one field that was wrong instead of retyping the section.
-      */}
       {questions.map((question) => (
         <QuestionField
           key={question.key}
           question={question}
-          value={values[question.key]}
-          error={state.fieldErrors?.[question.key]}
+          value={draft[question.key] ?? ""}
+          onChange={(next) =>
+            setDraft((current) => ({ ...current, [question.key]: next }))
+          }
+          error={failed[question.key]}
           disabled={readOnly}
         />
       ))}
 
       {state.error && (
-        <p role="alert" className="text-sm font-medium text-danger-700">
+        <p
+          ref={errorRef}
+          role="alert"
+          className="rounded-lg bg-danger-50 p-4 text-sm font-medium leading-relaxed text-danger-700"
+        >
           {state.error}
+          {/* Naming them saves scrolling a section hunting for red text. */}
+          {failedLabels.length > 0 && (
+            <span className="mt-1 block font-normal">
+              {failedLabels.join(", ")}
+            </span>
+          )}
         </p>
       )}
 
@@ -83,19 +118,47 @@ export function SectionForm({
   );
 }
 
+/**
+ * Saved values as form strings.
+ *
+ * Dates need trimming because Postgres returns a timestamp for some date
+ * columns and `<input type="date">` renders nothing at all for anything that is
+ * not exactly yyyy-mm-dd — silently, so the field looks unanswered.
+ */
+function seedFrom(
+  questions: Question[],
+  values: Record<string, unknown>,
+): Record<string, string> {
+  const seed: Record<string, string> = {};
+
+  for (const question of questions) {
+    const value = values[question.key];
+    if (value === null || value === undefined) {
+      seed[question.key] = "";
+      continue;
+    }
+
+    seed[question.key] =
+      question.type === "date" ? String(value).slice(0, 10) : String(value);
+  }
+
+  return seed;
+}
+
 function QuestionField({
   question,
   value,
+  onChange,
   error,
   disabled,
 }: {
   question: Question;
-  value: unknown;
+  value: string;
+  onChange: (next: string) => void;
   error?: string;
   disabled: boolean;
 }) {
   const id = question.key;
-  const current = value == null ? "" : String(value);
 
   return (
     <Field
@@ -105,7 +168,7 @@ function QuestionField({
       error={error}
       required={question.isRequired}
     >
-      {renderControl(question, id, current, disabled)}
+      {renderControl(question, id, value, onChange, disabled)}
     </Field>
   );
 }
@@ -113,13 +176,20 @@ function QuestionField({
 function renderControl(
   question: Question,
   id: string,
-  current: string,
+  value: string,
+  onChange: (next: string) => void,
   disabled: boolean,
 ) {
   const shared = {
     id,
     name: question.key,
     disabled,
+    value,
+    onChange: (
+      event: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >,
+    ) => onChange(event.target.value),
     placeholder: question.placeholder ?? undefined,
   };
 
@@ -129,7 +199,7 @@ function renderControl(
       // unanswered question post identically — and "no existing MCA" is a very
       // different fact from "did not get to that question yet".
       return (
-        <Select {...shared} defaultValue={current}>
+        <Select {...shared}>
           <option value="">Select…</option>
           <option value="true">Yes</option>
           <option value="false">No</option>
@@ -138,7 +208,7 @@ function renderControl(
 
     case "select":
       return (
-        <Select {...shared} defaultValue={current}>
+        <Select {...shared}>
           <option value="">Select…</option>
           {question.options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -149,7 +219,7 @@ function renderControl(
       );
 
     case "textarea":
-      return <Textarea {...shared} defaultValue={current} />;
+      return <Textarea {...shared} />;
 
     case "currency":
       // Deliberately not type="number". Someone typing "1,200,000" into a
@@ -160,7 +230,6 @@ function renderControl(
           {...shared}
           type="text"
           inputMode="decimal"
-          defaultValue={current}
           placeholder={question.placeholder ?? "$0"}
         />
       );
@@ -174,7 +243,6 @@ function renderControl(
           min={question.validation.min ?? 0}
           max={question.validation.max ?? 100}
           step="0.01"
-          defaultValue={current}
         />
       );
 
@@ -186,18 +254,14 @@ function renderControl(
           inputMode="numeric"
           min={question.validation.min}
           max={question.validation.max}
-          defaultValue={current}
         />
       );
 
     case "date":
-      // Trimmed because Postgres hands back a timestamp for some date columns
-      // and <input type="date"> silently renders nothing for anything that is
-      // not exactly yyyy-mm-dd.
-      return <Input {...shared} type="date" defaultValue={current.slice(0, 10)} />;
+      return <Input {...shared} type="date" />;
 
     case "email":
-      return <Input {...shared} type="email" autoComplete="email" defaultValue={current} />;
+      return <Input {...shared} type="email" autoComplete="email" />;
 
     case "phone":
       // pattern and maxLength come from the question row, not from here — the
@@ -213,7 +277,6 @@ function renderControl(
           autoComplete="tel"
           maxLength={question.validation.max}
           pattern={question.validation.pattern}
-          defaultValue={current}
         />
       );
 
@@ -224,7 +287,6 @@ function renderControl(
           type="text"
           maxLength={question.validation.max}
           pattern={question.validation.pattern}
-          defaultValue={current}
         />
       );
   }

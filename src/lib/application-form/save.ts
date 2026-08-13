@@ -91,14 +91,18 @@ export async function saveSection(
     answers: [] as { question: Question; value: unknown }[],
   };
 
-  // Validate the whole section before writing any of it.
+  // Validate everything, then write what passed.
   //
-  // All-or-nothing here, unlike blank fields, which save happily. A section
-  // that wrote its nine valid fields and dropped the tenth would report success
-  // while quietly discarding something the applicant typed — and they would
-  // find out weeks later, from a lender package with a missing phone number.
-  // Blank is a state someone chose; invalid is a mistake they want to know
-  // about now.
+  // THIS WAS ALL-OR-NOTHING AND IT COST SOMEONE THEIR WORK. Rejecting the whole
+  // section for one bad field, on the reasoning that a partial write "quietly
+  // discards" the rest, assumed the rejected values would still be on screen to
+  // correct. They were not — React resets a form after an action completes — and
+  // an eighteen-field section came back empty over one malformed phone number.
+  //
+  // The form no longer loses them either way, but keeping the valid fields is
+  // still the safer of the two: the worst case becomes one field to retype
+  // rather than a section. Nothing is discarded quietly — every rejected field
+  // is named and its value stays in the input.
   const fieldErrors: Record<string, string> = {};
   const validated = new Map<string, unknown>();
 
@@ -114,19 +118,12 @@ export async function saveSection(
     validated.set(question.key, checked.value);
   }
 
-  if (Object.keys(fieldErrors).length > 0) {
-    const count = Object.keys(fieldErrors).length;
-    return {
-      ok: false,
-      error:
-        count === 1
-          ? "One field needs another look — nothing has been saved yet."
-          : `${count} fields need another look — nothing has been saved yet.`,
-      fieldErrors,
-    };
-  }
-
   for (const question of questions) {
+    // A field that failed validation is left exactly as it was in the database.
+    // Writing null would turn "you typed this wrong" into "we erased what you
+    // had before", which on a corrected phone number is worse than the typo.
+    if (!validated.has(question.key)) continue;
+
     const value = validated.get(question.key) ?? null;
     const target = targetFor(question.key);
 
@@ -186,6 +183,19 @@ export async function saveSection(
     );
 
     if (error) return { ok: false, error: saveFailed };
+  }
+
+  const rejected = Object.keys(fieldErrors).length;
+
+  if (rejected > 0) {
+    return {
+      ok: false,
+      error:
+        rejected === 1
+          ? "Everything else is saved. One field still needs another look:"
+          : `Everything else is saved. ${rejected} fields still need another look:`,
+      fieldErrors,
+    };
   }
 
   return { ok: true };
