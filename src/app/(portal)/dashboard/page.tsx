@@ -29,14 +29,25 @@ function ProgressTile({
   label,
   done,
   total,
+  awaitingReview = false,
 }: {
   href: string;
   label: string;
   done: number;
   total: number;
+  /** Everything has been sent, but a specialist has not signed it all off yet. */
+  awaitingReview?: boolean;
 }) {
   const complete = total > 0 && done === total;
   const started = done > 0;
+
+  const status = awaitingReview
+    ? "With your specialist"
+    : complete
+      ? "Complete"
+      : started
+        ? "In progress"
+        : "Not started";
 
   return (
     <Link
@@ -47,14 +58,16 @@ function ProgressTile({
         <span className="text-sm font-semibold text-ink-900">{label}</span>
         <span
           className={
-            complete
-              ? "text-xs font-semibold text-success-700"
-              : started
-                ? "text-xs font-semibold text-warning-700"
-                : "text-xs font-semibold text-ink-500"
+            awaitingReview
+              ? "text-xs font-semibold text-brand-700"
+              : complete
+                ? "text-xs font-semibold text-success-700"
+                : started
+                  ? "text-xs font-semibold text-warning-700"
+                  : "text-xs font-semibold text-ink-500"
           }
         >
-          {complete ? "Complete" : started ? "In progress" : "Not started"}
+          {status}
         </span>
       </span>
 
@@ -228,11 +241,24 @@ export default async function DashboardPage() {
                       done={lead?.formAnswered ?? 0}
                       total={lead?.formRequired ?? 0}
                     />
+                    {/*
+                      Counts what they have SENT, not what a specialist has
+                      accepted. Someone who has uploaded all five and is waiting
+                      on review was being told "0 of 5 · Not started", which
+                      reads as their files having vanished.
+
+                      The distinction still exists — it is the status word, not
+                      the bar. "With your specialist" is not the same as
+                      "Complete", and neither is the applicant's problem.
+                    */}
                     <ProgressTile
                       href={`/dashboard/${application.id}/documents`}
                       label="Your documents"
-                      done={settled}
+                      done={(lead?.docsTotal ?? 0) - outstanding}
                       total={lead?.docsTotal ?? 0}
+                      awaitingReview={
+                        outstanding === 0 && settled < (lead?.docsTotal ?? 0)
+                      }
                     />
                   </div>
 

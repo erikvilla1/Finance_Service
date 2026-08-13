@@ -172,12 +172,19 @@ export async function loadLeadSummaries(
     profileIds.length
       ? supabase.from("profiles").select("id, full_name, email").in("id", profileIds)
       : Promise.resolve({ data: [] }),
+    // WHOLE ROWS, NOT JUST THE DISPLAY COLUMNS. These are read twice: once for
+    // the name on the card, and once by the completeness check below, which
+    // looks up whatever column the mapping points a question at. Selecting
+    // `legal_name, dba` was enough for the first and quietly broke the second —
+    // every business and owner field came back undefined and counted as
+    // unanswered, so a finished application reported 7 of 18 with every field
+    // visibly filled in.
     businessIds.length
-      ? supabase.from("businesses").select("id, legal_name, dba").in("id", businessIds)
+      ? supabase.from("businesses").select("*").in("id", businessIds)
       : Promise.resolve({ data: [] }),
     supabase
       .from("application_owners")
-      .select("application_id, full_name, email, is_primary")
+      .select("*")
       .in("application_id", ids)
       .eq("is_primary", true),
     supabase
