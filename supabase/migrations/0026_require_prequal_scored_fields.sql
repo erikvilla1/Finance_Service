@@ -1,5 +1,19 @@
 -- =============================================================================
--- 0022 — IF THE ENGINE READS IT, THE FORM ASKS FOR IT
+-- 0024 — IF THE ENGINE READS IT, THE FORM ASKS FOR IT
+--
+-- RENUMBERED FROM 0022, WHICH IS WHY THIS HAD NEVER RUN. Two files were written
+-- with an 0022 prefix — this one and 0022_customer_edit_window.sql. Only the
+-- customer-edit-window migration was applied; this one was silently skipped and
+-- stayed skipped, because a migration runner tracks the version it has already
+-- seen and 0022 had been seen.
+--
+-- The symptom was invisible in exactly the way this migration's own header
+-- warns about: prequal_asset_type, prequal_prior_defaults and
+-- prequal_deposit_trend remained optional in the database while
+-- prequal-layout.ts carried a comment asserting that 0022 had made them
+-- required and that its SCORED_BUT_OPTIONAL safety net "changes nothing on a
+-- current database". The safety net was in fact the only thing putting those
+-- three questions in front of applicants at all.
 --
 -- Migration 0016 added ten fields to the prequal and marked most of them
 -- optional. Migration 0017 then wrote a ruleset that reads three of them. Those

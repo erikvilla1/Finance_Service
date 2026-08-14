@@ -150,11 +150,60 @@ export async function submitPrequal(formData: FormData) {
     formData.get("prequal_prior_defaults"), PRIOR_DEFAULT_STATUSES);
 
   // --- Current assets ---------------------------------------------------------
-  const assetType = pick<BusinessAssetType>(
-    formData.get("prequal_asset_type"), ASSET_TYPES);
-  const assetValue = parseAmount(formData.get("prequal_asset_value"));
-  const assetDebt = parseAmount(formData.get("prequal_asset_debt"));
-  const hasRealEstateAsset = assetType === "real_estate";
+  //
+  // Repeatable (see asset-rows.tsx). Every row posts under the same three
+  // names, so FormData preserves them in document order and getAll() zips them
+  // back into rows by index.
+  //
+  // Value and debt are read positionally against the TYPE list, not against
+  // their own: a row whose type is "none" renders no money inputs at all, so
+  // the three lists are only the same length when every row has figures.
+  // Indexing each list independently would silently attach the second asset's
+  // value to the first asset. Rows are therefore built from the type list and
+  // the money inputs are matched by counting only the rows that have them.
+  const assetTypesRaw = formData.getAll("prequal_asset_type");
+  const assetValuesRaw = formData.getAll("prequal_asset_value");
+  const assetDebtsRaw = formData.getAll("prequal_asset_debt");
+
+  const assetRows: {
+    type: BusinessAssetType;
+    value: number | null;
+    debt: number | null;
+  }[] = [];
+
+  let moneyIndex = 0;
+  for (const raw of assetTypesRaw) {
+    const type = pick<BusinessAssetType>(raw, ASSET_TYPES);
+    if (!type) continue;
+
+    // "none" is a real answer about the applicant, not a description of an
+    // asset, so it carries no figures and consumes no money inputs.
+    if (type === "none") {
+      assetRows.push({ type, value: null, debt: null });
+      continue;
+    }
+
+    assetRows.push({
+      type,
+      value: parseAmount(assetValuesRaw[moneyIndex] ?? null),
+      debt: parseAmount(assetDebtsRaw[moneyIndex] ?? null),
+    });
+    moneyIndex += 1;
+  }
+
+  // Kept for the columns and answers below, which are single-valued and predate
+  // multiple assets. The first row is the one an applicant with one asset gave.
+  const assetType = assetRows[0]?.type ?? null;
+  const assetValue = assetRows[0]?.value ?? null;
+  const assetDebt = assetRows[0]?.debt ?? null;
+
+  // ANY row, not the first. An applicant who lists equipment and then a
+  // building must still reach commercial real estate — this is the single
+  // condition on ucs_real_estate_secured that the applicant controls, and
+  // reading only row one would close the product on ordering alone.
+  const hasRealEstateAsset = assetRows.some(
+    (row) => row.type === "real_estate",
+  );
 
   // Reported by the browser. Validated rather than trusted — this arrives from
   // the client, so a bad value should be dropped, not stored.
@@ -251,14 +300,21 @@ export async function submitPrequal(formData: FormData) {
   // The asset row is only worth writing when something was actually offered.
   // "none" is a real answer, but it does not describe an asset, so it belongs
   // on the application rather than in a table of assets.
-  if (assetType && assetType !== "none") {
-    await supabase.from("business_assets").insert({
-      application_id: application.id,
-      asset_type: assetType,
-      estimated_value: assetValue,
-      debt_owed: assetDebt,
-      position: 1,
-    });
+  const pledgedAssets = assetRows.filter((row) => row.type !== "none");
+
+  if (pledgedAssets.length > 0) {
+    await supabase.from("business_assets").insert(
+      pledgedAssets.map((row, i) => ({
+        application_id: application.id,
+        asset_type: row.type,
+        estimated_value: row.value,
+        debt_owed: row.debt,
+        // 1-based, and the order the applicant listed them in. They ranked
+        // these themselves by putting one first; renumbering by value would
+        // discard that.
+        position: i + 1,
+      })),
+    );
   }
 
   // Store the raw answers too, so the dynamic engine has them keyed by question.
