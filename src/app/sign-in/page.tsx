@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GrainGradient } from "@/components/marketing/grain-gradient";
+import { HeroVideo } from "@/components/marketing/hero-video";
 import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = {
@@ -19,36 +20,31 @@ export const metadata: Metadata = {
  * Supabase Auth.
  *
  * -----------------------------------------------------------------------------
- * WHAT WAS TAKEN FROM THE REFERENCE LAYOUT, AND WHAT WAS NOT
+ * FROM THE REFERENCE: the centred card. It is the right shape over full-bleed
+ * footage — a split layout fights a moving background for attention, a single
+ * floating card sits on top of one.
  *
- * Taken: the split — form on the left, a full-bleed panel on the right — and
- * the staggered entrance. Both are worth having and neither needed a package.
+ * NOT FROM THE REFERENCE, and each for the same reason — a control that cannot
+ * do anything is worse than an absent one, because the person clicks it,
+ * nothing happens, and they conclude the site is broken rather than that the
+ * option does not exist:
  *
- * NOT taken, deliberately:
+ *   "SEND ME THE MAGIC LINK". This app authenticates with
+ *   signInWithPassword. There is no OTP flow to send anything through.
  *
- *   TESTIMONIALS. The reference ships three invented people with randomuser.me
- *   avatars. Fabricated endorsements on a site that arranges credit are an FTC
- *   endorsement-guide problem and a UDAAP one, and "we'll replace them with
- *   real ones later" is how placeholder testimonials end up in production. They
- *   are not here to be filled in; they are out.
+ *   "SINGLE SIGN-ON (SSO)". No identity provider is configured in Supabase.
  *
- *   GOOGLE SIGN-IN. No OAuth provider is configured in Supabase, so the button
- *   would be decorative. A dead auth control on a sign-in page is worse than an
- *   absent one — the person clicks it, nothing happens, and they conclude the
- *   site is broken rather than that the option does not exist.
+ *   GITHUB AND GOOGLE ICONS. Declared in the reference and never rendered by
+ *   it — dead code in the source as given, and no OAuth provider here either.
  *
- *   RESET PASSWORD. There is no reset route yet. Same reasoning.
+ * The Terms and Privacy links ARE kept, because /terms and /privacy exist.
  *
- *   THE HERO IMAGE URL. The reference hot-links an Unsplash photo.
- *
- *   THE SHADER PACKAGE. The grain gradient is the reference's best idea and is
- *   kept — rebuilt in CSS. See grain-gradient.tsx for why a WebGL canvas
- *   repainting behind a two-field form was not the way to get it.
- *
- * The reference also assumes shadcn tokens (--foreground, --muted-foreground,
- * --primary, --card, --border) and tw-animate-css, none of which exist here.
- * Rebuilt on ink/brand tokens and the fade-in-up keyframe already in
- * globals.css.
+ * WHAT IT WOULD HAVE COST TO TAKE LITERALLY: clsx, tailwind-merge,
+ * @radix-ui/react-slot, class-variance-authority and @radix-ui/react-separator
+ * — five packages for a card, a button, an input, a label and a horizontal
+ * rule. The separator alone is a div with `h-px w-full`. It also assumes shadcn
+ * theme variables (--card, --muted-foreground, --primary, --border, --ring)
+ * that this project does not define.
  * -----------------------------------------------------------------------------
  */
 export default async function SignInPage({
@@ -75,73 +71,70 @@ export default async function SignInPage({
   }
 
   return (
-    <main id="main" className="flex min-h-dvh flex-col lg:flex-row">
-      {/* ------------------------------------------------------------- FORM */}
-      <section className="flex flex-1 items-center justify-center bg-white px-6 py-14 sm:px-10">
-        <div className="w-full max-w-md">
-          <Link
-            href="/"
-            aria-label="Financial Lending Specialists"
-            className="inline-flex items-center"
-          >
-            <Image
-              src="/brand/fls-logo-full.png"
-              alt=""
-              width={2613}
-              height={527}
-              className="h-10 w-auto max-w-none"
-              priority
-            />
-          </Link>
+    <main
+      id="main"
+      className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#070707] px-4 py-12"
+    >
+      {/* Backdrop, in layers back to front.
 
-          <h1 className="animate-fade-in-up mt-10 text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
-            Welcome back
-          </h1>
-          <p className="animate-fade-in-up mt-3 leading-relaxed text-ink-600 [animation-delay:80ms]">
-            Sign in to pick up your application, upload documents, and see where
-            things stand.
-          </p>
+          The grain gradient is the floor — it always renders. The video sits on
+          top of it and removes itself if the file is missing or fails to decode
+          (see HeroVideo), so dropping sign-in.mp4 into public/video is the only
+          step needed to switch backgrounds. Until then the gradient is what
+          shows, and nothing is broken in the meantime. */}
+      <GrainGradient className="absolute inset-0" />
+      <HeroVideo
+        src="/video/sign-in.mp4"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Darkened and blurred, because this is scenery behind a form. Footage
+          left at full contrast competes with the two fields the page exists
+          for. */}
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+
+      <div className="relative w-full max-w-md">
+        <div className="rounded-[2rem] border border-white/15 bg-white/95 px-7 py-12 shadow-2xl backdrop-blur-xl sm:px-10">
+          <div className="flex flex-col items-center">
+            <Link href="/" aria-label="Financial Lending Specialists">
+              <Image
+                src="/brand/fls-logo-full.png"
+                alt=""
+                width={2613}
+                height={527}
+                className="h-9 w-auto max-w-none"
+                priority
+              />
+            </Link>
+
+            <h1 className="animate-fade-in-up mt-9 text-3xl font-bold tracking-tight text-ink-900">
+              Welcome back
+            </h1>
+            <p className="animate-fade-in-up mt-2 text-center text-sm text-ink-600 [animation-delay:80ms]">
+              Haven&apos;t started an application?{" "}
+              <Link
+                href="/start"
+                className="font-semibold text-brand-800 hover:underline"
+              >
+                See your financing options
+              </Link>
+            </p>
+          </div>
 
           <SignInForm next={next} />
 
-          <p className="animate-fade-in-up mt-8 text-sm text-ink-600 [animation-delay:450ms]">
-            Haven&apos;t started an application?{" "}
-            <Link
-              href="/start"
-              className="font-semibold text-brand-700 hover:underline"
-            >
-              See your financing options
+          <p className="mt-8 text-center text-xs leading-relaxed text-ink-500">
+            By signing in you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-ink-800">
+              Terms of Use
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-ink-800">
+              Privacy Policy
             </Link>
+            .
           </p>
         </div>
-      </section>
-
-      {/* -------------------------------------------------------- SIDE PANEL
-
-          Hidden below lg rather than stacked. On a phone it would push the
-          form below the fold, and a sign-in page that requires a scroll before
-          the first field is a sign-in page people abandon. */}
-      <section className="relative hidden flex-1 p-3 lg:block">
-        <div className="relative h-full overflow-hidden rounded-[1.75rem] bg-[#070707]">
-          <GrainGradient className="absolute inset-0 overflow-hidden" />
-
-          {/* Scrim under the type only. The gradient is at its brightest in the
-              corners, and white copy over a white gradient core is unreadable
-              — this darkens the bottom third where the words are and leaves
-              the rest of the field alone. */}
-          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 via-black/40 to-transparent" />
-
-          <div className="relative flex h-full flex-col justify-end p-10">
-            <p className="max-w-sm text-2xl font-semibold leading-snug tracking-tight text-white">
-              Financing solutions built around your goals.
-            </p>
-            <p className="mt-4 max-w-sm leading-relaxed text-brand-100">
-              A financing specialist reviews every file personally. Nothing here
-              is automated away.
-            </p>
-          </div>
-        </div>
-      </section>
+      </div>
     </main>
   );
 }

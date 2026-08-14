@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+/** Nothing to subscribe to: both values are fixed for the life of the page. */
+const NEVER_CHANGES = () => () => {};
 
 /**
  * Reports the applicant's timezone with the submission.
@@ -13,19 +16,40 @@ import { useEffect, useState } from "react";
  * timezone must never block an application.
  */
 export function TimezoneField() {
-  const [zone, setZone] = useState("");
-  const [offset, setOffset] = useState("");
+  /**
+   * Read during render through useSyncExternalStore rather than set from an
+   * effect. Nothing here ever changes for the life of the page, so subscribe is
+   * a no-op — the hook is being used for its two-snapshot shape, which is what
+   * lets the server render an empty value and the client render the real one
+   * without a setState in an effect body.
+   */
+  const zone = useSyncExternalStore(
+    NEVER_CHANGES,
+    () => {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+      } catch {
+        // Hardened browsers can refuse the API. The columns are nullable for
+        // exactly this case.
+        return "";
+      }
+    },
+    () => "",
+  );
 
-  useEffect(() => {
-    try {
-      setZone(Intl.DateTimeFormat().resolvedOptions().timeZone ?? "");
-      // getTimezoneOffset returns minutes *behind* UTC, so Pacific is +480.
-      // Negating gives the conventional sign: Pacific is UTC-8, i.e. -480.
-      setOffset(String(-new Date().getTimezoneOffset()));
-    } catch {
-      // No zone reported. The columns are nullable for exactly this case.
-    }
-  }, []);
+  const offset = useSyncExternalStore(
+    NEVER_CHANGES,
+    () => {
+      try {
+        // getTimezoneOffset returns minutes *behind* UTC, so Pacific is +480.
+        // Negating gives the conventional sign: Pacific is UTC-8, i.e. -480.
+        return String(-new Date().getTimezoneOffset());
+      } catch {
+        return "";
+      }
+    },
+    () => "",
+  );
 
   return (
     <>

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ButtonLink, ErrorState, Field, Input } from "@/components/ui";
 import { SubmitButton } from "@/components/application/submit-button";
+import { PasswordStrength } from "@/components/application/password-strength";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 import { createAccount, type CreateAccountState } from "./actions";
 
 export function CreateAccountForm({
@@ -15,6 +17,8 @@ export function CreateAccountForm({
     createAccount,
     {},
   );
+  // Controlled only so the meter can read it. The field still posts itself.
+  const [password, setPassword] = useState("");
 
   return (
     <form action={formAction} className="mt-6 space-y-5">
@@ -70,17 +74,24 @@ export function CreateAccountForm({
         label="Password"
         htmlFor="password"
         required
-        hint="At least 8 characters."
+        hint={`At least ${PASSWORD_MIN_LENGTH} characters. The rest is advice, not a rule.`}
       >
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="new-password"
-          minLength={8}
+          minLength={PASSWORD_MIN_LENGTH}
           required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
       </Field>
+
+      {/* Only once there is something to assess. An empty meter under an empty
+          field is four grey bars telling the applicant they have failed at a
+          task they have not started. */}
+      {password.length > 0 && <PasswordStrength value={password} />}
 
       <Field label="Confirm password" htmlFor="confirm_password" required>
         <Input
@@ -88,7 +99,7 @@ export function CreateAccountForm({
           name="confirm_password"
           type="password"
           autoComplete="new-password"
-          minLength={8}
+          minLength={PASSWORD_MIN_LENGTH}
           required
         />
       </Field>
