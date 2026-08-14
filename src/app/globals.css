@@ -75,14 +75,38 @@
   --color-brand-900: oklch(0.24  0.009 109);
   --color-brand-950: oklch(0.16  0.006 109);
 
-  /* Accent — red, anchored at accent-600 = #e62427, used sparingly for primary action */
-  --color-accent-50:  oklch(0.965 0.015 27);
-  --color-accent-100: oklch(0.92  0.038 27);
-  --color-accent-300: oklch(0.80  0.11  27);
-  --color-accent-400: oklch(0.71  0.16  27);
-  --color-accent-500: oklch(0.655 0.195 27);
-  --color-accent-600: oklch(0.595 0.222 27);
-  --color-accent-700: oklch(0.49  0.20  27);
+  /* ------------------------------------------------------------------------
+     Accent — GOLD TRIAL. Swap this whole block back for the red original below
+     to revert; nothing else in the codebase names a red, everything reads
+     accent-*.
+
+     ORIGINAL RED (accent-600 = #e62427):
+       --color-accent-50:  oklch(0.965 0.015 27);
+       --color-accent-100: oklch(0.92  0.038 27);
+       --color-accent-300: oklch(0.80  0.11  27);
+       --color-accent-400: oklch(0.71  0.16  27);
+       --color-accent-500: oklch(0.655 0.195 27);
+       --color-accent-600: oklch(0.595 0.222 27);
+       --color-accent-700: oklch(0.49  0.20  27);
+
+     WHY THE LIGHTNESS CURVE IS HIGHER THAN THE RED ONE. Gold only reads as gold
+     at high lightness; the same L values as the red scale produce bronze and
+     olive. accent-600 sits at L 0.74 where red sat at 0.595.
+
+     WHY accent-800 IS NEW. Gold's contrast against white is far worse than
+     red's at the same step — red-600 is 4.50:1 (passes AA), gold-600 is 2.33:1
+     (fails). Even gold-700 only reaches 3.92:1. accent-800 exists so text on a
+     light background has somewhere legal to go. See the note on Button.
+     ------------------------------------------------------------------------ */
+  --color-accent-50:  oklch(0.975 0.022 92);
+  --color-accent-100: oklch(0.945 0.050 91);
+  --color-accent-300: oklch(0.875 0.105 90);
+  --color-accent-400: oklch(0.825 0.130 88);
+  --color-accent-500: oklch(0.785 0.145 87);
+  --color-accent-600: oklch(0.740 0.150 86);
+  --color-accent-700: oklch(0.605 0.125 83);
+  /* Text-safe on white. Not for backgrounds. */
+  --color-accent-800: oklch(0.550 0.105 82);
 
   /* Neutrals — true gray, anchored at ink-500 = #7e7d7d */
   --color-ink-50:  oklch(0.985 0.0005 109);
@@ -317,6 +341,132 @@
   }
   .skip-link:focus {
     left: 0;
+  }
+  /* ------------------------------------------------------------- MARQUEE */
+  /* Declared once here rather than injected from the component, which is what
+     the source version does — it emits a <style> block per instance and names
+     its keyframes `scroll`, a global identifier almost guaranteed to collide. */
+  @keyframes marquee-x {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes marquee-x-reverse {
+    from { transform: translateX(-50%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes marquee-y {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  @keyframes marquee-y-reverse {
+    from { transform: translateY(-50%); }
+    to { transform: translateY(0); }
+  }
+
+  .marquee-track {
+    display: flex;
+    flex-shrink: 0;
+    animation: marquee-x var(--marquee-duration, 20s) linear infinite;
+    /* Its own layer, so an infinite loop does not repaint the sections around
+       it on every frame. */
+    will-change: transform;
+  }
+  .marquee-track[data-direction="right"] { animation-name: marquee-x-reverse; }
+  .marquee-track[data-direction="up"] {
+    flex-direction: column;
+    animation-name: marquee-y;
+  }
+  .marquee-track[data-direction="down"] {
+    flex-direction: column;
+    animation-name: marquee-y-reverse;
+  }
+
+  .marquee[data-pause-on-hover="true"]:hover .marquee-track {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The blanket rule above forces animation-duration to 0.01ms, which on an
+       infinite loop means it jumps to its end frame instead of stopping. This
+       wins on specificity (.marquee-track over *) and holds it still. */
+    .marquee-track {
+      animation: none !important;
+    }
+  }
+
+  /* ----------------------------------------------------- PROCESS STEP CARD */
+  /*
+    A warm wash instead of a flat white card.
+
+    WHERE THE GRADIENTS SIT IS THE POINT. The card is deliberately taller than
+    two lines of copy need, which left an empty lower-right quadrant. Both
+    radials are anchored to the right edge — one behind the numeral, one filling
+    that quadrant — so the colour lands exactly where the emptiness was rather
+    than being spread evenly and thinning out to nothing.
+
+    OKLCH FOR THE MIX. The accent scale is authored in oklch, and mixing in
+    oklch keeps a 12% tint of red actually reading as pale red. The same mix in
+    sRGB drifts grey-pink as it approaches transparent.
+
+    Kept well under the threshold where text contrast is affected — ink-600 body
+    copy on the strongest point of this wash is still comfortably AA.
+  */
+  .step-card {
+    background-color: #fff;
+    background-image:
+      radial-gradient(
+        62% 70% at 100% 0%,
+        color-mix(in oklch, var(--color-accent-500) 13%, transparent) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        58% 62% at 88% 100%,
+        color-mix(in oklch, var(--color-accent-400) 11%, transparent) 0%,
+        transparent 72%
+      ),
+      /* The wide, faint one. The two above hug the right edge, but the emptiest
+         part of the card is the horizontal band between the copy and the chips,
+         which runs its full width. This sits below the card's bottom edge and
+         only its top arc shows, so the band reads as a soft floor rather than
+         as a blank strip. */
+      radial-gradient(
+        75% 48% at 40% 112%,
+        color-mix(in oklch, var(--color-accent-300) 9%, transparent) 0%,
+        transparent 76%
+      );
+  }
+
+  /* The ghost numeral picks up the accent rather than staying neutral grey, so
+     it belongs to the wash behind it instead of sitting on top of it. */
+  .step-numeral {
+    color: color-mix(in oklch, var(--color-accent-600) 14%, transparent);
+  }
+
+  /* -------------------------------------------------------- TESTIMONIAL CARD */
+  /*
+    Warmer and more saturated than .step-card on purpose. These are small cards
+    seen in motion and at a glance, so the same 11-13% tint that reads as a
+    considered wash on a 26rem panel would read as "slightly dirty white" here.
+
+    The linear pass carries the body of the colour from the top-left; the radial
+    concentrates it behind the quote glyph in the top-right so the corner has
+    somewhere to resolve to. Both mixed in oklch — sRGB drifts grey-pink as it
+    fades out, which is exactly the muddy result this is avoiding.
+  */
+  .testimonial-card {
+    background-color: #fff;
+    background-image:
+      linear-gradient(
+        145deg,
+        color-mix(in oklch, var(--color-accent-100) 62%, transparent) 0%,
+        color-mix(in oklch, var(--color-accent-50) 55%, transparent) 48%,
+        transparent 100%
+      ),
+      radial-gradient(
+        85% 90% at 100% 0%,
+        color-mix(in oklch, var(--color-accent-400) 15%, transparent) 0%,
+        transparent 68%
+      );
   }
 }
 
