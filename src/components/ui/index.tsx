@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 /**
@@ -27,7 +28,18 @@ export function Container({
   className?: string;
 }) {
   return (
-    <div className={cx("mx-auto w-full max-w-6xl px-5 sm:px-8", className)}>
+    <div
+      className={cx(
+        // Padding matches the hero card's inner padding, and the cap only
+        // engages on very wide displays. max-w-6xl centred used to start
+        // section content ~140px right of where the hero's headline starts,
+        // which made every section below the fold look indented relative to
+        // the page it belongs to. Line length is held by max-w-* on the text
+        // inside rather than by squeezing the whole column.
+        "mx-auto w-full max-w-[110rem] px-6 sm:px-10 lg:px-14",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -37,10 +49,13 @@ export function Section({
   children,
   className,
   tone = "default",
+  id,
 }: {
   children: ReactNode;
   className?: string;
   tone?: "default" | "muted" | "brand";
+  /** Anchor target. Sections on the single-page home use this for in-page nav. */
+  id?: string;
 }) {
   const tones = {
     default: "bg-white",
@@ -48,7 +63,19 @@ export function Section({
     brand: "bg-brand-900 text-brand-50",
   };
   return (
-    <section className={cx("py-16 sm:py-24", tones[tone], className)}>
+    <section
+      id={id}
+      className={cx(
+        "py-16 sm:py-24",
+        // Anchored sections would otherwise land under the floating header,
+        // which is ~108px tall at its largest. Applied to every section rather
+        // than only the anchored ones so it cannot be forgotten when a new id
+        // is added.
+        "scroll-mt-28 sm:scroll-mt-32",
+        tones[tone],
+        className,
+      )}
+    >
       {children}
     </section>
   );
@@ -200,18 +227,58 @@ export function Card({
   );
 }
 
-/** Card that navigates. Used by the goal selector. */
+/**
+ * Card that navigates. Used by the goal selector.
+ *
+ * Two densities. The default is the roomy marketing card. `compact` is the
+ * flat, tightly-packed tile used inside the application flow, where the goal
+ * list is a decision to get through rather than something to browse: thinner
+ * padding, a hairline border instead of a shadow, and the affordance moved to
+ * a chevron so the tile height is set by the copy alone.
+ */
 export function SelectableCard({
   href,
   title,
   description,
+  compact = false,
   className,
 }: {
   href: string;
   title: string;
   description?: string;
+  compact?: boolean;
   className?: string;
 }) {
+  if (compact) {
+    return (
+      <Link
+        href={href}
+        className={cx(
+          "group flex h-full items-start gap-3 rounded-xl bg-white px-4 py-4 text-left",
+          "ring-1 ring-inset ring-ink-200 transition-colors",
+          "hover:bg-brand-50/40 hover:ring-brand-400",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+          className,
+        )}
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold text-ink-900 group-hover:text-brand-700">
+            {title}
+          </span>
+          {description && (
+            <span className="mt-1 block text-sm leading-snug text-ink-600">
+              {description}
+            </span>
+          )}
+        </span>
+        <ChevronRight
+          aria-hidden="true"
+          className="mt-0.5 h-4 w-4 shrink-0 text-ink-300 transition-colors group-hover:text-brand-600"
+        />
+      </Link>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -384,6 +451,7 @@ export function Field({
   hint,
   error,
   required,
+  inverted = false,
   children,
 }: {
   label: string;
@@ -391,22 +459,43 @@ export function Field({
   hint?: string;
   error?: string;
   required?: boolean;
+  /** For fields on a dark surface — ink-800 on brand-900 is unreadable. */
+  inverted?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-ink-800">
+      <label
+        htmlFor={htmlFor}
+        className={cx(
+          "block text-sm font-medium",
+          inverted ? "text-white" : "text-ink-800",
+        )}
+      >
         {label}
         {required && (
-          <span className="ml-1 text-danger-600" aria-hidden="true">
+          <span
+            className={cx("ml-1", inverted ? "text-brand-100" : "text-danger-600")}
+            aria-hidden="true"
+          >
             *
           </span>
         )}
       </label>
-      {hint && <p className="text-sm text-ink-500">{hint}</p>}
+      {hint && (
+        <p className={cx("text-sm", inverted ? "text-brand-100/80" : "text-ink-500")}>
+          {hint}
+        </p>
+      )}
       {children}
       {error && (
-        <p role="alert" className="text-sm font-medium text-danger-700">
+        <p
+          role="alert"
+          className={cx(
+            "text-sm font-medium",
+            inverted ? "text-white" : "text-danger-700",
+          )}
+        >
           {error}
         </p>
       )}
@@ -426,13 +515,40 @@ export function Input({
   return <input className={cx(controlClasses, className)} {...props} />;
 }
 
+/**
+ * A native <select>, restyled.
+ *
+ * WHY NATIVE. A custom listbox (Radix and friends) renders nothing without
+ * JavaScript, and the prequal flow is built on the premise that it still works
+ * when the bundle does not arrive — see the <noscript> fallback on the prequal
+ * page. It would also replace the OS picker on mobile, where the native
+ * control is a full-height wheel with momentum and type-ahead that no div can
+ * match, and where most applicants are.
+ *
+ * So the appearance is rebuilt instead: the browser's chevron is removed with
+ * appearance-none and replaced with an inlined SVG as a background image,
+ * which is the only way to put a custom mark inside a native select. The SVG
+ * uses ink-500 (#7e7d7d) — hard-coded because a background-image URL cannot
+ * read a CSS variable.
+ */
 export function Select({
   className,
   children,
   ...props
 }: ComponentPropsWithoutRef<"select">) {
   return (
-    <select className={cx(controlClasses, className)} {...props}>
+    <select
+      className={cx(
+        controlClasses,
+        "cursor-pointer appearance-none bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat pr-11",
+        "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke-width%3D%222%22%20stroke%3D%22%237e7d7d%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')]",
+        // An unanswered select shows its placeholder option, which should read
+        // as a prompt rather than as an answer already given.
+        "[&:has(option[value='']:checked)]:text-ink-400",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </select>
   );

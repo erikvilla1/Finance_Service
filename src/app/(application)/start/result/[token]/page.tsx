@@ -87,12 +87,26 @@ export default async function ResultPage({
 
   // The headline is computed from the matches rather than read from the row, so
   // it can never disagree with the cards printed underneath it.
-  const maxEstimated = potential.reduce<number | null>((acc, m) => {
+  //
+  // BOTH GROUPS COUNT. A product only reaches "requires review" after passing
+  // its own eligibility rule — the downgrade comes from a risk flag raised
+  // elsewhere in the submission (a declining deposit trend, a prior default),
+  // which forces every match on the application to a human. Reading the
+  // headline from confirmed matches alone meant that a single risk flag erased
+  // the figure entirely: the applicant was told a product was a possibility and
+  // shown no sense of scale for it, on the page whose entire job is to give
+  // them a reason to continue.
+  //
+  // The engine only ever sizes a product it matched, so nothing here can put a
+  // number against something the rules ruled out.
+  const sized = [...potential, ...review];
+
+  const maxEstimated = sized.reduce<number | null>((acc, m) => {
     if (m.estimatedAmountMax == null) return acc;
     return acc == null ? m.estimatedAmountMax : Math.max(acc, m.estimatedAmountMax);
   }, null);
 
-  const hasEstimates = potential.some((m) => m.estimatedAmountMax != null);
+  const hasEstimates = sized.some((m) => m.estimatedAmountMax != null);
 
   return (
     <Container>
@@ -241,16 +255,51 @@ export default async function ResultPage({
               look at the details before we can say more.
             </p>
             <ul className="mt-4 space-y-3">
-              {review.slice(0, 6).map((match) => (
-                <Card as="li" key={match.productSlug}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <h3 className="text-base font-semibold text-ink-900">
-                      {match.productName}
-                    </h3>
-                    <Badge tone="warning">Needs review</Badge>
-                  </div>
-                </Card>
-              ))}
+              {review.slice(0, 6).map((match) => {
+                const range = formatRange(
+                  match.estimatedAmountMin,
+                  match.estimatedAmountMax,
+                );
+                return (
+                  <Card as="li" key={match.productSlug}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <h3 className="text-base font-semibold text-ink-900">
+                        {match.productName}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {match.alignsWithGoal && (
+                          <Badge tone="brand">Matches your goal</Badge>
+                        )}
+                        <Badge tone="warning">Needs review</Badge>
+                      </div>
+                    </div>
+
+                    {/* Same figure, same treatment as a confirmed match. The
+                        difference between the two groups is whether a person
+                        needs to look, not how much the model sized. Printing
+                        the range here and not there would imply the number is
+                        less real when it is the same number. */}
+                    {range && (
+                      <p className="mt-3 font-mono text-xl font-bold text-ink-900">
+                        {range}{" "}
+                        <span className="font-sans text-xs font-normal text-ink-500">
+                          illustrative range
+                        </span>
+                      </p>
+                    )}
+
+                    {match.reasons.length > 0 && (
+                      <ul className="mt-3 space-y-1">
+                        {match.reasons.map((reason) => (
+                          <li key={reason} className="text-sm text-ink-600">
+                            {reason}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </Card>
+                );
+              })}
             </ul>
           </section>
         )}
