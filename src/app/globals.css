@@ -259,35 +259,50 @@
   }
 
   /* ---------------------------------------------------------------------------
-     STEP CONNECTORS
+     HEADER CAPSULES — lift away on scroll, settle back on return
 
-     A slow nudge along the axis of travel, offset per position so the arrows
-     fire in sequence rather than in unison — a row of five chevrons all moving
-     on the same beat reads as a glitch, staggered they read as flow.
+     WRITTEN OUT RATHER THAN COMPOSED FROM UTILITIES. An earlier version stacked
+     transition-[transform,opacity] with a bracketed [transition-delay:0ms,150ms].
+     Whether that pair produces the intended two-property timing depends on how
+     the arbitrary values are parsed, and when it doesn't the capsules jump
+     instead of travelling. A plain declaration has no such ambiguity.
 
-     Transform only, and only 4px: enough to catch the eye at the edge of
-     vision, small enough that it is not competing with the copy inside the
-     cards. Reduced motion pins them via the global override above.
+     TRANSFORM OUTLASTS OPACITY, DELIBERATELY. 700ms of travel against 520ms of
+     fade means the capsules stay visible for roughly three quarters of their
+     journey. Fading them first gives the same end state and none of the motion
+     — you'd see them vanish, not leave.
+
+     The curve is fast off the mark and long in the tail, so the movement reads
+     as something carried away rather than switched off. Scrolling back runs the
+     same transition in reverse at the same pace.
+
+     ABOVE lg ONLY. Below that the nav capsule is hidden, so retracting the
+     sides as well would leave a header containing nothing — and would take the
+     primary CTA off screen on the devices where it converts best.
   --------------------------------------------------------------------------- */
-  @keyframes step-flow {
-    0%, 100% { transform: translateX(0); opacity: 0.55; }
-    50%      { transform: translateX(4px); opacity: 1; }
+  .header-capsule {
+    transition:
+      transform 700ms cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 520ms ease-out;
+    will-change: transform, opacity;
   }
 
-  @keyframes step-flow-down {
-    0%, 100% { transform: translateY(0); opacity: 0.55; }
-    50%      { transform: translateY(4px); opacity: 1; }
+  @media (min-width: 64rem) {
+    .header-capsule--out {
+      transform: translateY(-200%);
+      opacity: 0;
+      /* As load-bearing as the transform: a capsule that has slid out of view
+         is still clickable without this, so the top edge of the page would fire
+         invisible links. */
+      pointer-events: none;
+    }
   }
 
-  .step-flow      { animation: step-flow 2.2s ease-in-out infinite; }
-  .step-flow-down { animation: step-flow-down 2.2s ease-in-out infinite; }
-
-  /* Eight steps in four columns: chevrons sit after 1-3 and 5-7, so the
-     stagger runs across each row independently. */
-  li:nth-child(2) .step-flow { animation-delay: 0.25s; }
-  li:nth-child(3) .step-flow { animation-delay: 0.5s; }
-  li:nth-child(6) .step-flow { animation-delay: 0.25s; }
-  li:nth-child(7) .step-flow { animation-delay: 0.5s; }
+  /* A beat behind the logo, so the two sides leave as a pair rather than as one
+     slab. Applies in both directions, which keeps the return legible too. */
+  .header-capsule--trailing {
+    transition-delay: 90ms;
+  }
 
   /* Skip link for keyboard and screen reader users */
   .skip-link {

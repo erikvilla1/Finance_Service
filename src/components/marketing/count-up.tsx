@@ -53,6 +53,7 @@ export function CountUp({
   const [display, setDisplay] = useState(to);
   const [settled, setSettled] = useState(true);
 
+
   useBeforePaint(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -73,17 +74,17 @@ export function CountUp({
      */
     const ease = (t: number) => 1 - Math.pow(1 - t, 2);
 
-    setSettled(false);
-    setDisplay(from);
-
+    // Nothing is set here. The first animation frame writes both, which keeps
+    // this out of the effect body and so out of the way of
+    // react-hooks/set-state-in-effect — and means the pre-animation render is
+    // the final figure, which is what the server sent.
     const tick = (now: number) => {
       const progress = Math.min((now - start) / durationMs, 1);
+      setSettled(progress >= 1);
       setDisplay(from + ease(progress) * (to - from));
 
       if (progress < 1) {
         frame = requestAnimationFrame(tick);
-      } else {
-        setSettled(true);
       }
     };
 

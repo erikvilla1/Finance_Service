@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ButtonLink, Container } from "@/components/ui";
+import { useScrolledPast } from "@/components/marketing/use-reduced-motion";
 
 /**
  * Header and footer.
@@ -113,55 +114,20 @@ function useActiveSection(enabled: boolean) {
   return active;
 }
 
-/** True once the page has scrolled past the hero's first screenful. */
-function useScrolled(threshold = 80) {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > threshold);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold]);
-
-  return scrolled;
-}
-
 export function SiteHeader() {
   const pathname = usePathname();
   const onHome = pathname === "/";
   const activeSection = useActiveSection(onHome);
-  const scrolled = useScrolled();
+  const scrolled = useScrolledPast(80);
 
   /**
    * The outer capsules lift away on scroll; the nav stays.
    *
-   * ONLY FROM lg UP. Below that the nav capsule is hidden, so retracting the
-   * sides as well would leave a header containing nothing — and it would take
-   * the primary CTA off screen on exactly the devices where it converts best.
-   * The retraction is a flourish, and a flourish does not get to cost the
-   * conversion path.
-   *
-   * pointer-events-none matters as much as the transform: a capsule that has
-   * slid out of view is still clickable without it, so the top edge of the page
-   * would fire invisible links.
+   * Timing, easing and the lg-only guard live in .header-capsule in globals.css
+   * — see the comment there for why this is a written-out declaration rather
+   * than a stack of utilities.
    */
-  const retract = scrolled
-    ? "lg:-translate-y-[200%] lg:opacity-0 lg:pointer-events-none"
-    : "lg:translate-y-0 lg:opacity-100";
-
-  /**
-   * 900ms, and the opacity trails the movement.
-   *
-   * At 500ms with both properties on the same curve the capsules were gone
-   * before the eye caught them leaving — the header simply had fewer things in
-   * it the next time you looked, which reads as a rendering glitch rather than
-   * as a transition. Slowing the travel and holding the opacity for the first
-   * third means they are still visible while they move, which is the whole
-   * point of animating it at all.
-   */
-  const retractTransition =
-    "transition-[transform,opacity] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] [transition-delay:0ms,150ms]";
+  const capsule = `header-capsule${scrolled ? " header-capsule--out" : ""}`;
 
   return (
     <header className="sticky top-0 z-40 px-6 pt-6 sm:px-10 sm:pt-9">
@@ -172,7 +138,7 @@ export function SiteHeader() {
         <Link
           href="/"
           aria-label="Financial Lending Specialists"
-          className={`${CAPSULE} ${CAPSULE_SURFACE} ${retract} ${retractTransition} justify-self-start px-5 sm:px-6`}
+          className={`${CAPSULE} ${CAPSULE_SURFACE} ${capsule} justify-self-start px-5 sm:px-6`}
         >
           <Image
             src="/brand/fls-logo-icon.png"
@@ -229,7 +195,7 @@ export function SiteHeader() {
         </nav>
 
         <div
-          className={`flex items-center gap-4 justify-self-end ${retract} ${retractTransition}`}
+          className={`flex items-center gap-4 justify-self-end ${capsule} header-capsule--trailing`}
         >
           {/* No capsule. It is a tertiary action sitting beside a primary one,
               and giving it a surface of its own made the two read as a pair of

@@ -9,7 +9,7 @@ import {
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { CountUp } from "@/components/marketing/count-up";
 import { Reveal } from "@/components/marketing/reveal";
-import { FlowArrow } from "@/components/marketing/flow-arrow";
+import { ProcessSteps } from "@/components/marketing/process-steps";
 import { ContactForm } from "@/components/marketing/contact-form";
 
 /**
@@ -229,91 +229,15 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* --------------------------------------------------------- PROCESS */}
-      <Section id="how-it-works" tone="muted">
-        <Container>
-          {/* Split into three reveals rather than one so the eyebrow, the
-              headline and the sub-line arrive in reading order. A single reveal
-              moves the whole block as one slab, which is legible but inert —
-              the stagger is what makes it read as typesetting itself. */}
-          <Reveal>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-brand-600">
-              How it works
-            </p>
-          </Reveal>
-          <Reveal delayMs={110}>
-            <h2 className="max-w-2xl text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
-              A simple path forward
-            </h2>
-          </Reveal>
-          <Reveal delayMs={220}>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-600">
-              Five steps from first question to funded file. Nothing here
-              commits you to anything.
-            </p>
-          </Reveal>
-          <Reveal delayMs={330}>
-          {/* Four across: eight steps land as an even 4 + 4. The wrapper is the
-              positioning context for the stroke that runs behind them. */}
-          <div className="relative mt-10">
-            {/* Behind the cards, inset past the row edges so the curves have
-                somewhere to turn. Hidden below lg, where the cards stack into a
-                single column and a two-row path describes nothing. */}
-            <FlowArrow className="pointer-events-none absolute -inset-x-4 -inset-y-6 hidden text-brand-200 lg:block" />
+      {/* --------------------------------------------------------- PROCESS
 
-          <ol className="relative grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {PROCESS_STEPS.map((step, index) => {
-              const COLUMNS = 4;
-              const isLast = index === PROCESS_STEPS.length - 1;
-              const endsRow = (index + 1) % COLUMNS === 0;
-
-              return (
-                <li key={step.title} className="relative">
-                  {/* Connectors live inside the card's own grid cell and are
-                      positioned against it, so they follow the card wherever
-                      the grid puts it. An SVG drawn across the whole grid would
-                      have to guess at cell positions and would be wrong at
-                      every breakpoint. Hidden below lg, where the cards stack
-                      and the arrows would point at nothing. */}
-                  {!isLast && !endsRow && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-brand-400 lg:block"
-                    >
-                      <ChevronRight className="step-flow h-5 w-5" />
-                    </span>
-                  )}
-                  {!isLast && endsRow && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -bottom-4 left-1/2 z-10 hidden -translate-x-1/2 text-brand-400 lg:block"
-                    >
-                      <ChevronDown className="step-flow-down h-5 w-5" />
-                    </span>
-                  )}
-
-                  <Card className="group h-full transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover hover:ring-brand-300">
-                    <span
-                      aria-hidden="true"
-                      className="grid h-9 w-9 place-items-center rounded-full bg-brand-800 text-sm font-bold text-white transition-all duration-300 group-hover:scale-110 group-hover:bg-accent-600"
-                    >
-                      {index + 1}
-                    </span>
-                    <h3 className="mt-4 text-base font-semibold text-ink-900 transition-colors group-hover:text-brand-700">
-                      {step.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-600">
-                      {step.body}
-                    </p>
-                  </Card>
-                </li>
-              );
-            })}
-          </ol>
-          </div>
-          </Reveal>
-        </Container>
-      </Section>
+          A plain <section>, not <Section>: the pinned wrapper sets its own
+          height and manages its own vertical rhythm, and Section's py-16/py-24
+          would sit outside the sticky child and push the pin off by a screenful
+          of padding. The muted background is applied here instead. */}
+      <section id="how-it-works" className="scroll-mt-28 bg-ink-50 sm:scroll-mt-32">
+        <ProcessSteps steps={PROCESS_STEPS} />
+      </section>
 
       {/* ---------------------------------------------------------- ABOUT US */}
       <Section id="about">

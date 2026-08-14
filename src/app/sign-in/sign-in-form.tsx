@@ -9,7 +9,7 @@ import { signIn, type SignInState } from "./actions";
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="lg" className="w-full" disabled={pending}>
+    <Button type="submit" size="lg" className="w-full rounded-xl" disabled={pending}>
       {pending ? "Signing in…" : "Sign in"}
     </Button>
   );
@@ -20,7 +20,7 @@ export function SignInForm({ next }: { next?: string }) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <form action={formAction} className="mt-8 space-y-5">
+    <form action={formAction} className="mt-9 space-y-5">
       {next && <input type="hidden" name="next" value={next} />}
 
       {state.error && (
@@ -36,6 +36,7 @@ export function SignInForm({ next }: { next?: string }) {
             autoComplete="email"
             placeholder="you@company.com"
             required
+            className="rounded-xl"
           />
         </Field>
       </div>
@@ -59,7 +60,7 @@ export function SignInForm({ next }: { next?: string }) {
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required
-              className="pr-12"
+              className="rounded-xl pr-12"
             />
             <button
               type="button"
