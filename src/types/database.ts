@@ -32,6 +32,9 @@ export type ProductTrack =
   | "healthcare"
   | "specialty";
 
+/** Migration 0027. */
+export type ContactStatus = "new" | "in_progress" | "closed";
+
 export type ApplicationStatus =
   | "draft"
   | "submitted"
@@ -442,6 +445,28 @@ export type ExistingDebtRow = {
   updated_at: string;
 }
 
+/**
+ * Website contact form messages. Migration 0027.
+ *
+ * Not an application: no track, no amount, no qualification result. Inserted by
+ * a server action on the service role; there is no insert policy for anon.
+ */
+export type ContactSubmissionRow = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  status: ContactStatus;
+  handled_by: string | null;
+  handled_at: string | null;
+  source: string;
+  applicant_timezone: string | null;
+  submission_token: string | null;
+}
+
 export type CrmNoteRow = {
   id: string;
   application_id: string;
@@ -589,6 +614,7 @@ export type Database = {
       crm_notes: Table<CrmNoteRow>;
       crm_tasks: Table<CrmTaskRow>;
       application_status_history: Table<ApplicationStatusHistoryRow>;
+      contact_submissions: Table<ContactSubmissionRow>;
     };
     Views: EmptyMap;
     Functions: {
@@ -617,6 +643,7 @@ export type Database = {
       deposit_trend: DepositTrend;
       prior_default_status: PriorDefaultStatus;
       business_asset_type: BusinessAssetType;
+      contact_status: ContactStatus;
     };
     CompositeTypes: EmptyMap;
   };

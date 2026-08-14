@@ -39,6 +39,28 @@
    ink-*    = gray scale (body text, borders, muted surfaces)
    ========================================================================== */
 
+/* -----------------------------------------------------------------------------
+   ASPEKTA — Ivo Dolenc, SIL Open Font License 1.1, free for commercial use.
+
+   SELF-HOSTED, NOT CDN-LOADED. It is not on Google Fonts, and pulling it from a
+   third-party font CDN would add a blocking request on every page view and tell
+   that CDN who is reading a lending site. The file belongs in the repo.
+
+   SETUP: download the variable .woff2 from github.com/ivodolenc/aspekta and put
+   it at public/fonts/AspektaVF.woff2.
+
+   Until that file exists this rule matches nothing and the stack below falls
+   through to the system UI font. The site does not break while the font is
+   missing — it just looks like it did before.
+----------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/AspektaVF.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   /* Brand — black / charcoal, anchored at brand-900 = #1d1d1b */
   --color-brand-50:  oklch(0.965 0.001 109);
@@ -86,8 +108,8 @@
   --color-danger-700:  oklch(0.46 0.17 25);
 
   /* Typography */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-               "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Aspekta", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Spec §32: large typography, strong hierarchy */
   --text-display: 3.5rem;
@@ -159,6 +181,113 @@
     opacity: 0;
     animation: fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
+
+  /* ---------------------------------------------------------------------------
+     MASKED LINE REVEAL — each headline line rises out from behind its own edge.
+
+     Two elements per line by necessity: the outer one is the mask and cannot
+     move, the inner one is the type and cannot be clipped by itself. CSS has no
+     way to do this with one.
+
+     WHY NOT GSAP SplitText. The reference site splits its headline at runtime
+     and animates the fragments, which handles rewrapping at any width for free.
+     It also costs GSAP plus SplitText plus a smooth-scroll library on a page
+     whose current dependency list is four packages. Splitting by hand in the
+     markup gets the same effect for nothing; the tradeoff is that the lines are
+     fixed, so a headline edited to a different length needs its breaks redone.
+
+     The overflow mask clips descenders — the tail of a 'g' sits below the
+     baseline and the box ends at it. The padding/margin pair below reclaims that
+     space without changing where the line sits.
+
+     Reduced motion is handled globally: animation-duration is forced to 0.01ms,
+     and `forwards` holds the final state, so the text simply appears in place.
+  --------------------------------------------------------------------------- */
+  @keyframes line-rise {
+    from {
+      transform: translateY(110%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .hero-line {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+
+  .hero-line > span {
+    display: block;
+    transform: translateY(110%);
+    animation: line-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* ---------------------------------------------------------------------------
+     GRAIN GRADIENT DRIFT
+
+     Transform only — scale and rotate on the compositor, never the gradient
+     stops themselves. Animating a background-image forces the browser to
+     re-rasterise the gradient on every frame, which on a full-height panel is
+     the difference between free and a pegged CPU core.
+
+     The element it runs on is inset by -20% so the corners stay covered as it
+     turns; a rotating square inside its own bounds would show bare edges.
+
+     70 seconds because this is wallpaper behind a login form. Fast enough to
+     notice if you look, slow enough that nothing is competing with the two
+     fields the page is actually for. Reduced motion pins it to the first frame
+     via the global override above.
+  --------------------------------------------------------------------------- */
+  @keyframes grain-drift {
+    0% {
+      transform: scale(1) rotate(0deg);
+    }
+    50% {
+      transform: scale(1.12) rotate(6deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  .grain-drift {
+    animation: grain-drift 70s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  /* ---------------------------------------------------------------------------
+     STEP CONNECTORS
+
+     A slow nudge along the axis of travel, offset per position so the arrows
+     fire in sequence rather than in unison — a row of five chevrons all moving
+     on the same beat reads as a glitch, staggered they read as flow.
+
+     Transform only, and only 4px: enough to catch the eye at the edge of
+     vision, small enough that it is not competing with the copy inside the
+     cards. Reduced motion pins them via the global override above.
+  --------------------------------------------------------------------------- */
+  @keyframes step-flow {
+    0%, 100% { transform: translateX(0); opacity: 0.55; }
+    50%      { transform: translateX(4px); opacity: 1; }
+  }
+
+  @keyframes step-flow-down {
+    0%, 100% { transform: translateY(0); opacity: 0.55; }
+    50%      { transform: translateY(4px); opacity: 1; }
+  }
+
+  .step-flow      { animation: step-flow 2.2s ease-in-out infinite; }
+  .step-flow-down { animation: step-flow-down 2.2s ease-in-out infinite; }
+
+  /* Eight steps in four columns: chevrons sit after 1-3 and 5-7, so the
+     stagger runs across each row independently. */
+  li:nth-child(2) .step-flow { animation-delay: 0.25s; }
+  li:nth-child(3) .step-flow { animation-delay: 0.5s; }
+  li:nth-child(6) .step-flow { animation-delay: 0.25s; }
+  li:nth-child(7) .step-flow { animation-delay: 0.5s; }
 
   /* Skip link for keyboard and screen reader users */
   .skip-link {

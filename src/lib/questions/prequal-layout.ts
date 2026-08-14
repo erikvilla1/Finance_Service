@@ -26,9 +26,18 @@ import type { Question } from "@/lib/questions";
 /**
  * Questions the engine reads that were once optional.
  *
- * Migration 0022 makes all three required, so requiredness alone now files them
- * correctly and this set changes nothing on a current database. It stays as the
- * thing that fails loudly instead of quietly: marking one of these optional
+ * This set was written as a belt-and-braces backstop to a migration that makes
+ * all three required, on the assumption it would soon be redundant. It was not
+ * redundant, and was not for a long time: that migration carried a duplicate
+ * 0022 prefix, was never applied, and all three questions stayed optional in
+ * the database while this comment claimed otherwise. It is now 0024. Verify
+ * with:
+ *
+ *   select key, is_required from application_questions
+ *    where key in ('prequal_asset_type','prequal_prior_defaults',
+ *                  'prequal_deposit_trend');
+ *
+ * Keep this set regardless of what that returns. Marking one of these optional
  * again is a one-line update anyone could make for a good reason, and the only
  * symptom would be a narrower result that still looks right.
  *
