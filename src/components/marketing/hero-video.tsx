@@ -8,7 +8,21 @@ import { useEffect, useRef, useState } from "react";
  * stays paused on its first frame for prefers-reduced-motion rather than
  * autoplaying.
  */
-export function HeroVideo({ className }: { className?: string }) {
+export function HeroVideo({
+  className,
+  src = "/video/hero-drone.mp4",
+}: {
+  className?: string;
+  /**
+   * Defaults to the home page's drone footage.
+   *
+   * The failure path is what makes this safe to point at a file that does not
+   * exist yet: onError unmounts the element, so whatever is layered behind it
+   * shows through. Drop a new file in public/video and it takes over; until
+   * then the fallback is what renders.
+   */
+  src?: string;
+}) {
   const [failed, setFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -33,7 +47,7 @@ export function HeroVideo({ className }: { className?: string }) {
       preload="metadata"
       onError={() => setFailed(true)}
     >
-      <source src="/video/hero-drone.mp4" type="video/mp4" />
+      <source src={src} type="video/mp4" />
     </video>
   );
 }

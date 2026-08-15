@@ -24,11 +24,14 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Below this, a password on a financial account is not worth the storage. This
- * is a floor, not a policy — production should add breach-list checking, and
- * spec §22 already requires MFA for staff.
+ * The floor, imported rather than restated.
+ *
+ * password-policy.ts is what the strength meter renders from, so declaring the
+ * number twice is how the form ends up promising something this function does
+ * not check. See that file for what Supabase itself enforces (less than this)
+ * and for the leaked-password toggle that is still off.
  */
-const MIN_PASSWORD_LENGTH = 8;
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 
 export async function createAccount(
   _prevState: CreateAccountState,
@@ -47,9 +50,9 @@ export async function createAccount(
     return { error: "Enter your email address and a password." };
   }
 
-  if (password.length < MIN_PASSWORD_LENGTH) {
+  if (password.length < PASSWORD_MIN_LENGTH) {
     return {
-      error: `Your password needs to be at least ${MIN_PASSWORD_LENGTH} characters.`,
+      error: `Your password needs to be at least ${PASSWORD_MIN_LENGTH} characters.`,
     };
   }
 

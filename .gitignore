@@ -46,3 +46,4 @@ yarn-error.log*
 # collaborators. See docs/BUSINESS_CONTEXT.md §15.
 # ---------------------------------------------------------------
 # docs/BUSINESS_CONTEXT.md
+*.mov

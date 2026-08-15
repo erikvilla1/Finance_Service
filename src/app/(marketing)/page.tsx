@@ -1,7 +1,8 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { Testimonial } from "@/components/ui/testimonial-card";
+import { Marquee } from "@/components/ui/marquee";
 import {
   ButtonLink,
-  Card,
   Container,
   Section,
   SectionHeading,
@@ -9,7 +10,7 @@ import {
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { CountUp } from "@/components/marketing/count-up";
 import { Reveal } from "@/components/marketing/reveal";
-import { FlowArrow } from "@/components/marketing/flow-arrow";
+import { ProcessSteps } from "@/components/marketing/process-steps";
 import { ContactForm } from "@/components/marketing/contact-form";
 
 /**
@@ -24,26 +25,74 @@ import { ContactForm } from "@/components/marketing/contact-form";
  * nationwide availability has not been confirmed.
  */
 
-const TRUST_POINTS = [
+/**
+ * ⚠ PLACEHOLDER TESTIMONIALS — NOT FOR LAUNCH. ⚠
+ *
+ * Every entry below is deliberately written to be unusable. That is the point:
+ * a testimonial strip on a lending site is regulated speech, and inventing
+ * plausible-sounding quotes is the single easiest way to ship a legal problem
+ * by accident.
+ *
+ * WHY THIS CANNOT BE FILLED IN BY GUESSING. The FTC's Endorsement Guides (16
+ * CFR Part 255) and its Rule on the Use of Consumer Reviews and Testimonials
+ * (16 CFR Part 465, in force since October 2024) prohibit publishing a
+ * testimonial that does not reflect the honest experience of a real customer,
+ * with civil penalties assessed per violation. Financial services draw more
+ * scrutiny than most, not less.
+ *
+ * WHAT ROBERT NEEDS TO SUPPLY FOR EACH ONE:
+ *   - the actual words of an actual client,
+ *   - that client's permission to publish them,
+ *   - how they want to be attributed (full name, first name and initial, or
+ *     "a client in <industry>" — all fine, as long as it is not invented),
+ *   - whether anything of value was given in exchange, which has to be
+ *     disclosed if so.
+ *
+ * A results-flavoured quote ("they got me $400k in a week") additionally needs
+ * to be typical of what clients get, or to carry a clear disclaimer that it is
+ * not. Prefer quotes about the experience over quotes about outcomes.
+ *
+ * The site is still robots index:false, so nothing here is public yet.
+ */
+const TESTIMONIALS = [
   {
-    title: "Specialized Financing Experience",
-    body: "We work with financing structures that general lenders often don't handle.",
+    name: "Client name",
+    role: "Role",
+    company: "Company",
+    rating: 5,
+    testimonial:
+      "PLACEHOLDER — replace with a real client quote. Short one, to check how a brief card sits in the strip.",
   },
   {
-    title: "Multiple Financing Programs",
-    body: "Different situations call for different programs. We look across several.",
+    name: "Client name",
+    role: "Role",
+    company: "Company",
+    rating: 5,
+    testimonial:
+      "PLACEHOLDER — replace with a real client quote. This one runs to roughly the length of a typical testimonial so the card height can be judged before the real copy exists.",
   },
   {
-    title: "Solutions for Non-Traditional Situations",
-    body: "Not every strong business fits a standard bank box. We start from your situation.",
+    name: "Client name",
+    role: "Role",
+    company: "Company",
+    rating: 4,
+    testimonial:
+      "PLACEHOLDER — replace with a real client quote about the experience of working with FLS rather than about a dollar outcome.",
   },
   {
-    title: "Personalized Guidance",
-    body: "A financing specialist reviews your information and works your file directly.",
+    name: "Client name",
+    role: "Role",
+    company: "Company",
+    rating: 5,
+    testimonial:
+      "PLACEHOLDER — replace with a real client quote. Longest of the set, to confirm nothing overflows the card when a client is talkative.",
   },
   {
-    title: "Simple Application Experience",
-    body: "We ask what's relevant to your goal, not a single generic form.",
+    name: "Client name",
+    role: "Role",
+    company: "Company",
+    rating: 5,
+    testimonial: "PLACEHOLDER — replace with a real client quote.",
   },
 ];
 
@@ -62,34 +111,42 @@ const PROCESS_STEPS = [
   {
     title: "Tell us what you need",
     body: "Start with your goal in plain language. You don't need to know which loan product you're looking for — that's our job.",
+    meta: ["No account needed", "Plain language"],
   },
   {
     title: "Tell us about your business",
     body: "Eight quick questions about revenue, time in business, and credit. No documents, and nothing here affects your credit.",
+    meta: ["8 questions", "No documents", "No credit impact"],
   },
   {
     title: "See what may be available",
     body: "Indicative ranges based on what you shared, with the reasoning behind each one. A starting point, not an offer.",
+    meta: ["Indicative ranges", "Not an offer"],
   },
   {
     title: "Create an account and apply",
     body: "Save your place, then complete the full application at your own pace. It only asks what your situation actually needs.",
+    meta: ["Save your place", "Only what applies"],
   },
   {
     title: "Upload what's asked for",
     body: "A checklist tells you exactly which documents are needed for your file — no guessing, and nothing requested twice.",
+    meta: ["An exact checklist", "Nothing asked twice"],
   },
   {
     title: "We take it to lenders",
     body: "A specialist packages your file and puts it in front of the programs it genuinely fits — not a blast to everyone.",
+    meta: ["Packaged by a specialist", "Matched, not blasted"],
   },
   {
     title: "Track it from your dashboard",
     body: "Document requests, status changes, and what's still outstanding, in one place. No wondering where things stand.",
+    meta: ["Live status", "Document requests"],
   },
   {
     title: "Close, if a lender approves",
     body: "We walk you through signing and disbursement, and stay on the file until the money lands.",
+    meta: ["Signing and disbursement", "We stay on the file"],
   },
 ];
 
@@ -229,91 +286,15 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* --------------------------------------------------------- PROCESS */}
-      <Section id="how-it-works" tone="muted">
-        <Container>
-          {/* Split into three reveals rather than one so the eyebrow, the
-              headline and the sub-line arrive in reading order. A single reveal
-              moves the whole block as one slab, which is legible but inert —
-              the stagger is what makes it read as typesetting itself. */}
-          <Reveal>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-brand-600">
-              How it works
-            </p>
-          </Reveal>
-          <Reveal delayMs={110}>
-            <h2 className="max-w-2xl text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
-              A simple path forward
-            </h2>
-          </Reveal>
-          <Reveal delayMs={220}>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-600">
-              Five steps from first question to funded file. Nothing here
-              commits you to anything.
-            </p>
-          </Reveal>
-          <Reveal delayMs={330}>
-          {/* Four across: eight steps land as an even 4 + 4. The wrapper is the
-              positioning context for the stroke that runs behind them. */}
-          <div className="relative mt-10">
-            {/* Behind the cards, inset past the row edges so the curves have
-                somewhere to turn. Hidden below lg, where the cards stack into a
-                single column and a two-row path describes nothing. */}
-            <FlowArrow className="pointer-events-none absolute -inset-x-4 -inset-y-6 hidden text-brand-200 lg:block" />
+      {/* --------------------------------------------------------- PROCESS
 
-          <ol className="relative grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {PROCESS_STEPS.map((step, index) => {
-              const COLUMNS = 4;
-              const isLast = index === PROCESS_STEPS.length - 1;
-              const endsRow = (index + 1) % COLUMNS === 0;
-
-              return (
-                <li key={step.title} className="relative">
-                  {/* Connectors live inside the card's own grid cell and are
-                      positioned against it, so they follow the card wherever
-                      the grid puts it. An SVG drawn across the whole grid would
-                      have to guess at cell positions and would be wrong at
-                      every breakpoint. Hidden below lg, where the cards stack
-                      and the arrows would point at nothing. */}
-                  {!isLast && !endsRow && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-brand-400 lg:block"
-                    >
-                      <ChevronRight className="step-flow h-5 w-5" />
-                    </span>
-                  )}
-                  {!isLast && endsRow && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -bottom-4 left-1/2 z-10 hidden -translate-x-1/2 text-brand-400 lg:block"
-                    >
-                      <ChevronDown className="step-flow-down h-5 w-5" />
-                    </span>
-                  )}
-
-                  <Card className="group h-full transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover hover:ring-brand-300">
-                    <span
-                      aria-hidden="true"
-                      className="grid h-9 w-9 place-items-center rounded-full bg-brand-800 text-sm font-bold text-white transition-all duration-300 group-hover:scale-110 group-hover:bg-accent-600"
-                    >
-                      {index + 1}
-                    </span>
-                    <h3 className="mt-4 text-base font-semibold text-ink-900 transition-colors group-hover:text-brand-700">
-                      {step.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-600">
-                      {step.body}
-                    </p>
-                  </Card>
-                </li>
-              );
-            })}
-          </ol>
-          </div>
-          </Reveal>
-        </Container>
-      </Section>
+          A plain <section>, not <Section>: the pinned wrapper sets its own
+          height and manages its own vertical rhythm, and Section's py-16/py-24
+          would sit outside the sticky child and push the pin off by a screenful
+          of padding. The muted background is applied here instead. */}
+      <section id="how-it-works" className="scroll-mt-28 bg-ink-50 sm:scroll-mt-32">
+        <ProcessSteps steps={PROCESS_STEPS} />
+      </section>
 
       {/* ---------------------------------------------------------- ABOUT US */}
       <Section id="about">
@@ -333,40 +314,49 @@ export default function HomePage() {
                 solutions.
               </p>
             </div>
-            <Card className="self-start bg-white">
-              <p className="text-lg font-medium leading-relaxed text-ink-800">
-                &ldquo;Our goal isn&apos;t simply to offer one loan. It&apos;s to
-                help you find the financing strategy that makes sense for your
-                situation.&rdquo;
-              </p>
-            </Card>
+            {/*
+              Video well. Drop the file at public/video/about.mp4.
+
+              THE MUTED BACKGROUND IS THE FALLBACK, NOT DECORATION. HeroVideo
+              unmounts itself on decode failure or a missing file, so until the
+              file exists this renders as a plain rounded panel rather than a
+              broken player. That is also what a browser blocking autoplay
+              shows.
+
+              aspect-video reserves the box before the video loads, so nothing
+              on the page jumps when it arrives.
+            */}
+            <div className="aspect-video self-start overflow-hidden rounded-[1.75rem] border border-ink-200 bg-ink-100">
+              <HeroVideo
+                src="/video/about.mp4"
+                className="h-full w-full object-cover"
+              />
+            </div>
           </div>
           </Reveal>
         </Container>
       </Section>
 
-      {/* ----------------------------------------------------------- TRUST */}
-      <Section tone="muted">
-        <Container>
-          <Reveal>
-          <SectionHeading
-            eyebrow="Why us"
-            title="Why Work With Financial Lending Specialists?"
-          />
-          <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {TRUST_POINTS.map((point) => (
-              <Card as="li" key={point.title}>
-                <h3 className="text-base font-semibold text-ink-900">
-                  {point.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-600">
-                  {point.body}
-                </p>
-              </Card>
-            ))}
-          </ul>
-          </Reveal>
-        </Container>
+      {/* ------------------------------------------------------ TESTIMONIALS */}
+      {/* No heading by request — the cards are self-evidently reviews, and a
+          band that just moves reads lighter between two full sections than one
+          that announces itself first. Section padding is trimmed because there
+          is no longer a heading to separate from the strip. */}
+      <Section tone="muted" className="overflow-hidden">
+        <Marquee
+          durationSec={70}
+          pauseOnHover
+          fadeAmount={8}
+          aria-label="Client testimonials"
+        >
+          {TESTIMONIALS.map((item, index) => (
+            <Testimonial
+              key={index}
+              {...item}
+              className="mx-3 w-[21rem] sm:w-[24rem]"
+            />
+          ))}
+        </Marquee>
       </Section>
 
       {/* ------------------------------------------------------- RESOURCES */}
@@ -399,35 +389,26 @@ export default function HomePage() {
       </Section>
 
       {/* --------------------------------------------------- CONTACT / CTA */}
-      <Section id="contact" tone="brand">
+      <Section id="contact">
         <Container>
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-            <Reveal>
-              <SectionHeading
-                inverted
-                title="Let's Explore Your Financing Options"
-                description="Tell us what you're trying to accomplish. A financing specialist will review your information and follow up."
-              />
-              {/* The application stays the primary path, and says so before the
-                  form does. Spec §4: contact must not become the main
-                  conversion action, and a message is easier to send than an
-                  application is to finish. */}
-              <p className="mt-8 max-w-md leading-relaxed text-brand-100">
-                If what you really want to know is what may be available, the
-                questions take about two minutes and nothing there affects your
-                credit.
-              </p>
-              <div className="mt-6">
-                <ButtonLink href="/start" size="lg" className="shrink-0">
-                  See My Financing Options
-                </ButtonLink>
-              </div>
-            </Reveal>
+          {/*
+            The "Let's Explore Your Financing Options" column is gone by
+            request, and with it this section's own link to /start.
 
-            <Reveal delayMs={120}>
-              <ContactForm submissionToken={submissionToken} />
-            </Reveal>
-          </div>
+            WORTH KNOWING: spec §4 says contact must not be the primary
+            conversion action. It is still not the only path — the sticky header
+            CTA and the hero both point at /start, and the form's own copy sends
+            anyone whose real question is "what could I get" to the prequal. But
+            this section no longer offers the application at all, so if the page
+            ever loses the sticky header, this is where that rule breaks first.
+
+            Section tone dropped from "brand" to default: the form is a light
+            design now, and pill fields with ink borders are invisible on
+            brand-900.
+          */}
+          <Reveal>
+            <ContactForm submissionToken={submissionToken} />
+          </Reveal>
         </Container>
       </Section>
     </>

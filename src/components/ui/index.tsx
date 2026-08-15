@@ -145,7 +145,10 @@ const buttonBase =
   "transition-colors disabled:cursor-not-allowed disabled:opacity-55";
 
 const buttonVariants: Record<ButtonVariant, string> = {
-  primary: "bg-accent-600 text-white hover:bg-accent-700",
+  primary: "bg-accent-500 text-brand-900 hover:bg-accent-600",
+  // GOLD TRIAL: white on gold is 2.33:1 and fails WCAG AA. Dark text on
+  // gold-500 is 8.94:1, and dark-on-gold is the conventional treatment for
+  // this colour anyway. Revert to `bg-accent-600 text-white` with the red scale.
   secondary:
     "bg-white text-brand-800 ring-1 ring-inset ring-ink-300 hover:bg-ink-50",
   ghost: "text-brand-700 hover:bg-brand-50",
