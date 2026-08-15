@@ -272,7 +272,10 @@ export default async function ApplicationDetailPage({
             blank, this names the paperwork that hasn't arrived. Both are reasons
             a file cannot go out.
           */}
-          <DocumentsCard applicationId={application.id} />
+          <DocumentsCard
+            applicationId={application.id}
+            signatureRequestedAt={application.signature_requested_at}
+          />
 
           <Card>
             <h2 className="text-base font-semibold text-ink-900">

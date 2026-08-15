@@ -1,116 +1,114 @@
-# Kai — what needs you
+# Kai — working solo on the database
 
-Written 2026-08-13, sitting together. Short on purpose: three things to do, then
-context for why.
+Updated 2026-08-14. Erik is logging off; you are carrying on. This is the short
+version of what keeps the shared database safe while nobody is watching it with
+you.
 
-For the migration story see `FOR_KAI_MIGRATIONS.md` (resolved, nothing
-outstanding). For the working agreement see `CONTRIBUTING.md`.
+There is **one database**. No staging, no copy. Everything you run tonight lands
+on the same schema Erik's work runs against tomorrow, and on the real
+applications in it.
 
 ---
 
-## 1. Fix `reveal.tsx` — this is blocking a PR right now
+## 1. Take 0031
 
-CI went red on its first real run, on two files. `flow-arrow.tsx` is fixed;
-`reveal.tsx` is left for you because you were editing it when this was written.
+`0030` is applied. Every number up to and including it is used.
 
-Both call `setState` synchronously inside an effect, which
-`react-hooks/set-state-in-effect` rejects. The practical cost is real, not
-stylistic: the component renders once with the animation on and again with it
-off, so someone who asked their operating system for no animation gets a flash
-of one anyway.
-
-Delete this block:
-
-```tsx
-if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  setShown(true);
-  return;
-}
+```
+0026_require_prequal_scored_fields           (Kai)
+0027_qualification_ruleset_v3_revenue_floor  (Kai)
+0028_prequal_revenue_and_industry            (Kai)
+0029_contact_submissions                     (Kai)
+0030_signature_request                       (Erik)
 ```
 
-Then take `usePrefersReducedMotion` from the top of `flow-arrow.tsx` and:
+---
 
-```tsx
-const reducedMotion = usePrefersReducedMotion();
-const [scrolledInto, setScrolledInto] = useState(false);
+## 2. Write the file first, apply second
 
-// Reduced motion is a reason to be shown, not a separate state to set.
-const shown = reducedMotion || scrolledInto;
-```
+This is the rule that has broken twice, and both times the same way: a migration
+reached the database with no file in the repo, so the repo could no longer
+rebuild production. Once it was a whole table — `contact_submissions` existed in
+the database and nothing in `supabase/migrations/` created it.
 
-Rename the `setShown` call inside the IntersectionObserver callback to
-`setScrolledInto` — that one is fine where it is, because it fires from a
-callback rather than the effect body — and add `reducedMotion` to the effect's
-dependency array.
+**Write `supabase/migrations/0031_whatever.sql`, commit it, then apply it.**
+Applying first is what makes it easy to forget, because everything works and
+nothing complains.
 
-It is used in two files now, so worth lifting into
-`src/components/marketing/use-reduced-motion.ts` and importing in both.
+If you apply through the Supabase SQL editor, paste the same SQL into the file
+before you run it, not after.
 
-Check with:
+---
+
+## 3. Check yourself before you finish
 
 ```bash
-npm run lint
+ls supabase/migrations/          # what the repo thinks exists
+npx supabase migration list      # what the database has actually run
 ```
 
----
+If those two disagree, stop and reconcile before logging off. Tomorrow it costs
+an hour; tonight it costs a minute.
 
-## 2. Before your next migration, say the number out loud
-
-Next free is **0030**.
-
-Both of us applied migrations from branches the other could not see and reached
-for the same numbers twice in one afternoon. The rule now in `CONTRIBUTING.md`
-has two halves and the second is the one that actually prevents it:
-
-- Say the number before you use it.
-- **Push the branch before applying to the shared database.** Applying first
-  makes a number real for everyone while the file is still invisible to them.
+Then diff the schema against `docs/SCHEMA_SNAPSHOT.md` — it has the query in it.
+Anything that appears or disappears without a migration file is drift.
 
 ---
 
-## 3. Know about three changes that reach into your side
+## 4. Four things that are load-bearing
 
-All three are already merged. Nothing to do — but you would rather hear them now
-than find them.
+They are listed in `docs/SCHEMA_SNAPSHOT.md` too. If a change of yours would
+drop or alter one, that is worth a message rather than a judgement call:
 
-**`owner_title` is required** (`0025_obligations_and_owner_title`). The lender
-package requires it and the form did not ask for it, so an applicant could
-finish everything and still leave the file unsendable.
-
-**One of your conditional rules is deactivated**
-(`0024_show_card_processor_always`). `fin_credit_card_processor` only appeared
-once `fin_avg_monthly_card_volume` had a value. Both are optional, so it was
-never answered — an optional field hidden behind an optional field is a field
-nobody ever fills in. The row is deactivated rather than deleted. Your other four
-conditional rules are untouched.
-
-**Conditional questions now evaluate in the browser.** They were computed once on
-the server at page load, so answering "yes" to a parent question revealed the
-follow-up only after a save and a reload — the form appeared to ignore you and
-then sprouted new required fields once you thought you were done.
-`hiddenQuestionKeys` moved to `src/lib/questions/rules.ts`: same function, no
-server imports, so a client component can call it. `@/lib/questions` re-exports
-it, so nothing that already imported it changed. Your prequal rules get this too,
-in the good direction.
-
-**Also:** `timezone-field.tsx` had the same lint error as above and is fixed the
-same way. That is prequal UI and therefore yours — flagged here rather than left
-for you to discover in a diff.
+- **`guard_customer_application_fields`** on `applications` — keeps status,
+  owner, assignee and the signature release out of a customer's reach. RLS
+  grants a row, never a column, so without this an applicant can move their own
+  file through the pipeline.
+- **`guard_role_changes`** on `profiles` — stops anyone making themselves admin.
+- **`sync_document_request_status`** on `documents` — the whole checklist is
+  derived from it. Drop it and every request freezes where it stands.
+- **`customer_may_edit(status)`** — the window in which an applicant may edit
+  their own file. Nine policies reference it; changing it changes all nine.
 
 ---
 
-## What CI does now
+## 5. Don't delete data to test
 
-Every push and every pull request into `main` runs `typecheck`, `lint` and
-`build`. A red run blocks the merge button.
+The database was cleared once already today and it is fine to do again — but
+say so first. Erik has a live application in there he is testing the signature
+flow against, and `applications` cascades to answers, owners, documents,
+checklists and qualification results.
 
-Two things worth knowing about it:
+If you need a clean slate, make a new application rather than removing the
+existing one.
 
-**A pull request is tested as your branch merged with current `main`**, not as
-your branch alone. So a PR can fail while the push of the same commit passes —
-that means `main` moved and the combination does not work. The fix is always
-`git fetch origin && git merge origin/main`, resolve locally, push again.
+---
 
-**`build` catches what `typecheck` and `lint` cannot** — mainly server-only code
-reaching a client component, which compiles perfectly and breaks at runtime. Run
-it before you push rather than finding out from a red check.
+## 6. Still yours from earlier
+
+**`reveal.tsx`** — `setState` called synchronously inside an effect, the last
+lint error in the repo, and it turns CI red on every pull request including
+Erik's. `flow-arrow.tsx` is fixed and has the pattern to copy:
+`usePrefersReducedMotion` at the top of the file, then
+`const shown = reducedMotion || scrolledInto`. Worth lifting the hook into
+`src/components/marketing/use-reduced-motion.ts` since it is used twice.
+
+---
+
+## What Erik changed today
+
+All merged or about to be. Nothing needs action, but you would rather know.
+
+- **`0030`** adds `signature_requested_at` to `applications` and extends the
+  guard trigger to cover it.
+- **Signature flow** — applicants sign the funding application in the portal,
+  on a page a specialist releases. Generates a PDF, stores it as the
+  `signed_application` document, records two consents with the text hash, IP and
+  user agent.
+- **Lender package** — one zip with every document and a manifest, from the
+  admin application page.
+- **New dependencies:** `@ark-ui/react` and `pdf-lib`. Run `npm install` after
+  pulling or the build will fail.
+
+See `CONTRIBUTING.md` for the working agreement and
+`FOR_KAI_MIGRATIONS.md` for how the numbering got settled.

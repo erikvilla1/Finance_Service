@@ -200,6 +200,40 @@ export async function unwaiveRequest(formData: FormData) {
 }
 
 /**
+ * Release the funding application for signature.
+ *
+ * The applicant sees no signing page until this happens. Deliberately a
+ * decision rather than a consequence of the form being complete: Robert knows
+ * things about a file that the completeness check does not, and a client
+ * signing a document before he has read it is worse than a client waiting a
+ * day.
+ *
+ * Reversible. Withdrawing it hides the page again — useful when something is
+ * spotted after releasing and before signing. It does nothing to a signature
+ * already given, which is evidence and not ours to take back.
+ */
+export async function requestSignature(formData: FormData) {
+  const applicationId = String(formData.get("applicationId") ?? "");
+  const withdraw = formData.get("withdraw") === "true";
+
+  if (!UUID_PATTERN.test(applicationId)) throw new Error("Unknown application.");
+
+  const { supabase, userId } = await requireStaff();
+
+  const { error } = await supabase
+    .from("applications")
+    .update({
+      signature_requested_at: withdraw ? null : new Date().toISOString(),
+      signature_requested_by: withdraw ? null : userId,
+    })
+    .eq("id", applicationId);
+
+  if (error) throw new Error("Could not update the signature request.");
+
+  refresh(applicationId);
+}
+
+/**
  * Ask for something that wasn't on the seeded list.
  *
  * The generic checklist covers the common case; real deals need one more thing.

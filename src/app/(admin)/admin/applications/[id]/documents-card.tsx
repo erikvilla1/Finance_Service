@@ -12,6 +12,7 @@ import {
   acceptDocument,
   rejectDocument,
   requestDocument,
+  requestSignature,
   unwaiveRequest,
   waiveRequest,
 } from "./document-actions";
@@ -36,19 +37,31 @@ import { OpenDocument } from "./open-document";
  */
 export async function DocumentsCard({
   applicationId,
+  signatureRequestedAt,
 }: {
   applicationId: string;
+  signatureRequestedAt: string | null;
 }) {
   const supabase = await createClient();
 
-  const [checklist, { data: definitions }] = await Promise.all([
-    loadChecklist(supabase, applicationId),
-    supabase
-      .from("document_type_definitions")
-      .select("key, label")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true }),
-  ]);
+  const [checklist, { data: definitions }, { data: signedDocument }] =
+    await Promise.all([
+      loadChecklist(supabase, applicationId),
+      supabase
+        .from("document_type_definitions")
+        .select("key, label")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("documents")
+        .select("id, created_at")
+        .eq("application_id", applicationId)
+        .eq("document_type_key", "signed_application")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
   const items = checklist?.items ?? [];
   const requestedKeys = new Set(items.map((item) => item.key));
@@ -253,6 +266,47 @@ export async function DocumentsCard({
           ))}
         </ul>
       )}
+
+      {/*
+        The signature release. Sits with the documents because that is what it
+        produces — a signed application arrives as another item on this list —
+        and because this is the screen a specialist is on when they decide the
+        file is ready.
+      */}
+      <div className="mt-5 border-t border-ink-100 pt-4 dark:border-brand-800">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">
+              Funding application signature
+            </p>
+            <p className="mt-0.5 text-sm text-ink-600 dark:text-ink-400">
+              {signedDocument
+                ? `Signed ${formatDateTime(signedDocument.created_at)}`
+                : signatureRequestedAt
+                  ? `Waiting on the applicant since ${formatDateTime(signatureRequestedAt)}`
+                  : "The applicant sees no signing page until you release it"}
+            </p>
+          </div>
+
+          {!signedDocument && (
+            <form action={requestSignature}>
+              <input type="hidden" name="applicationId" value={applicationId} />
+              <input
+                type="hidden"
+                name="withdraw"
+                value={signatureRequestedAt ? "true" : "false"}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                variant={signatureRequestedAt ? "secondary" : "primary"}
+              >
+                {signatureRequestedAt ? "Withdraw request" : "Send for signature"}
+              </Button>
+            </form>
+          )}
+        </div>
+      </div>
 
       {available.length > 0 && (
         <details className="mt-5 border-t border-ink-100 pt-4">

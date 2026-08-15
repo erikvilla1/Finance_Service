@@ -315,6 +315,14 @@ export type ApplicationRow = {
   first_contact_at: string | null;
   decision_at: string | null;
   funded_at: string | null;
+  /**
+   * When a specialist released the funding application for signature (0030).
+   *
+   * Not a status: a file can be awaiting signature at several different stages,
+   * and forcing that into application_status would make the two facts fight.
+   */
+  signature_requested_at: string | null;
+  signature_requested_by: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -556,6 +564,30 @@ export type DocumentRow = {
   deleted_at: string | null;
 }
 
+/**
+ * A consent, as evidence rather than as a preference.
+ *
+ * `text_version` says which wording was shown and `text_hash` proves it — if the
+ * constant behind a version were ever edited in place, existing records stop
+ * matching and the discrepancy is visible rather than silent.
+ *
+ * No update or delete policy exists for this table by design (0005). A consent
+ * record that can be edited is worthless as evidence.
+ */
+export type ConsentRow = {
+  id: string;
+  application_id: string | null;
+  profile_id: string | null;
+  consent_type: ConsentType;
+  granted: boolean;
+  text_version: string;
+  text_hash: string | null;
+  granted_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
 export type DocumentTypeDefinitionRow = {
   id: string;
   key: string;
@@ -605,6 +637,7 @@ export type Database = {
       document_type_definitions: Table<DocumentTypeDefinitionRow>;
       document_requests: Table<DocumentRequestRow>;
       documents: Table<DocumentRow>;
+      consents: Table<ConsentRow>;
       application_questions: Table<ApplicationQuestionRow>;
       question_options: Table<QuestionOptionRow>;
       question_rules: Table<QuestionRuleRow>;
