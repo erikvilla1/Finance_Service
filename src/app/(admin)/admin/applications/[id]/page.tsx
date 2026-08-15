@@ -31,6 +31,7 @@ import { assessCompleteness } from "@/lib/funding-application/completeness";
 import { loadFundingApplication } from "@/lib/funding-application/load";
 import { addNote, assignToMe, updateStatus } from "./actions";
 import { DocumentsCard } from "./documents-card";
+import { SubmissionsCard } from "./submissions-card";
 
 export const metadata: Metadata = {
   title: "Application",
@@ -275,6 +276,17 @@ export default async function ApplicationDetailPage({
           <DocumentsCard
             applicationId={application.id}
             signatureRequestedAt={application.signature_requested_at}
+          />
+
+          {/*
+            After the documents, because that is the order the work happens in:
+            the package is assembled, then it goes out. A decline here sends it
+            to the next lender rather than ending the file.
+          */}
+          <SubmissionsCard
+            applicationId={application.id}
+            track={application.track}
+            requestedAmount={application.requested_amount}
           />
 
           <Card>

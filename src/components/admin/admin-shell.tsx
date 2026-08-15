@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ComponentType, type ReactNode } from "react";
-import { ChevronsRight, LayoutDashboard, Moon, Sun, Users } from "lucide-react";
+import {
+  ChevronsRight,
+  Landmark,
+  LayoutDashboard,
+  Moon,
+  Sun,
+  Users,
+} from "lucide-react";
 
 /**
  * The internal chrome: collapsible sidebar, theme toggle, and the wrapper that
@@ -34,6 +41,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/admin/overview", label: "Dashboard", Icon: LayoutDashboard },
   { href: "/admin", label: "Pipeline", Icon: Users, prefix: true },
+  { href: "/admin/lenders", label: "Lenders", Icon: Landmark },
 ];
 
 export function AdminShell({

@@ -565,6 +565,73 @@ export type DocumentRow = {
 }
 
 /**
+ * One of Robert's funding sources.
+ *
+ * Staff-only, and not as a privacy nicety — the lender list is the business
+ * (BUSINESS_CONTEXT §2: "direct access to 115+ lenders … matches each borrower
+ * to a custom lender"). There is no customer-facing policy on this table and no
+ * reason to add one.
+ */
+export type LenderRow = {
+  id: string;
+  name: string;
+  slug: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  /** Tracks they write. Empty means unknown, not none. */
+  tracks: ProductTrack[];
+  amount_min: number | null;
+  amount_max: number | null;
+  min_fico: number | null;
+  submission_method: string | null;
+  portal_url: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type LenderSubmissionStatus =
+  | "prepared"
+  | "sent"
+  | "in_review"
+  | "countered"
+  | "approved"
+  | "declined"
+  | "withdrawn"
+  | "funded";
+
+/**
+ * One attempt with one funder.
+ *
+ * Deliberately not unique on (application_id, lender_id). A file declined in
+ * March and re-submitted in June after the business improved is two rows, and
+ * collapsing them would erase the history that makes the second attempt worth
+ * making.
+ *
+ * `decline_reason` is the most reusable field here: it tells the next
+ * submission what to fix, and over time it tells Robert which lender to stop
+ * sending certain files to.
+ */
+export type LenderSubmissionRow = {
+  id: string;
+  application_id: string;
+  lender_id: string;
+  status: LenderSubmissionStatus;
+  submitted_at: string | null;
+  submitted_by: string | null;
+  responded_at: string | null;
+  decline_reason: string | null;
+  offered_amount: number | null;
+  offered_terms: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * A consent, as evidence rather than as a preference.
  *
  * `text_version` says which wording was shown and `text_hash` proves it — if the
@@ -638,6 +705,8 @@ export type Database = {
       document_requests: Table<DocumentRequestRow>;
       documents: Table<DocumentRow>;
       consents: Table<ConsentRow>;
+      lenders: Table<LenderRow>;
+      lender_submissions: Table<LenderSubmissionRow>;
       application_questions: Table<ApplicationQuestionRow>;
       question_options: Table<QuestionOptionRow>;
       question_rules: Table<QuestionRuleRow>;
@@ -673,6 +742,7 @@ export type Database = {
       time_in_business_band: TimeInBusinessBand;
       urgency_band: UrgencyBand;
       consent_type: ConsentType;
+      lender_submission_status: LenderSubmissionStatus;
       deposit_trend: DepositTrend;
       prior_default_status: PriorDefaultStatus;
       business_asset_type: BusinessAssetType;
