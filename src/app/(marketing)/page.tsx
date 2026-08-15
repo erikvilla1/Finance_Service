@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { CardFanCarousel } from "@/components/ui/card-fan-carousel";
 import { Testimonial } from "@/components/ui/testimonial-card";
 import { Marquee } from "@/components/ui/marquee";
 import {
@@ -11,7 +12,6 @@ import { HeroVideo } from "@/components/marketing/hero-video";
 import { CountUp } from "@/components/marketing/count-up";
 import { Reveal } from "@/components/marketing/reveal";
 import { ProcessSteps } from "@/components/marketing/process-steps";
-import { ContactForm } from "@/components/marketing/contact-form";
 
 /**
  * Homepage.
@@ -107,6 +107,105 @@ const TESTIMONIALS = [
  * arranges financing, lenders decide, and a step list that ends in a promise is
  * a promise however small the type underneath it.
  */
+/**
+ * Robert's program brochures, served from public/brochures.
+ *
+ * WHAT IS DELIBERATELY NOT HERE. The source folder also contains pricing
+ * sheets, a loan matrix, a blank application and a sample invoice. Those are
+ * internal sales tools, and the pricing sheets carry dated rate tables —
+ * publishing a rate as a downloadable PDF is a claim, which spec §5 does not
+ * allow while the catalog is unverified, and advertised rates carry their own
+ * disclosure obligations. Only the marketing brochures are listed.
+ *
+ * STILL NEEDS ROBERT. These are his existing collateral and some covers state
+ * figures ("$150K to $12M", "approved in 30 days or less"). They are his
+ * claims rather than invented ones, but he should confirm each sheet is
+ * current before the site is indexed.
+ *
+ * Covers are page 1 rendered to an image at build-prep time. The trifolds are
+ * cropped to their front panel, since page 1 of a trifold is the outside
+ * spread and its right third is the designed cover.
+ */
+const BROCHURES = [
+  {
+    title: "SBA Loan Program",
+    imgUrl: "/brochures/covers/sba.jpg",
+    linkUrl: "/brochures/sba.pdf",
+    alt: "Cover of the SBA Loan Program brochure",
+    meta: "PDF · 738 KB",
+  },
+  {
+    title: "Real Estate Financing",
+    imgUrl: "/brochures/covers/real-estate.jpg",
+    linkUrl: "/brochures/real-estate.pdf",
+    alt: "Cover of the Real Estate Financing brochure",
+    meta: "PDF · 951 KB",
+  },
+  {
+    title: "Merchant Cash Advance",
+    imgUrl: "/brochures/covers/merchant-cash-advance.jpg",
+    linkUrl: "/brochures/merchant-cash-advance.pdf",
+    alt: "Cover of the Merchant Cash Advance brochure",
+    meta: "PDF · 703 KB",
+  },
+  {
+    title: "Church & Equipment Financing",
+    imgUrl: "/brochures/covers/church-equipment.jpg",
+    linkUrl: "/brochures/church-equipment.pdf",
+    alt: "Cover of the Church & Equipment Financing brochure",
+    meta: "PDF · 189 KB",
+  },
+  {
+    title: "Fix & Flip",
+    imgUrl: "/brochures/covers/fix-and-flip.jpg",
+    linkUrl: "/brochures/fix-and-flip.pdf",
+    alt: "Cover of the Fix & Flip brochure",
+    meta: "PDF · 354 KB",
+  },
+  {
+    title: "Healthcare Financing",
+    imgUrl: "/brochures/covers/healthcare.jpg",
+    linkUrl: "/brochures/healthcare.pdf",
+    alt: "Cover of the Healthcare Financing brochure",
+    meta: "PDF · 142 KB",
+  },
+  {
+    title: "Accounts Receivable",
+    imgUrl: "/brochures/covers/accounts-receivable.jpg",
+    linkUrl: "/brochures/accounts-receivable.pdf",
+    alt: "Cover of the Accounts Receivable brochure",
+    meta: "PDF · 490 KB",
+  },
+  {
+    title: "Start-Up Funding",
+    imgUrl: "/brochures/covers/startup-funding.jpg",
+    linkUrl: "/brochures/startup-funding.pdf",
+    alt: "Cover of the Start-Up Funding brochure",
+    meta: "PDF · 699 KB",
+  },
+  {
+    title: "Start-Up Unsecured Credit Lines",
+    imgUrl: "/brochures/covers/startup-credit-lines.jpg",
+    linkUrl: "/brochures/startup-credit-lines.pdf",
+    alt: "Cover of the Start-Up Unsecured Credit Lines brochure",
+    meta: "PDF · 112 KB",
+  },
+  {
+    title: "Start-Up Unsecured Term Loans",
+    imgUrl: "/brochures/covers/startup-term-loans.jpg",
+    linkUrl: "/brochures/startup-term-loans.pdf",
+    alt: "Cover of the Start-Up Unsecured Term Loans brochure",
+    meta: "PDF · 111 KB",
+  },
+  {
+    title: "General Services Overview",
+    imgUrl: "/brochures/covers/general-services.jpg",
+    linkUrl: "/brochures/general-services.pdf",
+    alt: "Cover of the General Services Overview brochure",
+    meta: "PDF · 736 KB",
+  },
+];
+
 const PROCESS_STEPS = [
   {
     title: "Tell us what you need",
@@ -154,7 +253,6 @@ export default function HomePage() {
   // Idempotency key for this render of the contact form (same device as the
   // prequal, migration 0018). Minted on the server so it cannot be replayed or
   // omitted by the client.
-  const submissionToken = crypto.randomUUID();
 
   return (
     <>
@@ -195,9 +293,23 @@ export default function HomePage() {
 
           Raising the header's padding alone slides the card down with it and
           the capsule goes on hugging the crop — the inset has to grow too. And
-          if CAPSULE changes height, both numbers here move. */}
-      <div className="relative mx-3 -mt-[68px] flex min-h-[88dvh] flex-col overflow-hidden rounded-[1.75rem] bg-brand-900 sm:mx-5 sm:-mt-[84px] sm:rounded-[2rem]">
-        <HeroVideo className="absolute inset-0 h-full w-full object-cover" />
+          if CAPSULE changes height, both numbers here move.
+
+          HEIGHT. Was 88dvh, which left roughly a tenth of the viewport showing
+          as page below the card — the white strip under the hero. The card now
+          fills the window exactly:
+
+            height = 100dvh − (page above the card) − (margin below the card)
+
+          The first term is the 12/16px computed above; the second is mb-3/mb-5,
+          chosen to match the mx-3/mx-5 side inset so the card sits in an even
+          frame. Change either and this calc has to change with it. */}
+      <div className="relative mx-3 mb-3 -mt-[68px] flex min-h-[calc(100dvh-24px)] flex-col overflow-hidden rounded-[1.75rem] bg-brand-900 sm:mx-5 sm:mb-5 sm:-mt-[84px] sm:min-h-[calc(100dvh-36px)] sm:rounded-[2rem]">
+        {/* object-position pulled below centre: the frame has sky at the top and
+            street level at the bottom, and centring it crops away the foreground
+            that gives the shot depth. Raise the second number to show more of
+            the ground, lower it for more sky. */}
+        <HeroVideo className="absolute inset-0 h-full w-full object-cover object-[50%_68%]" />
         {/* Gradient, not a flat wash: heavy where the type sits, light at the
             top so the footage is still legible as footage. */}
         <div className="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/75 to-brand-900/35" />
@@ -243,11 +355,16 @@ export default function HomePage() {
                 resting on unconfirmed data and needs Robert's sign-off before the
                 site is indexed.
 
+                Briefly raised to $100M and put back. Worth knowing why: $100M
+                sits above every per-loan maximum in the catalog, so it could
+                only be read as cumulative volume — a different claim, and one
+                nothing on file supports either.
+
                 Sized by CountUp's own reserved width, so the box does not grow
                 and snap back as the decimal appears and disappears. */}
             <div className="animate-fade-in-up shrink-0 self-start rounded-2xl border border-white/15 bg-brand-900/55 p-6 backdrop-blur-md [animation-delay:600ms] sm:p-7 lg:self-end">
               <p className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-                <CountUp from={1} to={20} prefix="$" suffix="M+" />
+                <CountUp from={1} to={20} prefix="$" suffix="M+" shineWhenSettled />
               </p>
               <p className="mt-2 max-w-[10rem] text-sm leading-snug text-brand-100/80">
                 Available in loans
@@ -343,9 +460,11 @@ export default function HomePage() {
           that announces itself first. Section padding is trimmed because there
           is no longer a heading to separate from the strip. */}
       <Section tone="muted" className="overflow-hidden">
+        {/* No pauseOnHover: the strip is wide enough that a cursor resting
+            anywhere over it stopped the whole thing, which read as broken
+            rather than as a considerate pause. */}
         <Marquee
           durationSec={70}
-          pauseOnHover
           fadeAmount={8}
           aria-label="Client testimonials"
         >
@@ -365,52 +484,18 @@ export default function HomePage() {
           <Reveal>
             <SectionHeading
               eyebrow="Resources"
-              title="Guides on financing, qualification, and the process"
-              description="Plain-language explainers on how each program works, what lenders look for, and what to expect once a file is submitted."
+              title="Program brochures"
+              description="One-sheets on the programs we work with most. Each opens as a PDF."
             />
-            {/* ⚠️  NO CONTENT EXISTS YET. Platform spec §31 plans educational
-                pages; none are written. This section is deliberately honest
-                about that rather than padded with restated program terms,
-                which spec §5 forbids while the catalog is unverified.
-
-                An empty section on a scrolling page is worse than no section —
-                consider removing this until there are at least three real
-                pieces, then link them here as cards. */}
-            <div className="mt-10 rounded-card border border-dashed border-ink-300 bg-white/60 p-8">
-              <p className="max-w-2xl text-sm leading-relaxed text-ink-600">
-                Guides are being written now. In the meantime, the fastest way
-                to find out what may be available for your situation is to
-                answer a few questions — it takes about two minutes and nothing
-                about it affects your credit.
-              </p>
-            </div>
           </Reveal>
         </Container>
+        {/* Outside Container: the fan is wider than the text column and gets
+            clipped by it at the outer positions. */}
+        <Reveal delayMs={120}>
+          <CardFanCarousel cards={BROCHURES} />
+        </Reveal>
       </Section>
 
-      {/* --------------------------------------------------- CONTACT / CTA */}
-      <Section id="contact">
-        <Container>
-          {/*
-            The "Let's Explore Your Financing Options" column is gone by
-            request, and with it this section's own link to /start.
-
-            WORTH KNOWING: spec §4 says contact must not be the primary
-            conversion action. It is still not the only path — the sticky header
-            CTA and the hero both point at /start, and the form's own copy sends
-            anyone whose real question is "what could I get" to the prequal. But
-            this section no longer offers the application at all, so if the page
-            ever loses the sticky header, this is where that rule breaks first.
-
-            Section tone dropped from "brand" to default: the form is a light
-            design now, and pill fields with ink borders are invisible on
-            brand-900.
-          */}
-          <Reveal>
-            <ContactForm submissionToken={submissionToken} />
-          </Reveal>
-        </Container>
-      </Section>
     </>
   );
 }

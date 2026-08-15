@@ -92,21 +92,28 @@ export default async function PrequalPage({
   return (
     <Container>
       <div className="mx-auto max-w-2xl">
-        <ProgressBar value={2} max={4} label="Your application" />
+        {/* Same staggered entrance as step 1, in the same reading order, so
+            moving between the two steps feels like one flow rather than two
+            pages. CSS only — see the note on /start. */}
+        <div className="animate-fade-in-up">
+          <ProgressBar value={2} max={4} label="Your application" />
+        </div>
 
         <div className="mt-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">
+          <p className="animate-fade-in-up text-sm font-semibold uppercase tracking-wider text-brand-600 [animation-delay:90ms]">
             {goal.label}
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
+          <h1 className="animate-fade-in-up mt-2 text-3xl font-bold tracking-tight text-ink-900 [animation-delay:150ms] sm:text-4xl">
             Tell us about your situation
           </h1>
-          <p className="mt-4 leading-relaxed text-ink-600">
+          <p className="animate-fade-in-up mt-4 leading-relaxed text-ink-600 [animation-delay:220ms]">
             {essential.length} quick questions. No documents, and nothing here
             affects your credit.
           </p>
         </div>
 
+        {/* The stepper and first question land after the copy that explains
+            them. */}
         {questions.length === 0 ? (
           <div className="mt-8">
             <EmptyState

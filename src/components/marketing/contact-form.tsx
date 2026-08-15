@@ -72,15 +72,25 @@ export function ContactForm({ submissionToken }: { submissionToken: string }) {
         the note in the contact section on the home page. Drop Robert's address
         in once it is confirmed.
       */}
-      <p className="max-w-md pb-8 text-center leading-relaxed text-ink-600">
+      <p className="max-w-xl pb-10 text-center leading-relaxed text-ink-600">
         Tell us what you&apos;re trying to accomplish. A financing specialist
         will review your message and follow up.
       </p>
 
-      <div className="w-full max-w-md px-4">
+      {/*
+        Two columns from sm up. Name and email are short fields and were each
+        taking a full row of a 28rem column, which made the form a narrow
+        ribbon with a lot of empty section either side of it. Pairing them
+        removes a row of height and uses the width the section already has.
+
+        Phone and message stay full width — a lone half-width field under a
+        pair reads as a mistake, and a textarea needs the measure.
+      */}
+      <div className="grid w-full max-w-3xl grid-cols-1 gap-x-6 gap-y-5 px-4 sm:grid-cols-2">
         <input type="hidden" name="submission_token" value={submissionToken} />
         <TimezoneField />
 
+        <div>
         <label htmlFor="contact-name" className={LABEL}>
           Full name
         </label>
@@ -96,8 +106,10 @@ export function ContactForm({ submissionToken }: { submissionToken: string }) {
             className={INPUT}
           />
         </div>
+        </div>
 
-        <label htmlFor="contact-email" className={`${LABEL} mt-5 block`}>
+        <div>
+        <label htmlFor="contact-email" className={LABEL}>
           Email address
         </label>
         <div className={FIELD_SHELL}>
@@ -112,8 +124,10 @@ export function ContactForm({ submissionToken }: { submissionToken: string }) {
             className={INPUT}
           />
         </div>
+        </div>
 
-        <label htmlFor="contact-phone" className={`${LABEL} mt-5 block`}>
+        <div className="sm:col-span-2">
+        <label htmlFor="contact-phone" className={LABEL}>
           Phone <span className="font-normal text-ink-400">optional</span>
         </label>
         <div className={FIELD_SHELL}>
@@ -127,8 +141,10 @@ export function ContactForm({ submissionToken }: { submissionToken: string }) {
             className={INPUT}
           />
         </div>
+        </div>
 
-        <label htmlFor="contact-message" className={`${LABEL} mt-5 block`}>
+        <div className="sm:col-span-2">
+        <label htmlFor="contact-message" className={LABEL}>
           Message
         </label>
         <textarea
@@ -139,16 +155,19 @@ export function ContactForm({ submissionToken }: { submissionToken: string }) {
           placeholder="A sentence or two about what you're trying to do."
           className="mt-2 w-full resize-none rounded-2xl border border-ink-300 bg-white p-3 text-ink-900 outline-none transition-all placeholder:text-ink-400 focus:border-accent-400 focus:ring-2 focus:ring-accent-400/40"
         />
+        </div>
 
         {state?.error && (
-          <p role="alert" className="mt-4 text-sm font-medium text-danger-700">
+          <p role="alert" className="text-sm font-medium text-danger-700 sm:col-span-2">
             {state.error}
           </p>
         )}
 
-        <SendButton />
+        <div className="sm:col-span-2">
+          <SendButton />
+        </div>
 
-        <p className="mt-4 text-center text-xs leading-relaxed text-ink-500">
+        <p className="text-center text-xs leading-relaxed text-ink-500 sm:col-span-2">
           Sending a message is not an application for credit and does not affect
           your credit.
         </p>
@@ -169,7 +188,7 @@ function SendButton() {
       type="submit"
       disabled={pending}
       aria-live="polite"
-      className="mt-6 flex w-full items-center justify-center gap-1.5 rounded-full bg-accent-500 py-3 font-semibold text-brand-900 transition hover:bg-accent-600 disabled:opacity-60"
+      className="mx-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-full bg-accent-500 py-3 font-semibold text-brand-900 transition hover:bg-accent-600 disabled:opacity-60 sm:w-72"
     >
       {pending ? "Sending…" : "Submit form"}
       {!pending && <ArrowRight aria-hidden="true" className="h-4 w-4" />}

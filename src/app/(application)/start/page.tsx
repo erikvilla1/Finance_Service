@@ -33,13 +33,26 @@ export default async function StartPage({
   return (
     <Container>
       <div className="mx-auto max-w-5xl">
-        <ProgressBar value={1} max={4} label="Your application" />
+        {/*
+          Staggered entrance, the same one the marketing hero uses, so arriving
+          here after clicking through from the home page feels like a
+          continuation rather than a page swap.
+
+          CSS animation rather than anything JavaScript: it costs nothing, runs
+          on the compositor, works without hydration, and the blanket
+          prefers-reduced-motion rule in globals.css already collapses it to an
+          instant appearance. The delays step in reading order — progress, then
+          question, then the note under it, then the options.
+        */}
+        <div className="animate-fade-in-up">
+          <ProgressBar value={1} max={4} label="Your application" />
+        </div>
 
         <div className="mt-10">
-          <h1 className="text-4xl font-bold tracking-tight text-ink-900 sm:text-5xl">
+          <h1 className="animate-fade-in-up text-4xl font-bold tracking-tight text-ink-900 [animation-delay:90ms] sm:text-5xl">
             What are you looking to accomplish?
           </h1>
-          <p className="mt-4 max-w-xl leading-relaxed text-ink-600">
+          <p className="animate-fade-in-up mt-4 max-w-xl leading-relaxed text-ink-600 [animation-delay:170ms]">
             Pick whichever is closest. You can change it later, and you
             don&apos;t need to know the name of the loan product.
           </p>
@@ -60,8 +73,15 @@ export default async function StartPage({
               wraps to two lines and would otherwise make its row taller than
               the two above it. */}
           <ul className="mt-8 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {FINANCING_GOALS.map((goal) => (
-              <li key={goal.slug} className="h-full">
+            {FINANCING_GOALS.map((goal, index) => (
+              <li
+                key={goal.slug}
+                className="animate-fade-in-up h-full"
+                // 40ms apart: nine tiles at the 90ms spacing used above would
+                // still be arriving most of a second after the heading, which
+                // reads as slow rather than considered.
+                style={{ animationDelay: `${250 + index * 40}ms` }}
+              >
                 <SelectableCard
                   compact
                   href={`/start/prequal?goal=${goal.slug}`}

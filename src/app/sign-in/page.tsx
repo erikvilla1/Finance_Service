@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { GrainGradient } from "@/components/marketing/grain-gradient";
+import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-gradient";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { SignInForm } from "./sign-in-form";
 
@@ -73,7 +73,7 @@ export default async function SignInPage({
   return (
     <main
       id="main"
-      className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#070707] px-4 py-12"
+      className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#F6EFE0] px-4 py-12"
     >
       {/* Backdrop, in layers back to front.
 
@@ -82,18 +82,20 @@ export default async function SignInPage({
           (see HeroVideo), so dropping sign-in.mp4 into public/video is the only
           step needed to switch backgrounds. Until then the gradient is what
           shows, and nothing is broken in the meantime. */}
-      <GrainGradient className="absolute inset-0" />
+      <GrainGradient className="absolute inset-0" {...LIGHT_GRADIENT} />
       <HeroVideo
         src="/video/sign-in.mp4"
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover opacity-35 blur-[2px]"
       />
-      {/* Darkened and blurred, because this is scenery behind a form. Footage
-          left at full contrast competes with the two fields the page exists
-          for. */}
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+      {/* NO FULL-PAGE VEIL. There was one, and it was the reason this screen
+          went flat white: a white sheet over the whole page washes the cream
+          out of the gradient underneath it. The knock-back belongs on the
+          video instead — see the opacity and blur on HeroVideo above — so it
+          only applies when there is footage to knock back, and the gradient
+          reads the same here as it does in the application flow. */}
 
       <div className="relative w-full max-w-md">
-        <div className="rounded-[2rem] border border-white/15 bg-white/95 px-7 py-12 shadow-2xl backdrop-blur-xl sm:px-10">
+        <div className="rounded-[2rem] border border-ink-200/80 bg-white/95 px-7 py-12 shadow-card backdrop-blur-xl sm:px-10">
           <div className="flex flex-col items-center">
             <Link href="/" aria-label="Financial Lending Specialists">
               <Image
