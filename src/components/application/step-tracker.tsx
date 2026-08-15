@@ -61,8 +61,17 @@ export function StepTracker({
                   done
                     ? "cursor-pointer bg-brand-100 text-brand-700 hover:bg-brand-200"
                     : active
-                      ? "bg-brand-600 text-white"
-                      : "cursor-default bg-ink-100 text-ink-400",
+                      ? // brand-900, not brand-600: the mid tone read as a
+                        // washed-out charcoal against the cream page, and the
+                        // step you are on should be the darkest thing in the
+                        // row.
+                        "bg-brand-900 text-white"
+                      : // Upcoming steps sit on a cream page, where ink-100 is
+                        // almost the same value as the ground behind it — the
+                        // circles disappeared and the numerals were too faint
+                        // to read. White with a ring reads as a real step that
+                        // has not been reached yet, rather than as nothing.
+                        "cursor-default bg-white text-ink-600 ring-1 ring-inset ring-ink-200",
                 ].join(" ")}
               >
                 {done ? (
@@ -75,7 +84,7 @@ export function StepTracker({
               {i < count - 1 && (
                 <span
                   aria-hidden="true"
-                  className="relative mx-1.5 h-[2px] w-5 overflow-hidden rounded-full bg-ink-200 sm:w-7"
+                  className="relative mx-1.5 h-[2px] w-5 overflow-hidden rounded-full bg-ink-300/70 sm:w-7"
                 >
                   {/* Scaled rather than resized: transform animates on the
                       compositor, width forces layout on every frame. */}

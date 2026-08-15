@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { Reveal } from "@/components/marketing/reveal";
 import { useMediaQuery } from "@/components/marketing/use-reduced-motion";
 
@@ -25,6 +31,9 @@ export interface ProcessStep {
  * about one deliberate scroll gesture each.
  */
 const STEP_VH = 55;
+
+/** How many cards peek out behind the front one. */
+const DECK_PEEK = 2;
 
 /**
  * The process, advanced by scrolling.
@@ -169,7 +178,7 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
                   border per item — a per-item treatment steps, this glides. */}
               <span
                 aria-hidden="true"
-                className="absolute left-0 top-0 h-full w-px origin-top bg-accent-600 transition-transform duration-300 ease-out"
+                className="absolute left-0 top-0 h-full w-px origin-top bg-accent-800 transition-transform duration-300 ease-out"
                 style={{ transform: `scaleY(${(active + 1) / steps.length})` }}
               />
 
@@ -190,7 +199,7 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
                         className={[
                           "w-6 shrink-0 text-sm font-semibold tabular-nums transition-colors duration-300",
                           isActive
-                            ? "text-accent-600"
+                            ? "text-accent-800"
                             : isDone
                               ? "text-ink-500"
                               : "text-ink-300",
@@ -227,37 +236,80 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
               between steps, which is the one thing a pinned section must not
               do.
             */}
-            <div
-              className={
-                pinned
-                  ? "step-card relative min-h-[26rem] overflow-hidden rounded-[1.75rem] border border-ink-200 shadow-card"
-                  : ""
-              }
-            >
+            {/*
+              A DECK, NOT A CROSSFADE.
+
+              Each step is its own card and they sit in a stack: the current one
+              in front, the next two peeking below it, the ones already passed
+              dealt off to the left. Scroll still drives it — the card that is
+              in front is whichever step the pinned section is on.
+
+              WHY NOT THE SWIPE DECK THIS IS MODELLED ON. That component is a
+              decision UI: drag right to keep, left to skip, backspace to undo.
+              None of those verbs exist here — this is eight fixed steps in a
+              fixed order, and there is nothing to decide. Its drag also fights
+              this section directly, since a horizontal drag inside a
+              vertically scroll-pinned region is exactly the gesture conflict
+              the pinning was written to avoid. The look is what carries over.
+
+              The stack needs room below the front card for the peeking edges,
+              hence the extra bottom padding rather than a taller card.
+            */}
+            <div className={pinned ? "relative min-h-[26rem] pb-8" : ""}>
               {steps.map((step, index) => {
                 const isActive = index === active;
+                /** How far behind the front of the deck this card sits. */
+                const depth = index - active;
+                /** Only the front card and two behind it are drawn. */
+                const inDeck = depth >= 0 && depth <= DECK_PEEK;
+
+                // Dealt cards leave to the right with a slight turn; cards still
+                // in the deck step down and shrink; anything deeper than the
+                // peek sits where card 3 sits, so it does not fly in from
+                // nowhere when it becomes visible.
+                const clamped = Math.min(Math.max(depth, 0), DECK_PEEK);
+                const transform =
+                  depth < 0
+                    ? "translate3d(58%,0,0) rotate(5deg) scale(0.94)"
+                    : `translate3d(0,${clamped * 18}px,0) scale(${1 - clamped * 0.04})`;
 
                 return (
                   <div
                     key={step.title}
                     aria-hidden={pinned && !isActive}
+                    style={
+                      pinned
+                        ? {
+                            transform,
+                            // Dealt cards must drop below the deck. `clamped`
+                            // floors at 0, so reusing it here gave every passed
+                            // card the same z-index as the front one — hidden,
+                            // but stacked above the card actually in front.
+                            zIndex: depth < 0 ? 0 : steps.length - clamped,
+                            opacity: depth < 0 || depth > DECK_PEEK ? 0 : 1,
+                          }
+                        : undefined
+                    }
                     className={
                       pinned
                         ? [
-                            "absolute inset-0 flex flex-col p-8 transition-all duration-[400ms] ease-out sm:p-12",
-                            isActive
-                              ? "translate-y-0 opacity-100 blur-0"
-                              : "pointer-events-none translate-y-3 opacity-0 blur-[3px]",
+                            "step-card absolute inset-x-0 top-0 flex min-h-[26rem] flex-col overflow-hidden rounded-[1.75rem] border border-ink-200 p-8 shadow-card",
+                            "transition-[transform,opacity] duration-[450ms] ease-out will-change-transform sm:p-12",
+                            isActive ? "" : "pointer-events-none",
                           ].join(" ")
                         : "step-card relative mt-5 flex flex-col overflow-hidden rounded-[1.75rem] border border-ink-200 p-8 shadow-card first:mt-0 sm:p-10"
                     }
                   >
-                    {/* Set into the corner and clipped by the surface. Large
-                        enough to be architecture rather than an accent, pale
-                        enough that the heading still wins. */}
+                    {/* Sits fully inside the card rather than bleeding past its
+                        top edge. It was clipped before — deliberately, but it
+                        read as a rendering fault rather than a crop, which is
+                        the wrong kind of deliberate. Sized down so the whole
+                        glyph fits within the padding box, and inset from the
+                        right so the digits are not flush to the border. Still
+                        pale enough that the heading wins. */}
                     <span
                       aria-hidden="true"
-                      className="step-numeral pointer-events-none absolute -top-16 right-0 select-none text-[10rem] font-bold leading-none tracking-tight sm:-top-20 sm:text-[15rem]"
+                      className="step-numeral pointer-events-none absolute right-8 top-7 select-none text-[7rem] font-bold leading-none tracking-tight sm:right-12 sm:top-9 sm:text-[10rem]"
                     >
                       {String(index + 1).padStart(2, "0")}
                     </span>
@@ -265,18 +317,28 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
                     <h3 className="relative max-w-xl text-2xl font-bold tracking-tight text-ink-900 sm:text-4xl">
                       {step.title}
                     </h3>
-                    <p className="relative mt-5 max-w-xl text-lg leading-relaxed text-ink-600">
+                    {/* Contents of the cards behind fade out. Two full step
+                        write-ups showing through a 18px sliver reads as a
+                        rendering fault; an empty edge reads as a deck. */}
+                    <p
+                      className={`relative mt-5 max-w-xl text-lg leading-relaxed text-ink-600 transition-opacity duration-300 ${
+                        pinned && !isActive ? "opacity-0" : ""
+                      }`}
+                    >
                       {step.body}
                     </p>
 
                     {/* mt-auto pins these to the bottom of the surface, so the
                         chips sit on the same line from step to step instead of
                         floating wherever the copy happens to end. */}
-                    <ul className="relative mt-auto flex flex-wrap gap-2 pt-10">
-                      {step.meta.map((fact) => (
+                    <ul className={`relative mt-auto flex flex-wrap gap-2 pt-10 transition-opacity duration-300 ${pinned && !isActive ? "opacity-0" : ""}`}>
+                      {step.meta.map((fact, chipIndex) => (
                         <li
                           key={fact}
-                          className="rounded-full bg-ink-50 px-3.5 py-1.5 text-sm font-medium text-ink-700 ring-1 ring-inset ring-ink-200"
+                          className="step-chip rounded-full bg-ink-50 px-3.5 py-1.5 text-sm font-medium text-ink-700 ring-1 ring-inset ring-ink-200"
+                          // Offset per chip so the row glimmers left to right rather
+                          // than in unison. See .step-chip in globals.css.
+                          style={{ "--shine-delay": `${chipIndex * 0.3}s` } as CSSProperties}
                         >
                           {fact}
                         </li>
@@ -295,7 +357,7 @@ export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
             <div className="mt-12 flex items-center gap-4">
               <div className="h-px flex-1 overflow-hidden bg-ink-200">
                 <div
-                  className="h-full origin-left bg-accent-600 transition-transform duration-150 ease-linear"
+                  className="h-full origin-left bg-accent-800 transition-transform duration-150 ease-linear"
                   style={{ transform: `scaleX(${progress})` }}
                 />
               </div>

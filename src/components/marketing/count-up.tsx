@@ -40,6 +40,7 @@ export function CountUp({
   prefix = "",
   suffix = "",
   durationMs = 3000,
+  shineWhenSettled = false,
   className,
 }: {
   /** Where the count starts. Defaults to zero. */
@@ -48,10 +49,28 @@ export function CountUp({
   prefix?: string;
   suffix?: string;
   durationMs?: number;
+  /**
+   * Add the .shine-text glint once the count has arrived, not before.
+   *
+   * Running both at once means the highlight sweeps a figure that is still
+   * changing, and the two movements compete. Waiting also gives the shine a
+   * job: it marks the moment the number lands.
+   */
+  shineWhenSettled?: boolean;
   className?: string;
 }) {
   const [display, setDisplay] = useState(to);
   const [settled, setSettled] = useState(true);
+  /**
+   * Starts false even though `settled` starts true.
+   *
+   * `settled` begins true so the server renders the final figure; it then goes
+   * false for the duration of the count. Keying the shine off it directly
+   * would flash the glint on the first paint, drop it while counting, and
+   * bring it back — so this is its own flag, set only when a real count
+   * finishes.
+   */
+  const [shine, setShine] = useState(false);
 
 
   useBeforePaint(() => {
@@ -81,6 +100,7 @@ export function CountUp({
     const tick = (now: number) => {
       const progress = Math.min((now - start) / durationMs, 1);
       setSettled(progress >= 1);
+      if (progress >= 1) setShine(true);
       setDisplay(from + ease(progress) * (to - from));
 
       if (progress < 1) {
@@ -122,7 +142,11 @@ export function CountUp({
   const widest = `${prefix}${to.toFixed(1)}${suffix}`;
 
   return (
-    <span className={`inline-grid ${className ?? ""}`}>
+    <span
+      className={`inline-grid ${shineWhenSettled && shine ? "shine-text" : ""} ${
+        className ?? ""
+      }`}
+    >
       <span
         aria-hidden="true"
         className="invisible col-start-1 row-start-1 tabular-nums"

@@ -35,7 +35,7 @@
    gray rather than a warm- or cool-tinted gray.
 
    brand-*  = black/charcoal scale (headings, dark sections, nav)
-   accent-* = red scale (primary CTA, active states — used sparingly)
+   accent-* = cream scale (surfaces + CTA); accent-800/900 = deep companion for marks
    ink-*    = gray scale (body text, borders, muted surfaces)
    ========================================================================== */
 
@@ -76,37 +76,36 @@
   --color-brand-950: oklch(0.16  0.006 109);
 
   /* ------------------------------------------------------------------------
-     Accent — GOLD TRIAL. Swap this whole block back for the red original below
-     to revert; nothing else in the codebase names a red, everything reads
-     accent-*.
+     Accent — CREAM.
 
-     ORIGINAL RED (accent-600 = #e62427):
-       --color-accent-50:  oklch(0.965 0.015 27);
-       --color-accent-100: oklch(0.92  0.038 27);
-       --color-accent-300: oklch(0.80  0.11  27);
-       --color-accent-400: oklch(0.71  0.16  27);
-       --color-accent-500: oklch(0.655 0.195 27);
-       --color-accent-600: oklch(0.595 0.222 27);
-       --color-accent-700: oklch(0.49  0.20  27);
+     Replaced the red scale (previously anchored at accent-600 = #e62427).
 
-     WHY THE LIGHTNESS CURVE IS HIGHER THAN THE RED ONE. Gold only reads as gold
-     at high lightness; the same L values as the red scale produce bronze and
-     olive. accent-600 sits at L 0.74 where red sat at 0.595.
+     WHY THERE IS A DEEP END. Cream is a surface colour, and most of what
+     accent-* does on this site is not a surface: the step rail, the scroll
+     progress bar, the star ratings and the active step number all have to be
+     legible against a near-white page, and a cream mark on cream is invisible.
+     So 50–600 are the cream itself, used for buttons and washes, and 800/900
+     are a deep warm companion drawn from the same hue, used wherever the
+     accent has to read as a mark rather than a surface.
 
-     WHY accent-800 IS NEW. Gold's contrast against white is far worse than
-     red's at the same step — red-600 is 4.50:1 (passes AA), gold-600 is 2.33:1
-     (fails). Even gold-700 only reaches 3.92:1. accent-800 exists so text on a
-     light background has somewhere legal to go. See the note on Button.
+     WHY THE CTA HAS DARK TEXT NOW. White on cream is about 1.1:1. Dark ink on
+     accent-500 is roughly 13:1, and a cream button with near-black type is the
+     treatment the reference site uses anyway.
+
+     The FLS logo is still red, which is now the only red on the page. That
+     reads as a mark against a warm neutral ground rather than as a clash, but
+     it is worth a look before this ships.
      ------------------------------------------------------------------------ */
-  --color-accent-50:  oklch(0.975 0.022 92);
-  --color-accent-100: oklch(0.945 0.050 91);
-  --color-accent-300: oklch(0.875 0.105 90);
-  --color-accent-400: oklch(0.825 0.130 88);
-  --color-accent-500: oklch(0.785 0.145 87);
-  --color-accent-600: oklch(0.740 0.150 86);
-  --color-accent-700: oklch(0.605 0.125 83);
-  /* Text-safe on white. Not for backgrounds. */
-  --color-accent-800: oklch(0.550 0.105 82);
+  --color-accent-50:  oklch(0.988 0.010 88);
+  --color-accent-100: oklch(0.972 0.020 88);
+  --color-accent-300: oklch(0.940 0.034 88);
+  --color-accent-400: oklch(0.918 0.042 87);
+  --color-accent-500: oklch(0.895 0.048 86);
+  --color-accent-600: oklch(0.870 0.052 85);
+  --color-accent-700: oklch(0.640 0.055 80);
+  /* Deep companion — marks on light, never surfaces. */
+  --color-accent-800: oklch(0.470 0.045 74);
+  --color-accent-900: oklch(0.360 0.038 70);
 
   /* Neutrals — true gray, anchored at ink-500 = #7e7d7d */
   --color-ink-50:  oklch(0.985 0.0005 109);
@@ -412,16 +411,16 @@
     copy on the strongest point of this wash is still comfortably AA.
   */
   .step-card {
-    background-color: #fff;
+    background-color: var(--color-accent-100);
     background-image:
       radial-gradient(
         62% 70% at 100% 0%,
-        color-mix(in oklch, var(--color-accent-500) 13%, transparent) 0%,
+        color-mix(in oklch, var(--color-accent-600) 55%, transparent) 0%,
         transparent 70%
       ),
       radial-gradient(
         58% 62% at 88% 100%,
-        color-mix(in oklch, var(--color-accent-400) 11%, transparent) 0%,
+        color-mix(in oklch, var(--color-accent-500) 45%, transparent) 0%,
         transparent 72%
       ),
       /* The wide, faint one. The two above hug the right edge, but the emptiest
@@ -431,7 +430,7 @@
          as a blank strip. */
       radial-gradient(
         75% 48% at 40% 112%,
-        color-mix(in oklch, var(--color-accent-300) 9%, transparent) 0%,
+        color-mix(in oklch, var(--color-accent-400) 38%, transparent) 0%,
         transparent 76%
       );
   }
@@ -439,7 +438,7 @@
   /* The ghost numeral picks up the accent rather than staying neutral grey, so
      it belongs to the wash behind it instead of sitting on top of it. */
   .step-numeral {
-    color: color-mix(in oklch, var(--color-accent-600) 14%, transparent);
+    color: color-mix(in oklch, var(--color-accent-800) 16%, transparent);
   }
 
   /* -------------------------------------------------------- TESTIMONIAL CARD */
@@ -454,19 +453,193 @@
     fades out, which is exactly the muddy result this is avoiding.
   */
   .testimonial-card {
-    background-color: #fff;
+    background-color: var(--color-accent-300);
     background-image:
       linear-gradient(
         145deg,
-        color-mix(in oklch, var(--color-accent-100) 62%, transparent) 0%,
-        color-mix(in oklch, var(--color-accent-50) 55%, transparent) 48%,
+        color-mix(in oklch, var(--color-accent-300) 85%, transparent) 0%,
+        color-mix(in oklch, var(--color-accent-100) 80%, transparent) 48%,
         transparent 100%
       ),
       radial-gradient(
         85% 90% at 100% 0%,
-        color-mix(in oklch, var(--color-accent-400) 15%, transparent) 0%,
+        color-mix(in oklch, var(--color-accent-500) 60%, transparent) 0%,
         transparent 68%
       );
+  }
+
+  /* ------------------------------------------------------- CARD FAN DECK */
+  /*
+    These two classes are referenced by card-fan-carousel.tsx but were absent
+    from the component it was adapted from — it drives everything through GSAP
+    transforms and assumes the sizing exists. Without them the cards have no
+    dimensions and the deck renders as nothing at all.
+
+    Heights match the breakpoints the component's getHeightMultiplier() treats
+    as ideal (16 / 18 / 20 / 23 / 26rem). If one moves, move the other, or the
+    y-offset scaling is computed against a height the layout does not have.
+
+    These were 22/26/28/34/38rem, which left roughly 140px of empty box below
+    the deck at lg — the fan's tallest extent is the outermost card, about
+    24.5rem at that size, not 38.
+  */
+  .fan-layout {
+    height: 16rem;
+  }
+  .fan-card {
+    position: absolute;
+    width: 9rem;
+    /* Matches the generated covers, 620x860. */
+    aspect-ratio: 620 / 860;
+    overflow: hidden;
+    border-radius: 0.9rem;
+    background-color: #fff;
+    box-shadow:
+      0 10px 30px -8px rgb(0 0 0 / 0.28),
+      0 2px 8px -2px rgb(0 0 0 / 0.16);
+    /* Its own layer: seven cards tweening transforms at once otherwise
+       repaints the section behind them every frame. */
+    will-change: transform;
+  }
+
+  @media (min-width: 480px) {
+    .fan-layout { height: 18rem; }
+    .fan-card { width: 11rem; }
+  }
+  @media (min-width: 640px) {
+    .fan-layout { height: 20rem; }
+    .fan-card { width: 12rem; }
+  }
+  @media (min-width: 768px) {
+    .fan-layout { height: 23rem; }
+    .fan-card { width: 14rem; }
+  }
+  @media (min-width: 1024px) {
+    .fan-layout { height: 26rem; }
+    .fan-card { width: 16rem; }
+  }
+
+  /* ------------------------------------------------------------- CHIP SHINE */
+  /*
+    A highlight that sweeps across the step-card chips.
+
+    ON A PSEUDO-ELEMENT, NOT THE CHIP. The sweep needs to be clipped to the
+    pill and to travel further than the pill is wide, which a single element
+    cannot do to itself. ::after is inset to the chip with overflow hidden on
+    the parent, so the gradient runs off both edges cleanly.
+
+    TRANSFORM, NOT background-position. Both look identical; only transform is
+    composited. These loop forever, so it is the difference between a repaint
+    of the section on every frame and none.
+
+    SWEEP THEN PAUSE. The sweep occupies the first 45% of a 3.2s cycle, so it
+    is roughly 1.4s of travel and 1.8s of stillness. Some dead time is what
+    keeps it reading as a highlight — a sweep with no gap reads as a loading
+    skeleton. Shorten the duration to make it more frequent; take the 45% up
+    towards 100% and it stops being a glimmer.
+  */
+  @keyframes chip-shine {
+    0%   { transform: translateX(-130%); }
+    45%  { transform: translateX(130%); }
+    100% { transform: translateX(130%); }
+  }
+
+  .step-chip {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .step-chip::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      105deg,
+      transparent 38%,
+      rgb(255 255 255 / 0.9) 50%,
+      transparent 62%
+    );
+    transform: translateX(-130%);
+    animation: chip-shine 3.2s ease-in-out infinite;
+    /* Staggered per chip from the component, so a row does not flash in unison. */
+    animation-delay: var(--shine-delay, 0s);
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The blanket rule collapses the duration, which would park the highlight
+       mid-sweep rather than stopping it. Remove it outright. */
+    .step-chip::after {
+      animation: none;
+      opacity: 0;
+    }
+  }
+
+  /* ---------------------------------------------------------- SHINE TEXT */
+  /*
+    A glint that travels across large text. Same rhythm as .step-chip so the
+    two read as one idea.
+
+    WHY THIS IS NOT THE CHIP TREATMENT. The chips sweep a translucent white
+    overlay across a pale pill. The hero figure is white text on a near-black
+    card, where a white overlay is invisible. This clips a moving gradient to
+    the glyphs instead, so the shine happens *in* the letterforms.
+
+    THE BASE STAYS PURE WHITE. The obvious version dims the base and passes a
+    brighter band through, but that leaves a hero figure permanently darker
+    than it should be. Here white is the base and the travelling band is the
+    warm accent, so the number never loses contrast against the card — it just
+    catches a glint.
+
+    background-position rather than transform, because there is no transform
+    that moves a background. It repaints rather than composites; acceptable for
+    one element, and the reason this is not used on anything repeated.
+
+    NOTE currentColor IS UNUSABLE HERE. `color` has to be transparent for
+    background-clip: text to show, so currentColor inside the gradient would
+    resolve to transparent and the text would vanish.
+  */
+  @keyframes shine-text {
+    /*
+      The range has to stay inside 0%–100%.
+
+      With a background wider than the element, percentage positions are
+      interpolated across (container − image), which is negative. 160% pushed
+      the gradient almost entirely outside the box, and with no-repeat the
+      glyphs were left with no background at all — which, with color:
+      transparent, rendered the figure invisible. 100% → 0% keeps the image
+      covering the element at both ends and slides the highlight across it.
+    */
+    0%   { background-position: 100% 0; }
+    45%  { background-position: 0% 0; }
+    100% { background-position: 0% 0; }
+  }
+
+  .shine-text {
+    background-image: linear-gradient(
+      100deg,
+      #fff 40%,
+      var(--color-accent-300) 50%,
+      #fff 60%
+    );
+    background-size: 260% 100%;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine-text 3.2s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The blanket rule only collapses the duration, which would park the glint
+       mid-sweep. Drop the effect and give the text its colour back. */
+    .shine-text {
+      animation: none;
+      background-image: none;
+      color: inherit;
+    }
   }
 }
 

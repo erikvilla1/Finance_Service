@@ -31,11 +31,10 @@ function cx(...parts: (string | false | null | undefined)[]) {
  * attached to a real quote misrepresents the endorser outright. If Robert
  * gets photos with explicit sign-off, an `image` prop is a small change.
  *
- * STARS USE THE ACCENT, WHATEVER IT IS. They were accent-red against a red
- * wash to avoid a second competing colour; under the gold trial that reasoning
- * lands even better, since gold is what a star rating conventionally is. The
- * class is accent-*, so this follows the theme either way rather than pinning a
- * literal colour that goes stale the next time the palette moves.
+ * STARS USE THE ACCENT, NOT GOLD. The card is an accent wash, and amber stars
+ * on it read as a second, competing colour. The classes are accent-*, so they
+ * follow the theme rather than pinning a literal colour that goes stale the
+ * next time the palette moves.
  */
 export interface TestimonialProps extends HTMLAttributes<HTMLDivElement> {
   name: string;
@@ -58,7 +57,7 @@ export function Testimonial({
   return (
     <figure
       className={cx(
-        "testimonial-card relative flex h-full flex-col overflow-hidden rounded-2xl border border-accent-100 p-6 shadow-card md:p-7",
+        "testimonial-card relative flex h-full flex-col overflow-hidden rounded-2xl border border-accent-300 p-6 shadow-card md:p-7",
         className,
       )}
       {...props}
@@ -68,7 +67,7 @@ export function Testimonial({
           aloud is noise. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute right-5 top-2 select-none font-serif text-7xl leading-none text-accent-600/15"
+        className="pointer-events-none absolute right-5 top-2 select-none font-serif text-7xl leading-none text-accent-800/20"
       >
         &rdquo;
       </span>
@@ -86,7 +85,7 @@ export function Testimonial({
               aria-hidden="true"
               className={
                 index < rating
-                  ? "fill-accent-600 text-accent-600"
+                  ? "fill-accent-800 text-accent-800"
                   : "fill-ink-200 text-ink-200"
               }
             />
@@ -103,7 +102,7 @@ export function Testimonial({
       <figcaption className="relative mt-auto flex items-center gap-3 pt-6">
         <span
           aria-hidden="true"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-600/10 text-sm font-semibold text-accent-800"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-800/10 text-sm font-semibold text-accent-800"
         >
           {name.trim().charAt(0).toUpperCase()}
         </span>
