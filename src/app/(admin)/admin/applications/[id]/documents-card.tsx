@@ -154,6 +154,29 @@ export async function DocumentsCard({
                             {formatBytes(document.sizeBytes)} ·{" "}
                             {formatDateTime(document.uploadedAt)}
                           </p>
+
+                          {/*
+                            Provenance, on the one item where mistaking the two
+                            is expensive. A transcript was once accepted into
+                            the signed-application slot and would have gone to a
+                            funder as "01 Signed Application.pdf" — the fix is
+                            not to forbid uploads there, since a wet signature
+                            is a real answer, but to stop them being
+                            indistinguishable.
+                          */}
+                          {item.key === "signed_application" && (
+                            <p
+                              className={
+                                document.source === "e_signature"
+                                  ? "mt-1 text-xs font-medium text-success-700"
+                                  : "mt-1 text-xs font-medium text-warning-700"
+                              }
+                            >
+                              {document.source === "e_signature"
+                                ? "Signed in the portal — consent and audit trail recorded"
+                                : "Uploaded file — not signed through the portal, check it carries a signature"}
+                            </p>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">

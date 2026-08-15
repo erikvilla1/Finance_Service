@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  notifyDocumentReturned,
+  notifyDocumentsComplete,
+  notifySignatureRequested,
+} from "@/lib/email/notifications";
 
 /**
  * The specialist's side of the document loop.
@@ -81,6 +86,25 @@ export async function acceptDocument(formData: FormData) {
 
   if (error) throw new Error("Could not accept the document.");
 
+  // Sent once, when the last outstanding item settles — not on every
+  // acceptance. Four "we accepted a document" emails in an afternoon teaches
+  // someone to stop opening them, and the one that matters is the last.
+  const { data: outstanding } = await supabase
+    .from("document_requests")
+    .select("status")
+    .eq("application_id", applicationId)
+    .eq("is_required", true);
+
+  const allSettled =
+    (outstanding?.length ?? 0) > 0 &&
+    (outstanding ?? []).every(
+      (request) => request.status === "accepted" || request.status === "waived",
+    );
+
+  if (allSettled) {
+    await notifyDocumentsComplete(applicationId);
+  }
+
   refresh(applicationId);
 }
 
@@ -106,7 +130,7 @@ export async function rejectDocument(formData: FormData) {
 
   const { supabase, userId } = await requireStaff();
 
-  const { error } = await supabase
+  const { data: document, error } = await supabase
     .from("documents")
     .update({
       status: "rejected",
@@ -114,11 +138,34 @@ export async function rejectDocument(formData: FormData) {
       verified_at: new Date().toISOString(),
       verification_note: reason.slice(0, 500),
     })
-    .eq("id", documentId);
+    .eq("id", documentId)
+    .select("document_type_key")
+    .maybeSingle();
 
   if (error) throw new Error("Could not send the document back.");
 
+  // The reason travels with the message. Telling someone a document came back
+  // without saying what was wrong produces the same document again.
+  const label = await documentLabel(supabase, document?.document_type_key ?? null);
+  await notifyDocumentReturned(applicationId, label, reason);
+
   refresh(applicationId);
+}
+
+/** The human name for a document type, for use in a sentence. */
+async function documentLabel(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  key: string | null,
+): Promise<string> {
+  if (!key) return "document";
+
+  const { data } = await supabase
+    .from("document_type_definitions")
+    .select("label")
+    .eq("key", key)
+    .maybeSingle();
+
+  return data?.label ?? "document";
 }
 
 /**
@@ -229,6 +276,13 @@ export async function requestSignature(formData: FormData) {
     .eq("id", applicationId);
 
   if (error) throw new Error("Could not update the signature request.");
+
+  // Awaited so a send failure is logged in the same request, but never thrown:
+  // releasing the file for signature has already succeeded, and an unreachable
+  // mail server is not a reason to tell the specialist it did not.
+  if (!withdraw) {
+    await notifySignatureRequested(applicationId);
+  }
 
   refresh(applicationId);
 }

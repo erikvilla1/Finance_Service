@@ -1,5 +1,6 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { storagePathFor } from "@/lib/documents/upload-rules";
+import { notifyStaff } from "@/lib/email/notifications";
 import {
   FCRA_AUTHORIZATION_V1,
   hashConsentText,
@@ -187,6 +188,9 @@ export async function signFundingApplication(
       size_bytes: pdf.byteLength,
       uploaded_by: user.id,
       status: "uploaded",
+      // The distinction 0033 exists for. Anything else in this slot is a scan
+      // or an upload; only this is backed by consent records and an audit trail.
+      source: "e_signature",
     })
     .select("id")
     .single();
@@ -205,6 +209,10 @@ export async function signFundingApplication(
       consents.map(async (consent, index) => ({
         application_id: application.id,
         profile_id: user.id,
+        // Tied to the document it produced (0033). "Did they ever accept the
+        // FCRA wording" is a weaker question than "what did they accept when
+        // they signed this", and only the second is worth having.
+        document_id: document.id,
         consent_type: (index === 0 ? "fcra_authorization" : "e_sign") as
           | "fcra_authorization"
           | "e_sign",
@@ -221,6 +229,14 @@ export async function signFundingApplication(
   // Last four of the Tax ID is the one fragment the schema does keep, so a
   // specialist can match a file to a lender's reference without us holding the
   // number itself.
+  // The end of the applicant's part in this. Robert wants to know the moment it
+  // happens, because a signed application is a file that can go out today.
+  await notifyStaff(
+    application.id,
+    "Application signed",
+    "The funding application has been signed electronically and is in the lender package.",
+  );
+
   const taxIdDigits = input.taxId?.replace(/\D/g, "") ?? "";
   if (application.business_id && taxIdDigits.length >= 4) {
     await service

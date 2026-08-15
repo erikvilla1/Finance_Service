@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, DocumentStatus } from "@/types/database";
+import type { Database, DocumentSource, DocumentStatus } from "@/types/database";
 
 /**
  * The applicant's document checklist.
@@ -24,6 +24,13 @@ export type ChecklistDocument = {
   sizeBytes: number | null;
   status: DocumentStatus;
   uploadedAt: string;
+  /**
+   * Where it came from (0033). Only `e_signature` is produced by the signing
+   * flow and backed by consent records — everything else in a signed-application
+   * slot is a scan or an upload, and a specialist accepting one should be able
+   * to see which they are looking at.
+   */
+  source: DocumentSource;
   /** Only ever set by staff, and only worth showing when something came back. */
   note: string | null;
   /** Whether the applicant can still take this one back. */
@@ -156,7 +163,7 @@ export async function loadChecklist(
     supabase
       .from("documents")
       .select(
-        "id, document_request_id, file_name, size_bytes, status, created_at, verification_note",
+        "id, document_request_id, file_name, size_bytes, status, source, created_at, verification_note",
       )
       .eq("application_id", applicationId)
       .is("deleted_at", null)
@@ -177,6 +184,7 @@ export async function loadChecklist(
       sizeBytes: document.size_bytes,
       status: document.status,
       uploadedAt: document.created_at,
+      source: document.source,
       note: document.verification_note,
       // Matches the guard inside withdraw_document(). Showing the control when
       // the function would refuse produces a button that does nothing.
