@@ -127,7 +127,7 @@ export default async function DashboardPage() {
   const { data: applications } = await supabase
     .from("applications")
     .select(
-      "id, reference_code, status, financing_goal, requested_amount, created_at, profile_id, business_id",
+      "id, reference_code, status, financing_goal, requested_amount, created_at, profile_id, business_id, signature_requested_at",
     )
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -138,6 +138,19 @@ export default async function DashboardPage() {
   // One pass for every card rather than a lookup per card. Carries the business
   // name and both progress counts, which is everything a card needs.
   const summaries = await loadLeadSummaries(supabase, list);
+
+  // Which applications already carry a signed application, so the prompt to
+  // sign disappears the moment it is done rather than on the next status change.
+  const { data: signedDocuments } = await supabase
+    .from("documents")
+    .select("application_id")
+    .in("application_id", list.map((application) => application.id))
+    .eq("document_type_key", "signed_application")
+    .is("deleted_at", null);
+
+  const signedApplications = new Set(
+    (signedDocuments ?? []).map((document) => document.application_id),
+  );
 
   return (
     <Container>
@@ -161,6 +174,7 @@ export default async function DashboardPage() {
               const lead = summaries.get(application.id);
               const outstanding = lead?.docsOutstanding ?? 0;
               const settled = lead?.docsSettled ?? 0;
+              const signatureDone = signedApplications.has(application.id);
 
               return (
                 <Card as="li" key={application.id}>
@@ -261,6 +275,30 @@ export default async function DashboardPage() {
                       }
                     />
                   </div>
+
+                  {/*
+                    Signing outranks everything else on this card. It is the one
+                    thing that stops a file leaving the building, it takes two
+                    minutes, and it only appears when a specialist has decided
+                    the application is ready — so when it shows up it is genuinely
+                    the next thing to do.
+                  */}
+                  {application.signature_requested_at && !signatureDone && (
+                    <div className="mt-5 rounded-lg bg-accent-50 p-4">
+                      <p className="text-sm font-semibold text-accent-700">
+                        Your application is ready to sign
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-700">
+                        This is the last thing we need before your file can go to
+                        a funding source. It takes a couple of minutes.
+                      </p>
+                      <div className="mt-3">
+                        <ButtonLink href={`/dashboard/${application.id}/sign`} size="sm">
+                          Review and sign
+                        </ButtonLink>
+                      </div>
+                    </div>
+                  )}
 
                   {/*
                     Being finished is worth saying out loud. Previously this box
