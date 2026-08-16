@@ -1,5 +1,6 @@
 import { Field, Input, Select, Textarea } from "@/components/ui";
 import { AmountInput } from "@/components/application/amount-input";
+import { BoundedNumberInput } from "@/components/application/bounded-number-input";
 import type { Question } from "@/lib/questions";
 
 /**
@@ -117,11 +118,13 @@ export function QuestionField({
         );
 
       case "number":
+        // Bounded rather than plain: min/max on a native number input are
+        // advisory, and this is where the credit score is typed. See
+        // bounded-number-input.tsx for what it refuses and what it lets
+        // through.
         return (
-          <Input
+          <BoundedNumberInput
             {...shared}
-            type="number"
-            inputMode="numeric"
             min={validation.min}
             max={validation.max}
             placeholder={question.placeholder ?? undefined}

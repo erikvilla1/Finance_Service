@@ -7,6 +7,10 @@ import { loadQuestions } from "@/lib/questions";
 import { splitPrequal } from "@/lib/questions/prequal-layout";
 import { findGoal } from "@/lib/products/goals";
 import { submitPrequal } from "./actions";
+import {
+  PREQUAL_FLOW_LABEL,
+  PREQUAL_FLOW_STEPS,
+} from "@/lib/applications/flow";
 
 /**
  * The wizard's fallback, expressed as CSS rather than as a second render.
@@ -96,7 +100,11 @@ export default async function PrequalPage({
             moving between the two steps feels like one flow rather than two
             pages. CSS only — see the note on /start. */}
         <div className="animate-fade-in-up">
-          <ProgressBar value={2} max={4} label="Your application" />
+          <ProgressBar
+            value={2}
+            max={PREQUAL_FLOW_STEPS}
+            label={PREQUAL_FLOW_LABEL}
+          />
         </div>
 
         <div className="mt-8">

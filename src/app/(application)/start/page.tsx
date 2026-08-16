@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Container, ProgressBar, SelectableCard } from "@/components/ui";
 import { FINANCING_GOALS, findGoal } from "@/lib/products/goals";
+import {
+  PREQUAL_FLOW_LABEL,
+  PREQUAL_FLOW_STEPS,
+} from "@/lib/applications/flow";
 
 export const metadata: Metadata = {
-  title: "Start your application",
+  // Not "Start your application". Nothing is applied for until after the
+  // account wall — see the note on PREQUAL_FLOW_LABEL.
+  title: "See your financing options",
   robots: { index: false, follow: false },
 };
 
@@ -45,7 +51,11 @@ export default async function StartPage({
           question, then the note under it, then the options.
         */}
         <div className="animate-fade-in-up">
-          <ProgressBar value={1} max={4} label="Your application" />
+          <ProgressBar
+            value={1}
+            max={PREQUAL_FLOW_STEPS}
+            label={PREQUAL_FLOW_LABEL}
+          />
         </div>
 
         <div className="mt-10">

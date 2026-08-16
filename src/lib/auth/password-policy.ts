@@ -27,15 +27,33 @@
  *   that ever creates a user by another route would get 6 through. Raising the
  *   dashboard setting to match closes that.
  *
- * REQUIRED VS ADVISORY. Only length is required, because only length is
- * enforced — raising the bar to include composition rules would lock out
- * accounts that can be created right now, which is not a change to make
- * silently. Everything else scores the password without gating it.
+ * REQUIRED VS ADVISORY. Two rules are required — a length floor and one
+ * number or symbol. Those two are what the meter lists and what the score is
+ * built from.
  *
- * That split is also the better policy on the merits. NIST SP 800-63B advises
+ * THE OTHER TWO CURRENTLY DO NOTHING. They are neither displayed nor scored,
+ * having been dropped from both when the meter moved to three stages. They are
+ * kept because they describe what a good password looks like and are the
+ * obvious content for a "suggestions" affordance later — but they are dead
+ * weight today, and anyone tidying this file should know that rather than
+ * assume they are load-bearing.
+ *
+ * THE SECOND ONE WAS A DELIBERATE CHOICE AGAINST THE GUIDANCE, and that is
+ * worth recording rather than quietly implementing. NIST SP 800-63B advises
  * against mandatory composition rules: they push people toward predictable
- * substitutions (Password1!) while blocking genuinely strong passphrases. It
- * recommends length plus breach checking, which is exactly the toggle above.
+ * substitutions — Password1! satisfies every rule in this file — while
+ * blocking genuinely strong passphrases like "correct horse battery staple",
+ * which this now rejects despite being far harder to guess than anything eight
+ * characters long.
+ *
+ * It was asked for, it is defensible on a financial site where an examiner or
+ * a partner may expect to see a composition rule, and the meter still caps a
+ * guessable password at Weak regardless of which boxes it ticks. But the thing
+ * that would actually reduce account takeovers is still the toggle above:
+ * leaked-password protection, which remains OFF.
+ *
+ * ALREADY-EXISTING ACCOUNTS ARE UNAFFECTED. This gates creation, not sign-in,
+ * so nobody is locked out of a password they already have.
  * -----------------------------------------------------------------------------
  */
 
@@ -91,12 +109,23 @@ export const PASSWORD_RULES: readonly PasswordRule[] = [
   {
     id: "variety",
     label: "A number or symbol",
-    required: false,
+    required: true,
     test: (v) => /\d/.test(v) || SYMBOL.test(v),
   },
 ];
 
-const LABELS = ["", "Weak", "Fair", "Good", "Strong"] as const;
+/**
+ * THREE STAGES, NOT FOUR.
+ *
+ * The meter used to have one segment per rule, which tied the scale to how many
+ * rules happen to exist — adding a rule silently changed what "3 bars" meant.
+ * Weak / Fair / Strong is a judgement about the password, and it stays stable
+ * whatever the rule list does.
+ */
+const LABELS = ["", "Weak", "Fair", "Strong"] as const;
+
+/** Segments in the meter. Independent of PASSWORD_RULES.length, deliberately. */
+export const PASSWORD_SCORE_MAX = 3;
 
 export interface PasswordAssessment {
   /** 0 when empty, otherwise 1–4. */
@@ -117,17 +146,45 @@ export function assessPassword(value: string): PasswordAssessment {
     value.length > 0 &&
     (COMMON.test(value) || REPEATED.test(value) || SEQUENCE.test(value));
 
-  const passed = rules.filter((rule) => rule.met).length;
+  /*
+    THE SCORE IS THE VISIBLE CHECKLIST, NOTHING ELSE.
 
-  // A guessable password is capped at Weak no matter how many boxes it ticks.
-  // "Password123!" satisfies every composition rule in this file and is one of
-  // the first things anyone tries.
+    One stage per required rule met, and the meter lists exactly those rules:
+
+      no checks   -> Weak
+      one check   -> Fair
+      both checks -> Strong
+
+    It used to reach Strong only by satisfying the two ADVISORY rules as well,
+    which the meter no longer displays. That made the top of the scale
+    unreachable by following the instructions on screen — the bar stayed at
+    Fair with every visible box ticked and nothing to explain why. A meter has
+    to be readable from what it shows.
+
+    Written as met + 1 rather than a chain of ternaries so that adding a third
+    required rule does not silently strand a stage: it clamps at Strong.
+
+    THE GUESSABLE CAP SURVIVES, and it is the one thing here that overrides the
+    checklist. "Password1" ticks both boxes and is among the first strings any
+    attack tries. The meter says Weak and prints "Commonly guessed" beside it,
+    so the disagreement with the ticks is explained rather than mysterious.
+    Delete the `guessable ||` below if that is not wanted — it is the only
+    reason a fully ticked password can read Weak.
+  */
+  const requiredMet = rules.filter(
+    (rule) => rule.required && rule.met,
+  ).length;
+
   const score =
-    value.length === 0 ? 0 : guessable ? 1 : Math.max(1, passed);
+    value.length === 0
+      ? 0
+      : guessable
+        ? 1
+        : Math.min(requiredMet + 1, PASSWORD_SCORE_MAX);
 
   return {
     score,
-    max: PASSWORD_RULES.length,
+    max: PASSWORD_SCORE_MAX,
     label: LABELS[Math.min(score, LABELS.length - 1)] ?? "",
     rules,
     guessable,

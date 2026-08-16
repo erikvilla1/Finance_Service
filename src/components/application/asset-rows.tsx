@@ -52,15 +52,40 @@ export function AssetRows({
   onChange: (rows: AssetRow[]) => void;
 }) {
   const update = (index: number, patch: Partial<AssetRow>) => {
-    onChange(
-      rows.map((row, i) => {
-        if (i !== index) return row;
-        const next = { ...row, ...patch };
-        // Switching to "none" clears figures that no longer describe anything.
-        if (next.type === NONE) return { ...next, value: "", debt: "" };
-        return next;
-      }),
-    );
+    const next = rows.map((row, i) => {
+      if (i !== index) return row;
+      const merged = { ...row, ...patch };
+      // Switching to "none" clears figures that no longer describe anything.
+      if (merged.type === NONE) return { ...merged, value: "", debt: "" };
+      return merged;
+    });
+
+    /*
+      THE FIRST ROW GOVERNS THE REST.
+
+      `canAdd` already stops you adding a second asset before the first has a
+      type — but nothing stopped you clearing the first one AFTERWARDS, and the
+      rows below simply stayed. That left the question reading "Select an
+      option" with a fully filled-in Asset 2 sitting under it: a form saying
+      both "I haven't told you whether I have assets" and "here is one of my
+      assets" at the same time.
+
+      Setting the first row to "no assets to offer" had the same hole, and that
+      version is worse — an explicit denial with an asset still listed beneath
+      it, which is a contradiction the engine would then have to arbitrate.
+
+      Clearing or declining the first row therefore drops the others. The extra
+      rows only ever existed as continuations of an answer that no longer
+      exists, and leaving them would post asset values for an unanswered
+      question: every row shares a field name, so row two would arrive at the
+      server as though it were row one.
+    */
+    if (index === 0 && (next[0].type === "" || next[0].type === NONE)) {
+      onChange([next[0]]);
+      return;
+    }
+
+    onChange(next);
   };
 
   const first = rows[0] ?? EMPTY_ASSET;

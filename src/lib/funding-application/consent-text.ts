@@ -42,7 +42,33 @@ export const FCRA_AUTHORIZATION_V1: ConsentTextVersion = {
   body: `Each of the undersigned owner(s) submit this application for a financing facility on behalf of the applicant business. Each of the undersigned certify that there are no misrepresentations in this application or in any documents submitted in connection therewith, that all such information and documentation submitted is true, complete and accurate and does not omit any material information. The undersigned each agree that any funds made available pursuant to a financing facility will used only for the applicant's working capital and not for any illegal purpose. By each undersigned's signature below, Financial Lending Specialists, Inc ("FLS") is hereby authorized to obtain (i) a consumer credit report through a credit agency chosen by FLS for purposes of FLS's due diligence as part of the credit approval process of the financing facility for the applicant; and (ii) information from any third party and to make any other investigation of credit, either directly or indirectly through any agent of FLS on applicant and/or each of the undersigned. Each of the undersigned grants permission for the release and/or disclosure of financial information to a credit reporting agency or other third party as to FLS's experience or transactions with applicant and/or the undersigned. Each of the undersigned understands that FLS will retain and rely on this application and any other credit or financial information FLS receives, even if a financing facility is not approved. These representations and authorizations and the documents submitted in connection with or related to this application and any potential facility may be relied on by FLS, any insurer of credit and any third party to whom FLS may sell / assign all or part of a financing facility. The undersigned each further authorize FLS to provide and/or disclosure to any such insurer or third party any information and documentation that such party may request with respect to the application or facility. If an adverse decision is made, in whole or in part, due to the information on a consumer report, a summary of the respective undersigned's rights under the Fair Credit Reporting Act and the source of the information will be provided by FLS.`,
 };
 
-export const CONSENT_TEXTS = [FCRA_AUTHORIZATION_V1];
+/**
+ * The tick box on the account-creation screen.
+ *
+ * SHORT, AND THAT IS THE POINT. What gets recorded has to be the wording the
+ * person actually saw, not the documents it points at — this is the sentence
+ * beside the checkbox, verbatim. The Terms and the Privacy Policy have their
+ * own effective dates on their own pages; this records that on a given day a
+ * given person was shown this line and ticked it.
+ *
+ * If the label on the form changes by so much as a word, add a V2 below and
+ * leave this in place. The record is only worth anything if the text behind a
+ * version cannot move.
+ *
+ * NOT REVIEWED BY COUNSEL. Same standing caveat as the FCRA text above, and it
+ * matters more here: whether a tick box is sufficient assent, and whether the
+ * Terms need separate acceptance from the Privacy Policy, are questions for a
+ * lawyer rather than for this file. Platform spec §29.
+ */
+export const TERMS_OF_USE_V1: ConsentTextVersion = {
+  version: "terms-2026-08-15",
+  effectiveFrom: "2026-08-15",
+  consentType: "terms_of_use",
+  source: "create-account checkbox label",
+  body: `I agree to the Terms of Use and the Privacy Policy.`,
+};
+
+export const CONSENT_TEXTS = [FCRA_AUTHORIZATION_V1, TERMS_OF_USE_V1];
 
 export function currentConsentText(
   consentType: ConsentTextVersion["consentType"],
