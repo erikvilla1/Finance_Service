@@ -32,10 +32,7 @@ import { buildFundingApplicationPdf, isPngDataUrl } from "./pdf";
 export const E_SIGN_CONSENT: ConsentTextVersion = {
   version: "esign-2026-08-13",
   effectiveFrom: "2026-08-13",
-  // The enum has an `e_sign` value; the type on ConsentTextVersion is narrowed
-  // to fcra_authorization, so this is cast at the point of use rather than
-  // widening a type that exists to stop the wrong text being attached.
-  consentType: "fcra_authorization",
+  consentType: "e_sign",
   source: "ESIGN Act consent, drafted for this platform",
   body: `You agree to sign this application electronically and to receive the signed copy and related notices electronically. An electronic signature has the same legal effect as a handwritten one. You may instead request a paper copy to sign by hand at no charge by contacting your specialist, and you may withdraw this consent at any time before signing. To sign and to keep a copy you will need a device with a web browser and either a printer or somewhere to save a PDF.`,
 };
@@ -213,9 +210,10 @@ export async function signFundingApplication(
         // FCRA wording" is a weaker question than "what did they accept when
         // they signed this", and only the second is worth having.
         document_id: document.id,
-        consent_type: (index === 0 ? "fcra_authorization" : "e_sign") as
-          | "fcra_authorization"
-          | "e_sign",
+        // Taken from the text itself now, rather than inferred from position
+        // in the array — the two could drift, and the consent record is
+        // evidence.
+        consent_type: consent.consentType,
         granted: true,
         text_version: consent.version,
         text_hash: await hashConsentText(consent.body),

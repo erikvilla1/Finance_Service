@@ -212,7 +212,10 @@ export async function buildFundingApplicationPdf(
     }
   }
   for (const consent of signature.consents) {
-    write(`Accepted ${consent.consentType} version ${consent.version}`, {
+    // Named in words rather than by enum value. This block is read by a lender
+    // or, at worst, by a lawyer — "fcra_authorization" is a column value, not a
+    // description of what someone agreed to.
+    write(`Accepted: ${consentDescription(consent)} (${consent.version})`, {
       size: 8,
       color: [0.45, 0.45, 0.45],
     });
@@ -263,6 +266,24 @@ function wrap(text: string, font: PDFFont, size: number, maxWidth: number): stri
 
   if (line) lines.push(line);
   return lines;
+}
+
+/** What each consent actually is, for the audit block on the signed document. */
+function consentDescription(consent: ConsentTextVersion): string {
+  switch (consent.consentType) {
+    case "fcra_authorization":
+      return "Credit and information authorization (FCRA)";
+    case "e_sign":
+      return "Consent to sign and receive documents electronically (ESIGN)";
+    case "tcpa_sms":
+      return "Consent to be contacted by text message";
+    case "credit_pull":
+      return "Consent to a credit inquiry";
+    case "privacy_policy":
+      return "Privacy policy";
+    case "terms_of_use":
+      return "Terms of use";
+  }
 }
 
 function dataUrlToBytes(dataUrl: string): Uint8Array {
