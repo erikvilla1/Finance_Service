@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Eye, EyeOff } from "lucide-react";
@@ -42,7 +44,24 @@ export function SignInForm({ next }: { next?: string }) {
       </div>
 
       <div className="animate-fade-in-up [animation-delay:250ms]">
-        <Field label="Password" htmlFor="password" required>
+        {/*
+          The reset link sits with the password field rather than at the foot of
+          the form. Someone reaches for it at the moment the password fails
+          them, and that moment is here.
+        */}
+        <div className="mb-1.5 flex items-baseline justify-between gap-3">
+          <span className="text-sm font-medium text-ink-800">
+            Password
+            <span className="ml-1 text-danger-600" aria-hidden="true">*</span>
+          </span>
+          <Link
+            href="/sign-in/forgot"
+            className="text-sm font-medium text-brand-700 hover:underline"
+          >
+            Forgotten?
+          </Link>
+        </div>
+        <Field label="Password" htmlFor="password" hideLabel required>
           <div className="relative">
             {/*
               Reveal toggle, not a "show password" checkbox below the field.

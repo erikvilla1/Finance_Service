@@ -452,6 +452,7 @@ export function Field({
   error,
   required,
   inverted = false,
+  hideLabel = false,
   children,
 }: {
   label: string;
@@ -461,6 +462,15 @@ export function Field({
   required?: boolean;
   /** For fields on a dark surface — ink-800 on brand-900 is unreadable. */
   inverted?: boolean;
+  /**
+   * Hide the label visually, keeping it for screen readers.
+   *
+   * For when the label is already on screen as part of a wider row — a heading
+   * with a link beside it, say. The element still exists and is still
+   * associated with the input, because "looks labelled" and "is labelled" are
+   * different things and only one helps someone using a screen reader.
+   */
+  hideLabel?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -468,12 +478,13 @@ export function Field({
       <label
         htmlFor={htmlFor}
         className={cx(
-          "block text-sm font-medium",
-          inverted ? "text-white" : "text-ink-800",
+          hideLabel && "sr-only",
+          !hideLabel && "block text-sm font-medium",
+          !hideLabel && (inverted ? "text-white" : "text-ink-800"),
         )}
       >
         {label}
-        {required && (
+        {required && !hideLabel && (
           <span
             className={cx("ml-1", inverted ? "text-brand-100" : "text-danger-600")}
             aria-hidden="true"
