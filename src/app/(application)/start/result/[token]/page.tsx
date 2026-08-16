@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   Badge,
-  ButtonLink,
   Card,
   Container,
   IndicativeDisclosure,
@@ -10,6 +9,8 @@ import {
 } from "@/components/ui";
 import { Check, Minus } from "lucide-react";
 import { Confetti } from "@/components/ui/confetti";
+import { CountUpAmount } from "@/components/marketing/count-up";
+import { GlowButtonLink } from "@/components/ui/glow-button-link";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { ProductMatch } from "@/lib/qualification/types";
 import {
@@ -43,19 +44,10 @@ export const metadata: Metadata = {
  * token-matched row is fetched, and nothing sensitive is on this page.
  */
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
-function formatRange(min: number | null, max: number | null): string | null {
-  if (min == null && max == null) return null;
-  if (min != null && max != null) {
-    return `${currency.format(min)} – ${currency.format(max)}`;
-  }
-  return currency.format((min ?? max) as number);
-}
+/* The currency formatter and formatRange used to live here. Both moved into
+   CountUpAmount when the figures started counting up — the component has to
+   format every intermediate frame, so keeping a second formatter on this side
+   would have been two places to disagree about what a dollar looks like. */
 
 export default async function ResultPage({
   params,
@@ -184,7 +176,11 @@ export default async function ResultPage({
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
             Here&apos;s what you could qualify for
           </h1>
-          <p className="mt-3 max-w-2xl leading-relaxed text-ink-700">
+          {/* NO max-w HERE. It was max-w-2xl — a 672px measure inside a panel
+              well over a thousand wide, which stopped the text mid-box and read
+              as a rendering fault rather than as typographic restraint. The
+              panel is the thing setting the measure now. */}
+          <p className="mt-3 leading-relaxed text-ink-700">
             Based on what you told us, these are the programs that look like a
             fit. Nothing has been applied for yet — starting your application is
             the next step, and you can do it below.
@@ -314,16 +310,25 @@ export default async function ResultPage({
                   the other. */}
               <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {sized.slice(0, 8).map((match) => {
-                  const range = formatRange(
-                    match.estimatedAmountMin,
-                    match.estimatedAmountMax,
-                  );
+                  const hasRange =
+                    match.estimatedAmountMin != null ||
+                    match.estimatedAmountMax != null;
                   return (
-                    <Card as="li" key={match.productSlug} className="h-full">
+                    <Card
+                      as="li"
+                      key={match.productSlug}
+                      /* transition-[translate,box-shadow], NOT the bare
+                         `transition`. Tailwind v4 emits -translate-y-1 as the
+                         `translate` property, and `translate` is not in the
+                         default transition-property list — the shadow would
+                         have faded while the card jumped. box-shadow covers
+                         the ring too, since a ring is a box-shadow. */
+                      className="group result-card result-card-eligible h-full transition-[translate,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover hover:ring-success-600/30"
+                    >
                       <div className="flex items-start gap-2.5">
                         <span
                           aria-hidden="true"
-                          className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-success-50 text-success-700"
+                          className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-success-50 text-success-700 transition-transform duration-300 ease-out group-hover:scale-110"
                         >
                           <Check className="h-3 w-3" strokeWidth={3} />
                         </span>
@@ -340,12 +345,15 @@ export default async function ResultPage({
                           {/* text-lg, not text-xl. These cards are half the
                               width they used to be, and a long range wrapped
                               mid-figure at the old size. */}
-                          {range && (
+                          {hasRange && (
                             <p className="mt-2 font-mono text-lg font-bold text-ink-900">
-                              {range}
+                              <CountUpAmount
+                                min={match.estimatedAmountMin}
+                                max={match.estimatedAmountMax}
+                              />
                             </p>
                           )}
-                          {range && (
+                          {hasRange && (
                             <p className="text-xs text-ink-500">
                               illustrative range
                             </p>
@@ -391,11 +399,15 @@ export default async function ResultPage({
               </p>
               <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {notEligible.map((match) => (
-                  <Card as="li" key={match.productSlug} className="h-full">
+                  <Card
+                    as="li"
+                    key={match.productSlug}
+                    className="group result-card result-card-blocked h-full transition-[translate,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover hover:ring-danger-600/25"
+                  >
                     <div className="flex items-start gap-2.5">
                       <span
                         aria-hidden="true"
-                        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-danger-50 text-danger-700"
+                        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-danger-50 text-danger-700 transition-transform duration-300 ease-out group-hover:scale-110"
                       >
                         <Minus className="h-3 w-3" strokeWidth={3} />
                       </span>
@@ -421,36 +433,6 @@ export default async function ResultPage({
           )}
         </div>
 
-        {/* ------------------------------------------------------------------
-            THE CAVEAT NOW SITS UNDER THE FIGURES RATHER THAN OVER THEM.
-
-            It used to lead, on the reasoning that anyone who reads only the
-            numbers should have passed the warning first. Moved because it was
-            the third block of preamble between the headline and the options,
-            and a reader who has to wade through caveats to reach the answer
-            stops reading caveats.
-
-            "BELOW" BECAME "ABOVE". The copy pointed at figures that are now
-            behind it — a one-word tell that would have quietly made the
-            disclosure describe the wrong thing, which on this page is the kind
-            of inaccuracy that matters.
-
-            It is still on the page, still directly attached to the figures, and
-            still ahead of the CTA and IndicativeDisclosure further down. Nobody
-            reaches the button without passing it.
-        ------------------------------------------------------------------- */}
-        {hasEstimates && (
-          <p className="mt-8 max-w-3xl rounded-lg border border-warning-600/25 bg-warning-50 p-4 text-sm leading-relaxed text-ink-700">
-            <strong className="font-semibold">
-              The figures above are for illustrative purposes only.
-            </strong>{" "}
-            They are modelled from the revenue you reported to show the rough
-            shape of what may be available. They are not quotes, not offers, and
-            not amounts anyone has agreed to lend. Real figures come from a
-            lender after a full review.
-          </p>
-        )}
-
         {matches.length === 0 && (
           <Card className="mt-8">
             <h2 className="text-base font-semibold text-ink-900">
@@ -463,19 +445,6 @@ export default async function ResultPage({
             </p>
           </Card>
         )}
-
-        {/* ------------------------------------------------------------------
-            The conversion moment.
-
-            This sits directly under the figures, while the applicant is still
-            looking at what they might qualify for — that interest is the thing
-            being converted, and it decays with every screen. The disclosure
-            stays ABOVE the button so nobody clicks through without having
-            passed the caveat.
-        ------------------------------------------------------------------- */}
-        <div className="mt-8">
-          <IndicativeDisclosure />
-        </div>
 
         {/*
           THE ONE DARK BLOCK ON A CREAM PAGE.
@@ -497,23 +466,42 @@ export default async function ResultPage({
           reassurance, not an action, and anyone who has already decided does not
           need it.
         */}
-        <div className="mt-10 rounded-2xl bg-brand-900 p-7 shadow-card sm:p-9">
+        {/* CENTRED, UNLIKE EVERYTHING ABOVE IT. The rest of the page is a
+            left-aligned document; this panel is a single decision. Centring is
+            what stops it reading as one more section and starts it reading as
+            the end of the page — the same reason it is the only dark block.
+
+            The paragraph keeps a measure (max-w-xl) and centres with mx-auto
+            rather than losing the cap. Centred text is harder to track back to
+            the start of each line, so a long one is worse centred than left —
+            the cap is doing more work here than it was doing in the green box. */}
+        <div className="mt-10 rounded-2xl bg-brand-900 p-7 text-center shadow-card sm:p-9">
           <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Ready to move forward?
           </h2>
-          <p className="mt-3 max-w-xl leading-relaxed text-brand-100">
+          <p className="mx-auto mt-3 max-w-xl leading-relaxed text-brand-100">
             Starting your application creates an account where you can upload
             your documents, track where things stand, and pick up any time.
           </p>
 
-          <div className="mt-6">
-            <ButtonLink
+          {/* THE SHIMMER AND THE GLOW, same as the prequal submit button.
+
+              This is the one action the whole page exists to produce, and it is
+              the only button on the screen — so the rule about using the effect
+              once is satisfied by the page having nothing else to compete with.
+
+              It should read stronger here than it does on the prequal submit.
+              That button is cream on a cream page, where white is a ten-percent
+              step; this one is cream on brand-900, which is the white-on-dark
+              contrast the effect was originally designed for. */}
+          <div className="mt-6 flex justify-center">
+            <GlowButtonLink
               href={`/create-account?application=${token}`}
               size="lg"
               className="w-full sm:w-auto"
             >
               Start Application Now
-            </ButtonLink>
+            </GlowButtonLink>
           </div>
 
           {/* brand-100 rather than ink-600: the old colour was chosen for a
@@ -524,31 +512,64 @@ export default async function ResultPage({
           </p>
         </div>
 
-        <div className="mt-8 border-t border-ink-200 pt-8">
-          <h2 className="text-lg font-semibold text-ink-900">What happens next</h2>
-          <ol className="mt-4 space-y-3">
-            {[
-              "You start your application and create an account to keep track of it.",
-              "You send us your documents — we'll show you exactly what's needed.",
-              "A financing specialist reviews everything and walks you through the real options.",
-            ].map((step, index) => (
-              <li key={step} className="flex gap-3 text-sm leading-relaxed text-ink-600">
-                <span
-                  aria-hidden="true"
-                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-800"
-                >
-                  {index + 1}
-                </span>
-                {step}
-              </li>
-            ))}
-          </ol>
-          {/* NO SECOND BUTTON HERE. "Talk with a financing specialist" sat
-              directly under the primary CTA and offered a way out of the flow at
-              the exact moment the page is asking someone to commit — a second
-              action competing with the one this screen exists for. Contact is
-              still reachable; it is just no longer a fork in the road. */}
+        {/* ------------------------------------------------------------------
+            BOTH DISCLOSURES NOW SIT BELOW THE CTA.
+
+            They were above it, and the note that used to be here said the
+            reason out loud: "the disclosure stays ABOVE the button so nobody
+            clicks through without having passed the caveat." That is no longer
+            true, and it is the one thing to weigh if this page is ever reviewed
+            by counsel. A reader can now reach "Start Application Now" without
+            having scrolled past either box.
+
+            What still holds: both are on the same screen as the figures they
+            describe, neither is collapsed or behind a link, and the cards
+            themselves carry "illustrative range" under every amount — so no
+            figure on this page appears unqualified. The word "above" in the
+            first line still points the right way, since the figures remain
+            above it.
+
+            If a reviewer wants the caveat back in front of the action, the
+            cheapest fix is a single line of fine print inside the dark panel,
+            under the button — not moving these two boxes back up.
+        ------------------------------------------------------------------- */}
+        {hasEstimates && (
+          <p className="mt-8 rounded-lg border border-warning-600/25 bg-warning-50 p-4 text-sm leading-relaxed text-ink-700">
+            <strong className="font-semibold">
+              The figures above are for illustrative purposes only.
+            </strong>{" "}
+            They are modelled from the revenue you reported to show the rough
+            shape of what may be available. They are not quotes, not offers, and
+            not amounts anyone has agreed to lend. Real figures come from a
+            lender after a full review.
+          </p>
+        )}
+
+        {/* Same p-4, rounded-lg, text-sm and full-container width as the box
+            above it — the page's two disclosures read as a pair. */}
+        <div className="mt-4">
+          <IndicativeDisclosure />
         </div>
+
+        {/* "WHAT HAPPENS NEXT" WAS HERE, AND IS GONE.
+
+            Three numbered steps describing account, documents, specialist. It
+            was written when this panel was light and quiet, as reassurance for
+            anyone not yet ready to click. Once the CTA became the dark block
+            above, the section was working against it: a reader who has decided
+            gets a numbered list between them and the end of the page, and a
+            reader who has not gets told the commitment is three steps long at
+            the moment they are being asked to take the first.
+
+            Nothing load-bearing left with it. Step one is what the button says,
+            step two is the whole of the documents screen after signup, and step
+            three is already promised in IndicativeDisclosure above — "a
+            financing specialist will review your information".
+
+            NO SECOND BUTTON EITHER, for the record. "Talk with a financing
+            specialist" used to sit down here, offering a way out of the flow at
+            the exact moment the page asks someone to commit. Contact is still
+            reachable from the footer; it is just no longer a fork in the road. */}
       </div>
     </Container>
   );
