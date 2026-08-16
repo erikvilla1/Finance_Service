@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { RecoveryRedirect } from "@/components/auth/recovery-redirect";
 
 export const metadata: Metadata = {
   title: {
@@ -29,6 +30,13 @@ export default function RootLayout({
         <a href="#main" className="skip-link">
           Skip to main content
         </a>
+        {/*
+          Supabase's default password-reset template drops people on the site
+          root with the tokens in a URL fragment, which the server never sees.
+          This catches that and forwards them to the reset form. Renders nothing
+          and does nothing on any other page load.
+        */}
+        <RecoveryRedirect />
         {children}
       </body>
     </html>

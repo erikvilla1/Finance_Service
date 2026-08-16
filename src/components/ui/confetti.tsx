@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePrefersReducedMotion } from "@/components/marketing/use-reduced-motion";
 
 /**
  * White confetti falling from the top of the viewport, once, then gone.
@@ -69,38 +70,60 @@ export function Confetti({
   maxFallSeconds?: number;
   maxDelaySeconds?: number;
 }) {
-  const [pieces, setPieces] = useState<Piece[]>([]);
+  const [cleared, setCleared] = useState(false);
+
+  // Honoured directly rather than through the blanket rule in globals.css: that
+  // rule collapses animation duration, which here would drop ninety squares
+  // onto the page in a single frame rather than removing them.
+  //
+  // Read during render through useSyncExternalStore rather than set from an
+  // effect — the same shape use-reduced-motion.ts uses, and for the same reason:
+  // setState inside an effect renders once with the animation on and again with
+  // it off, which is a flash of confetti at someone who asked for none.
+  const reducedMotion = usePrefersReducedMotion();
+
+  /**
+   * Generated once, lazily, and never regenerated.
+   *
+   * This was built in an effect because the values are random and random
+   * numbers during render differ between the server and the client. useState's
+   * initialiser runs on the client only for a component that mounts after
+   * hydration, which is what this does — it is rendered in response to a
+   * completed action, never in the initial HTML. So the mismatch the effect was
+   * avoiding cannot arise, and the setState the linter objected to is not
+   * needed at all.
+   */
+  const [pieces] = useState<Piece[]>(() =>
+    Array.from({ length: pieceCount }, () => ({
+      left: random(-2, 102),
+      delay: random(0, maxDelaySeconds),
+      duration: random(maxFallSeconds * 0.6, maxFallSeconds),
+      width: random(5, 9),
+      height: random(9, 16),
+      drift: random(-12, 12),
+      spin: random(-540, 540),
+      // NO OPACITY VARIATION. There was some, to stop the field reading as
+      // one flat sheet — but a white piece at 0.8 over a cream page is a
+      // cream piece, and "super white" was the requirement. Size, speed,
+      // drift and spin already carry the variety.
+    })),
+  );
 
   useEffect(() => {
-    // Honoured directly rather than through the blanket rule in globals.css:
-    // that rule collapses animation duration, which here would drop ninety
-    // squares onto the page in a single frame rather than removing them.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducedMotion) return;
 
-    setPieces(
-      Array.from({ length: pieceCount }, () => ({
-        left: random(-2, 102),
-        delay: random(0, maxDelaySeconds),
-        duration: random(maxFallSeconds * 0.6, maxFallSeconds),
-        width: random(5, 9),
-        height: random(9, 16),
-        drift: random(-12, 12),
-        spin: random(-540, 540),
-        // NO OPACITY VARIATION. There was some, to stop the field reading as
-        // one flat sheet — but a white piece at 0.8 over a cream page is a
-        // cream piece, and "super white" was the requirement. Size, speed,
-        // drift and spin already carry the variety.
-      })),
-    );
-
+    // setState in a callback, which is what effects are for. The component
+    // clears itself once the slowest possible piece is guaranteed off screen.
     const clear = window.setTimeout(
-      () => setPieces([]),
+      () => setCleared(true),
       (maxDelaySeconds + maxFallSeconds) * 1000,
     );
     return () => window.clearTimeout(clear);
-  }, [pieceCount, maxFallSeconds, maxDelaySeconds]);
+  }, [reducedMotion, maxFallSeconds, maxDelaySeconds]);
 
-  if (pieces.length === 0) return null;
+  // Nothing to show: cleared after the last piece landed, or never shown at all
+  // because the visitor asked for no motion.
+  if (cleared || reducedMotion || pieces.length === 0) return null;
 
   return (
     <div
