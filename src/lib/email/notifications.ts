@@ -126,14 +126,49 @@ Would you rather sign on paper? There is no charge either way — just reply and
  * The reason travels with the message. Telling someone a document was rejected
  * without saying what was wrong produces the same document again, and the
  * second round trip is as wasted as the first.
+ *
+ * THE SIGNED APPLICATION IS THE EXCEPTION. It is produced by signing, not by
+ * uploading — so when it is the thing that came back, the message says "sign
+ * again" and the button opens the signing page, where the prefilled document
+ * and the reason are waiting. Sending that person to an upload control asks
+ * them to fix a signature with a file picker.
  */
 export async function notifyDocumentReturned(
   applicationId: string,
   documentLabel: string,
   reason: string,
+  documentTypeKey?: string | null,
 ): Promise<SendOutcome> {
   const recipient = await recipientFor(applicationId);
   if (!recipient) return { sent: false, reason: "no_recipient" };
+
+  if (documentTypeKey === "signed_application") {
+    const url = absoluteUrl(`/dashboard/${applicationId}/sign`);
+
+    return sendEmail({
+      to: recipient.email,
+      subject: "Your application needs to be signed again",
+      text: `${greeting(recipient)}
+
+Your specialist looked at your signed application and needs you to review it and sign again.
+
+What they said: ${reason}
+
+Review and sign here: ${url}
+
+Reference ${recipient.referenceCode}
+
+Would you rather sign on paper? There is no charge either way — just reply and we will send you a copy to print.`,
+      html: wrapHtml({
+        heading: "Please review and sign again",
+        body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
+               <p style="margin:0 0 12px;">Your specialist looked at your signed application and needs you to review it and sign again. It takes a couple of minutes.</p>
+               <p style="margin:0;padding:12px 14px;background:#f6f6f5;border-radius:8px;">${reason}</p>`,
+        cta: { label: "Review and sign", href: url },
+        footer: `Reference ${recipient.referenceCode}. Would you rather sign on paper? There is no charge either way — reply to this email and we will send you a copy to print.`,
+      }),
+    });
+  }
 
   const url = absoluteUrl(`/dashboard/${applicationId}/documents`);
   const subject = `We need another copy of one document`;

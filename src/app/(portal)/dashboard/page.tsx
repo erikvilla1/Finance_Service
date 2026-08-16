@@ -141,11 +141,14 @@ export default async function DashboardPage() {
 
   // Which applications already carry a signed application, so the prompt to
   // sign disappears the moment it is done rather than on the next status change.
+  // A copy the specialist sent back doesn't count — for that file the next
+  // thing to do is signing again, and the prompt has to come back with it.
   const { data: signedDocuments } = await supabase
     .from("documents")
     .select("application_id")
     .in("application_id", list.map((application) => application.id))
     .eq("document_type_key", "signed_application")
+    .neq("status", "rejected")
     .is("deleted_at", null);
 
   const signedApplications = new Set(

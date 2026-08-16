@@ -109,7 +109,7 @@ export async function signFundingApplication(
 
   let pdf: Uint8Array;
   try {
-    pdf = await buildFundingApplicationPdf(data.context, {
+    pdf = await buildFundingApplicationPdf({ context: data.context, debts: data.debts }, {
       signatureDataUrl: input.signatureDataUrl,
       signerName: input.signerName.trim().slice(0, 120),
       signerTitle: input.signerTitle?.trim().slice(0, 120) || null,

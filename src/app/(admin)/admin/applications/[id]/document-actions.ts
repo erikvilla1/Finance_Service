@@ -147,9 +147,16 @@ export async function rejectDocument(formData: FormData) {
   if (error) throw new Error("Could not send the document back.");
 
   // The reason travels with the message. Telling someone a document came back
-  // without saying what was wrong produces the same document again.
+  // without saying what was wrong produces the same document again. The type
+  // key travels too: a returned signed application means "sign again", and the
+  // email routes to the signing page rather than the upload control.
   const label = await documentLabel(supabase, document?.document_type_key ?? null);
-  await notifyDocumentReturned(applicationId, label, reason);
+  await notifyDocumentReturned(
+    applicationId,
+    label,
+    reason,
+    document?.document_type_key ?? null,
+  );
 
   refresh(applicationId);
 }

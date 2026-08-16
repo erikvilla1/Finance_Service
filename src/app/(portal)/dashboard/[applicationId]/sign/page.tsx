@@ -5,6 +5,8 @@ import { Card, Container, EmptyState } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { FCRA_AUTHORIZATION_V1 } from "@/lib/funding-application/consent-text";
 import { E_SIGN_CONSENT } from "@/lib/funding-application/sign";
+import { loadFundingApplication } from "@/lib/funding-application/load";
+import { FundingApplicationSheet } from "@/components/application/funding-application-sheet";
 import { SignForm } from "./sign-form";
 
 export const metadata: Metadata = {
@@ -18,6 +20,19 @@ export const metadata: Metadata = {
  * Reachable only once a specialist has released it. A client signing a document
  * before Robert has read it is worse than a client waiting a day — he knows
  * things about the file that the completeness check does not.
+ *
+ * THE DOCUMENT IS ON THE PAGE. The prefilled funding application — the same
+ * sheet the print route produces and the same layout the signed PDF will carry
+ * — is rendered above the signature form. A signature against a document the
+ * signer never saw is the weakest kind, and "review and sign" has to mean both
+ * words.
+ *
+ * A SENT-BACK SIGNATURE REOPENS THIS PAGE. When a specialist returns the
+ * signed application, the fix is to sign again — not to upload a file, which
+ * is the paper route. Only the LATEST signed document decides: an earlier
+ * rejected copy under a good one is history, not an open task. The reason the
+ * specialist wrote travels to the top of the page, because signing again
+ * without knowing what was wrong produces the same document again.
  */
 export default async function SignPage({
   params,
@@ -52,7 +67,7 @@ export default async function SignPage({
       .maybeSingle(),
     supabase
       .from("documents")
-      .select("id, created_at")
+      .select("id, created_at, status, verification_note")
       .eq("application_id", applicationId)
       .eq("document_type_key", "signed_application")
       .is("deleted_at", null)
@@ -61,9 +76,21 @@ export default async function SignPage({
       .maybeSingle(),
   ]);
 
+  // A signature that came back is not a signature we hold. The latest copy
+  // governs; its rejection reopens the flow.
+  const returned = signed?.status === "rejected" ? signed : null;
+  const alreadySigned = Boolean(signed) && !returned;
+
+  const readyToSign =
+    Boolean(application.signature_requested_at) && !alreadySigned;
+
+  // Loaded only when there is something to review — through the signed-in
+  // user's client, so RLS scopes it to their own file.
+  const data = readyToSign ? await loadFundingApplication(applicationId) : null;
+
   return (
     <Container>
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-3xl">
         <Link
           href="/dashboard"
           className="text-sm font-semibold text-brand-700 hover:underline"
@@ -78,7 +105,7 @@ export default async function SignPage({
           {application.reference_code}
         </p>
 
-        {signed ? (
+        {alreadySigned ? (
           <div className="mt-8">
             <EmptyState
               title="Already signed"
@@ -94,10 +121,36 @@ export default async function SignPage({
           </div>
         ) : (
           <>
+            {returned && (
+              <div className="mt-4 rounded-lg bg-warning-50 p-4">
+                <p className="text-sm font-semibold text-warning-700">
+                  Your specialist needs you to sign again
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-ink-700">
+                  {returned.verification_note ??
+                    "Something on the signed copy needs another look. Review the application below and sign it again."}
+                </p>
+              </div>
+            )}
+
             <p className="mt-3 leading-relaxed text-ink-600">
-              This is the application that goes to a funding source. Read the
+              This is the application that goes to a funding source, prefilled
+              from what you have told us. Review it, then read the
               authorization, add the details below, and sign at the bottom.
+              Tax ID and Social Security number are added when you sign — they
+              appear on the signed document only.
             </p>
+
+            {data && (
+              <Card className="mt-6 overflow-x-auto bg-white">
+                <FundingApplicationSheet
+                  context={data.context}
+                  debts={data.debts}
+                  referenceCode={data.referenceCode}
+                  mode="review"
+                />
+              </Card>
+            )}
 
             <Card className="mt-6">
               <SignForm
