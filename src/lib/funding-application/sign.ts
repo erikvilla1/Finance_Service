@@ -203,7 +203,7 @@ export async function signFundingApplication(
   // version says which text, the hash proves it.
   await service.from("consents").insert(
     await Promise.all(
-      consents.map(async (consent, index) => ({
+      consents.map(async (consent) => ({
         application_id: application.id,
         profile_id: user.id,
         // Tied to the document it produced (0033). "Did they ever accept the
