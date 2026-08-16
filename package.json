@@ -2,7 +2,7 @@
   "name": "fls-platform",
   "version": "0.1.0",
   "private": true,
-  "description": "Financial Lending Specialists \u2014 digital lending platform",
+  "description": "Financial Lending Specialists — digital lending platform",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,13 +11,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ark-ui/react": "^5.38.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.47.10",
     "gsap": "^3.15.0",
     "lucide-react": "^1.28.0",
     "next": "^16.3.0",
+    "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "resend": "^6.20.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

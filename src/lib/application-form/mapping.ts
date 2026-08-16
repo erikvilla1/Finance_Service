@@ -82,7 +82,11 @@ export const QUESTION_TARGETS: Record<string, FormTarget> = {
   owner_title: { table: "owner", column: "title" },
   owner_ownership_pct: { table: "owner", column: "ownership_pct" },
   owner_date_of_birth: { table: "owner", column: "date_of_birth" },
-  owner_ssn_last4: { table: "owner", column: "ssn_last4" },
+  // owner_ssn_last4 deliberately absent — migration 0032 deactivated the
+  // question and cleared the column. We do not store Social Security numbers in
+  // any form; the full number is typed by the signer on the executed document
+  // and never persisted. Leaving a route to that column would make it one
+  // reactivated question away from being collected again by accident.
   owner_home_address_line1: { table: "owner", column: "home_address_line1" },
   owner_home_city: { table: "owner", column: "home_city" },
   owner_home_state: { table: "owner", column: "home_state" },

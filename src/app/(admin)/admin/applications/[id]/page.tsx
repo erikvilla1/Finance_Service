@@ -31,6 +31,7 @@ import { assessCompleteness } from "@/lib/funding-application/completeness";
 import { loadFundingApplication } from "@/lib/funding-application/load";
 import { addNote, assignToMe, updateStatus } from "./actions";
 import { DocumentsCard } from "./documents-card";
+import { SubmissionsCard } from "./submissions-card";
 
 export const metadata: Metadata = {
   title: "Application",
@@ -230,14 +231,40 @@ export default async function ApplicationDetailPage({
               </p>
             )}
 
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <ButtonLink
                 href={`/admin/applications/${application.id}/print`}
                 size="sm"
+                variant="secondary"
               >
                 Open funding application
               </ButtonLink>
+
+              {/*
+                A plain link, not a Button — it is a file download, and an
+                anchor to a route handler is what makes the browser treat it as
+                one. Styled to match.
+
+                Deliberately not disabled when the package is incomplete.
+                Robert knows things about a file that this screen does not, and
+                a specialist who wants to send eleven of twelve documents to a
+                funder who asked for exactly those should not be argued with by
+                a button. The manifest inside says what is missing, and so does
+                the line underneath.
+              */}
+              <a
+                href={`/admin/applications/${application.id}/package`}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700"
+              >
+                Download lender package
+              </a>
             </div>
+
+            <p className="mt-2 text-xs text-ink-500 dark:text-ink-400">
+              {lead && lead.docsSettled === lead.docsTotal && completeness.readyToSend
+                ? "Everything is in. The zip contains the manifest and every document."
+                : "The zip includes a manifest naming anything still outstanding."}
+            </p>
           </Card>
 
           {/*
@@ -246,7 +273,21 @@ export default async function ApplicationDetailPage({
             blank, this names the paperwork that hasn't arrived. Both are reasons
             a file cannot go out.
           */}
-          <DocumentsCard applicationId={application.id} />
+          <DocumentsCard
+            applicationId={application.id}
+            signatureRequestedAt={application.signature_requested_at}
+          />
+
+          {/*
+            After the documents, because that is the order the work happens in:
+            the package is assembled, then it goes out. A decline here sends it
+            to the next lender rather than ending the file.
+          */}
+          <SubmissionsCard
+            applicationId={application.id}
+            track={application.track}
+            requestedAmount={application.requested_amount}
+          />
 
           <Card>
             <h2 className="text-base font-semibold text-ink-900">

@@ -14,11 +14,22 @@
  * flow rather than on paper is a different context.
  */
 
+import type { ConsentType } from "@/types/database";
+
 export interface ConsentTextVersion {
   version: string;
   effectiveFrom: string;
-  /** Which consent_type enum value this satisfies. */
-  consentType: "fcra_authorization" | "terms_of_use";
+  /**
+   * Which consent_type enum value this satisfies.
+   *
+   * Was narrowed to "fcra_authorization" when this file held only that text.
+   * The ESIGN consent added later had to declare itself an FCRA authorization to
+   * satisfy the type, and the signed PDF printed it that way — an audit block
+   * describing agreement to transact electronically as a credit-pull
+   * authorization. The database rows were always right; the document was not,
+   * and the document is the part a lender or a court reads.
+   */
+  consentType: ConsentType;
   source: string;
   body: string;
 }
