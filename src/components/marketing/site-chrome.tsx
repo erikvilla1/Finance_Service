@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { ArrowUp } from "lucide-react";
 import { ButtonLink, Container } from "@/components/ui";
 import { useScrolledPast } from "@/components/marketing/use-reduced-motion";
+import { Reveal } from "@/components/marketing/reveal";
 
 /**
  * Header and footer.
@@ -69,23 +71,22 @@ const NAV = [
  */
 const CAPSULE = "flex h-14 shrink-0 items-center rounded-full sm:h-16";
 
-/**
- * Shared surface for the neutral capsules — one for the hero, one for
- * everything else.
+/*
+ * THE SHARED CAPSULE SURFACE USED TO LIVE HERE, and it is gone because the logo
+ * was the only thing still using it.
  *
- * The header floats over the home page's dark hero video, where a white border
- * and a translucent white fill read as glass. On every other page it floats
- * over a near-white document, where that same treatment is white on white: the
- * capsules lose their edges and the Sign in link disappears entirely, because
- * it was written as white text with a drop shadow for the video behind it.
+ * It existed for a real reason worth recording, since the problem it solved has
+ * not gone away — it has only moved onto the logo artwork. The header floats
+ * over the home page's dark hero video, where a white border and a translucent
+ * white fill read as glass. On every other page it floats over a near-white
+ * document, where that same treatment is white on white. So the surface
+ * switched on whether this was the home page.
  *
- * So the surface switches on whether this is the home page. Same shape and
- * size either way — only the contrast changes.
+ * The nav pill and the Sign in link still make that switch inline, on
+ * `onHome`. The logo now makes it by swapping to a dark copy of the mark. Same
+ * problem, same trigger, three different solutions — if a fourth element is
+ * added to this header, it will need one too.
  */
-const CAPSULE_SURFACE_HERO =
-  "border border-white/70 bg-white/80 shadow-card backdrop-blur-xl";
-const CAPSULE_SURFACE_PAGE =
-  "border border-ink-200 bg-white/90 shadow-card backdrop-blur-xl";
 
 /**
  * Which nav entry is highlighted, tracked against scroll position.
@@ -143,7 +144,6 @@ export function SiteHeader() {
    * than a stack of utilities.
    */
   const capsule = `header-capsule${scrolled ? " header-capsule--out" : ""}`;
-  const surface = onHome ? CAPSULE_SURFACE_HERO : CAPSULE_SURFACE_PAGE;
 
   return (
     <header
@@ -167,22 +167,72 @@ export function SiteHeader() {
         <Link
           href="/"
           aria-label="Financial Lending Specialists"
-          className={`${CAPSULE} ${surface} ${capsule} justify-self-start px-5 sm:px-6`}
+          className={`${CAPSULE} ${capsule} group justify-self-start pl-2`}
         >
+          {/*
+            NO CAPSULE ON THE LOGO — the reference's arrangement, where the mark
+            sits directly on the hero footage. CAPSULE is still applied for its
+            height alone, so the mark stays on the same centre line as the nav
+            pill and the CTA beside it; only the surface classes are dropped.
+            The other capsules are untouched.
+
+            pl-2 REPLACES THE BOX'S INSET. The capsule carried px-5 sm:px-6, and
+            dropping it took the mark's horizontal breathing room with it: the
+            logo landed 20px from the hero card's left edge while sitting 28px
+            below its top, and the note further down this file says those two
+            distances are meant to match. 8px restores the equality rather than
+            splitting the difference by eye. If the header's px-* or the card's
+            mx-3 ever change, this number is downstream of both.
+
+            TWO FILES, ONE MARK. The mark is white, which works over the hero
+            video and nowhere else — every other page in this header's scope
+            (How It Works, Who We Are, Resources, the legal pages) is cream or
+            white, and a white logo with no capsule behind it on a cream page is
+            not subtle, it is absent. The dark file is the same artwork with the
+            alpha channel preserved and the colour set to ink-900, so the two
+            are guaranteed to be the same shape.
+
+            Rendered at twice the display size for retina. The source artwork is
+            small, so it is upscaled rather than downsampled — if a larger
+            export turns up, drop it in and delete this note.
+          */}
+          {/*
+            HOVER, PORTED FROM THE REFERENCE RATHER THAN COPIED.
+
+            Measured on siwacap.com: the mark is #FFFFFF at rest and #D6D6D6 on
+            hover, over `color 0.3s`. That works there because their logo is an
+            inline SVG whose fills inherit currentColor, so recolouring the link
+            recolours the artwork. Ours is a PNG — `color` does nothing to it.
+
+            Opacity is the equivalent that survives both of our variants, and
+            unlike a brightness filter it moves the right way on the dark mark
+            too: brightness() would push the ink-900 file DARKER on a cream
+            page, which is the opposite of receding. Opacity means "step back"
+            on both.
+
+            60%, NOT THE REFERENCE'S 84%. #D6D6D6 is white at 84%, and matching
+            it exactly was the first attempt — but the reference sits on a
+            near-black city skyline where a 16% drop is plainly visible, and
+            ours sits on a brighter one where the same drop was not noticeable
+            enough to register as feedback. A hover state nobody sees is not a
+            hover state, so this is deliberately further from the source than
+            the measurement suggests.
+
+            ON THE IMAGE, NOT ON THE LINK. The link carries .header-capsule,
+            which already transitions opacity and sets it to 0 to slide the
+            header away on scroll. A hover:opacity on that same element outranks
+            the --out rule, so passing the cursor over the top-left corner of a
+            scrolled page would fade a hidden header back into view.
+
+            Keyboard users get the global :focus-visible ring from globals.css,
+            so this is not the only affordance on the link.
+          */}
           <Image
-            src="/brand/fls-logo-icon.png"
+            src={onHome ? "/brand/fls-capital-light.png" : "/brand/fls-capital-dark.png"}
             alt=""
-            width={824}
-            height={714}
-            className="h-9 w-auto max-w-none shrink-0 sm:hidden"
-            priority
-          />
-          <Image
-            src="/brand/fls-logo-full.png"
-            alt=""
-            width={2613}
-            height={527}
-            className="hidden h-9 w-auto max-w-none shrink-0 sm:block"
+            width={700}
+            height={328}
+            className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60 sm:h-12"
             priority
           />
         </Link>
@@ -257,6 +307,50 @@ export function SiteHeader() {
   );
 }
 
+/**
+ * "Back to Top", from the reference's footer.
+ *
+ * A BUTTON, NOT A LINK. The obvious version is <a href="#top">, but that needs
+ * an id="top" on something at the top of every page and it writes "#top" into
+ * the address bar — which then sits in history, so Back takes you to the same
+ * page rather than the previous one. This performs an action rather than
+ * navigating anywhere, and button is the element for that. It is keyboard
+ * reachable and Enter-activated for free, which an <a> without an href is not.
+ *
+ * SMOOTH SCROLL IS CHECKED, NOT ASSUMED. A long smooth scroll is exactly the
+ * kind of movement prefers-reduced-motion exists to stop, so it is asked
+ * directly here.
+ *
+ * "instant", NOT "auto", for the reduced case. They are not synonyms: "auto"
+ * means "defer to the CSS", and globals.css sets html { scroll-behavior:
+ * smooth } — so "auto" would animate anyway. It happens to come out right today
+ * only because the reduced-motion block further down that file overrides
+ * scroll-behavior to auto with !important. "instant" forces the jump here and
+ * does not depend on a rule in another file continuing to exist.
+ *
+ * No visibility toggle. The control lives at the bottom of the document rather
+ * than floating over the corner, so by definition you have already scrolled to
+ * reach it — there is no state in which it is present and pointless.
+ */
+function BackToTop() {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        window.scrollTo({ top: 0, behavior: reduced ? "instant" : "smooth" });
+      }}
+      className="group inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 transition-colors hover:text-brand-700"
+    >
+      Back to Top
+      <ArrowUp
+        aria-hidden="true"
+        className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5"
+      />
+    </button>
+  );
+}
+
 export function SiteFooter() {
   // ink-100 rather than ink-50: at #FAFAFA the footer was a shade off pure
   // white and read as more page rather than as a distinct block at the end of
@@ -267,15 +361,57 @@ export function SiteFooter() {
   return (
     <footer className="rounded-t-[1.75rem] border-t border-ink-200 bg-ink-100 sm:rounded-t-[2rem]">
       <Container>
-        <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+        {/*
+          THREE COLUMNS, NOT FOUR. "Get started" is gone as a column of its own.
+
+          Once the CTA moved back to the brand block, that column was a heading
+          with a single link under it, next to Explore's four and Legal's three
+          — which reads as a column that lost its contents rather than one that
+          only ever had one. There is no honest fourth item to pad it with
+          either: everything a visitor can do from here is already under
+          Explore or Legal, and repeating "See my financing options" as a text
+          link beside the button is the same label twice in one footer.
+
+          So Sign in moved under the CTA, which is also where it sits in the
+          header — primary action, secondary action, together. The heading it
+          lost was doing no work: "Get started" above "Sign in" described the
+          one thing on the list that is for people who already have.
+
+          py-10, down from py-14. It was padding a shape that was lopsided.
+        */}
+        {/*
+          THE COLUMNS REVEAL ON SCROLL, staggered left to right.
+
+          Reveal, not a fresh mechanism — it is the same IntersectionObserver
+          the marketing sections use, so the footer arrives in the page's own
+          language rather than inventing a second one. It also inherits the
+          parts that are easy to get wrong: it reveals once and then disconnects
+          (re-animating on every pass makes content flicker when a reader
+          scrolls back up), it reads prefers-reduced-motion during render rather
+          than in an effect, and it renders VISIBLE before hydration — so a
+          browser that never runs the script gets a footer rather than three
+          blank columns.
+
+          The legal block is deliberately slowest. The disclosure and copyright
+          are the end of the page, and arriving after the links is the order
+          they should be read in.
+        */}
+        <div className="grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal>
           <div>
-            <div className="flex items-center gap-2.5">
+            {/* The mark, then the name under it rather than beside it. Set
+                side by side, the wordmark and the words "Financial Lending
+                Specialists" read as one run-on lockup — and at the old h-7 the
+                CAPITAL line under the mark was about three pixels tall and
+                illegible. Stacked, the mark gets the height it needs and the
+                full name reads as the caption it is. */}
+            <div className="flex flex-col items-start gap-2.5">
               <Image
-                src="/brand/fls-logo-icon.png"
+                src="/brand/fls-capital-dark.png"
                 alt=""
-                width={824}
-                height={714}
-                className="h-7 w-auto max-w-none shrink-0"
+                width={700}
+                height={328}
+                className="h-10 w-auto max-w-none shrink-0"
               />
               <span className="text-sm font-semibold text-ink-900">
                 Financial Lending Specialists
@@ -286,26 +422,26 @@ export function SiteFooter() {
             </p>
             {/* The primary action, repeated at the end of the page so it is
                 there when someone finishes reading rather than only in the
-                sticky header. Spec §4: this stays the primary conversion. */}
+                sticky header. Spec §4: this stays the primary conversion.
+
+                It belongs against the left edge, under the mark. A filled block
+                is the heaviest thing on this surface, and in a middle column it
+                anchored nothing — 228px of solid colour a quarter of the way
+                across, with the rest of the footer's width in light text beside
+                it. Here it holds the corner it starts from. */}
             <ButtonLink href="/start" className="mt-6">
               See My Financing Options
             </ButtonLink>
+            <Link
+              href="/sign-in"
+              className="mt-4 block text-sm text-ink-600 hover:text-brand-700"
+            >
+              Sign in
+            </Link>
           </div>
+          </Reveal>
 
-          <div>
-            <h2 className="text-sm font-semibold text-ink-900">Get started</h2>
-            <ul className="mt-3 space-y-2">
-              {/* "See my financing options" was here as a text link too. It
-                  is a button in the left column now, and the same label twice
-                  in one footer reads as an oversight rather than emphasis. */}
-              <li>
-                <Link href="/sign-in" className="text-sm text-ink-600 hover:text-brand-700">
-                  Sign in
-                </Link>
-              </li>
-            </ul>
-          </div>
-
+          <Reveal delayMs={90}>
           <div>
             <h2 className="text-sm font-semibold text-ink-900">Explore</h2>
             <ul className="mt-3 space-y-2">
@@ -321,7 +457,9 @@ export function SiteFooter() {
               ))}
             </ul>
           </div>
+          </Reveal>
 
+          <Reveal delayMs={180}>
           <div>
             <h2 className="text-sm font-semibold text-ink-900">Legal</h2>
             <ul className="mt-3 space-y-2">
@@ -342,13 +480,15 @@ export function SiteFooter() {
               </li>
             </ul>
           </div>
+          </Reveal>
         </div>
 
+        <Reveal delayMs={260}>
         {/*
           Platform spec §29: legal language is placeholder until counsel
           approves it. This notice is deliberately conservative.
         */}
-        <div className="border-t border-ink-200 py-8">
+        <div className="border-t border-ink-200 py-6">
           <p className="text-xs leading-relaxed text-ink-600">
             Financial Lending Specialists arranges financing through third-party
             funding sources. Nothing on this site is a commitment to lend or an
@@ -356,10 +496,14 @@ export function SiteFooter() {
             review, and program availability. Program terms and availability vary
             and may change.
           </p>
-          <p className="mt-4 text-xs text-ink-600">
-            © {new Date().getFullYear()} Financial Lending Specialists. All rights reserved.
-          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-xs text-ink-600">
+              © {new Date().getFullYear()} Financial Lending Specialists. All rights reserved.
+            </p>
+            <BackToTop />
+          </div>
         </div>
+        </Reveal>
       </Container>
     </footer>
   );

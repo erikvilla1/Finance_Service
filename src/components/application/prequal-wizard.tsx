@@ -69,6 +69,50 @@ function advancesOnSelect(question: Question): boolean {
 /** The one question that renders as a repeating group rather than a control. */
 const ASSET_QUESTION_KEY = "prequal_asset_type";
 
+/**
+ * Whether an answer sits inside the bounds the question declares, and what to
+ * say when it does not.
+ *
+ * DRIVEN BY THE QUESTION, NOT BY ITS KEY. The bounds live in the database —
+ * prequal_credit_score carries {"min":300,"max":850} from migration 0016 — so a
+ * bound Robert changes takes effect without a deploy, which is the whole point
+ * of questions being configuration (spec §9). Hard-coding 300 and 850 here
+ * would be a second copy of that rule, and the two would eventually disagree.
+ *
+ * WHY THE WIZARD AND NOT THE INPUT. The input can refuse keystrokes, but it
+ * cannot refuse a value that is a legal prefix of a valid one: "3" has to be
+ * typeable on the way to "300". Something has to judge the finished value, and
+ * it has to be whatever decides that a step is answered — otherwise Next moves
+ * on past a number the server will throw away.
+ *
+ * That last part is not hypothetical. submitPrequal's parseCreditScore returns
+ * null for anything outside 300–850, so an out-of-range score is not rejected,
+ * it is silently discarded — and a null score gates all six products. The
+ * applicant would reach the results page and be told nothing matched, on the
+ * strength of an answer they gave and the form quietly dropped.
+ */
+function rangeError(question: Question, raw: string): string | null {
+  const value = raw.trim();
+  if (value === "") return null;
+
+  const { min, max } = question.validation;
+  if (min == null && max == null) return null;
+
+  // Not a plain number — currency renders as banded selects or as a
+  // comma-grouped text field, and "1,000" is not this function's business.
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+
+  const low = min != null && parsed < min;
+  const high = max != null && parsed > max;
+  if (!low && !high) return null;
+
+  if (min != null && max != null) {
+    return `Enter a number between ${min} and ${max}.`;
+  }
+  return low ? `Enter ${min} or more.` : `Enter ${max} or less.`;
+}
+
 export function PrequalWizard({ essential }: { essential: Question[] }) {
   const [index, setIndex] = useState(0);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -91,8 +135,15 @@ export function PrequalWizard({ essential }: { essential: Question[] }) {
   const current = essential[index] ?? null;
   const onLastStep = index >= lastIndex;
 
-  const filled = (question: Question) =>
-    (values[question.key] ?? "").trim() !== "";
+  // Answered means present AND inside its declared bounds. Presence alone used
+  // to be the test, which let 9999 through Next and into a submit the browser
+  // then cancelled without explanation — the field it objected to is on a step
+  // hidden with display:none by that point, so it cannot be focused to show the
+  // message.
+  const filled = (question: Question) => {
+    const raw = values[question.key] ?? "";
+    return raw.trim() !== "" && rangeError(question, raw) === null;
+  };
 
   const hasValue = current ? filled(current) : false;
 
@@ -126,6 +177,29 @@ export function PrequalWizard({ essential }: { essential: Question[] }) {
     (event: FormEvent<HTMLDivElement>) => {
       const target = event.target as HTMLInputElement | HTMLSelectElement;
       if (!target.name) return;
+
+      /*
+        THE ASSET ROWS ARE NOT THIS HANDLER'S BUSINESS.
+
+        Every asset row posts its type under the same name —
+        prequal_asset_type — which is deliberate on the server side, where
+        getAll() zips the rows back together. It is a trap here.
+
+        This listener sits on the wrapper and keys off target.name, so a change
+        to the SECOND asset's type wrote that value into
+        values["prequal_asset_type"] as though it were the answer to the
+        question. And it won: AssetRows fires its own onChange first, then the
+        event bubbles up to here, so this ran last and overwrote the correct
+        value with a later row's.
+
+        The visible symptom was the submit button appearing while the question
+        itself still read "Select an option" — the wizard believed the question
+        was answered because asset two had a type.
+
+        handleAssets is the single source of truth for this key. It mirrors
+        rows[0].type, which is the answer to the question actually being asked.
+      */
+      if (target.name === ASSET_QUESTION_KEY) return;
 
       setValues((prev) => ({ ...prev, [target.name]: target.value }));
 
@@ -188,7 +262,10 @@ export function PrequalWizard({ essential }: { essential: Question[] }) {
               onChange={handleAssets}
             />
           ) : (
-            <QuestionControl question={question} />
+            <QuestionControl
+              question={question}
+              error={rangeError(question, values[question.key] ?? "") ?? undefined}
+            />
           )}
         </div>
       ))}
@@ -242,11 +319,32 @@ export function PrequalWizard({ essential }: { essential: Question[] }) {
         and the <noscript> rule in the page forces it back into view along with
         the steps.
       */}
+      {/*
+        IT ANIMATES IN, and the mechanism is a quirk worth knowing: an element
+        moving from display:none to displayed RESTARTS its CSS animations. So
+        the same class toggle that used to snap this block into place now plays
+        the flow's standard entrance, with no state, no effect and no ref.
+
+        That also means it replays correctly if the applicant goes Back, clears
+        an answer and returns — the block hides, and re-entering display starts
+        the animation over rather than leaving it stuck at its end frame.
+
+        ON THE CONTAINER, NOT THE CHILDREN. The divider rule, the button and the
+        note under it arrive together because they are one thing: the moment the
+        form becomes submittable. Staggering them would draw three separate
+        beats of attention to a block whose job is to be noticed once.
+
+        The class is only on the visible branch, which matters for the no-JS
+        path: .animate-fade-in-up starts at opacity 0, and the noscript
+        stylesheet above only overrides display. Putting it on the hidden branch
+        would reveal an invisible submit button to exactly the people who cannot
+        do anything about it.
+      */}
       <div
         data-prequal-submit=""
         className={
           onLastStep && allAnswered
-            ? "mt-8 border-t border-ink-200 pt-6"
+            ? "animate-fade-in-up mt-8 border-t border-ink-200 pt-6"
             : "hidden"
         }
       >
@@ -266,11 +364,17 @@ export function PrequalWizard({ essential }: { essential: Question[] }) {
  * Everything else defers to QuestionField, so a question type added to the
  * database still renders here without this file knowing about it.
  */
-function QuestionControl({ question }: { question: Question }) {
+function QuestionControl({
+  question,
+  error,
+}: {
+  question: Question;
+  error?: string;
+}) {
   const ranges =
     question.type === "currency" ? rangesForQuestionKey(question.key) : null;
 
-  if (!ranges) return <QuestionField question={question} />;
+  if (!ranges) return <QuestionField question={question} error={error} />;
 
   const id = `q-${question.key}`;
 

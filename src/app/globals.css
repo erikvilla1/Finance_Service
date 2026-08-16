@@ -601,6 +601,229 @@
     background-clip: text to show, so currentColor inside the gradient would
     resolve to transparent and the text would vanish.
   */
+  /* ---------------------------------------------------------------------------
+     LEGAL DIALOG — the Terms and Privacy modal on the account form.
+
+     ::backdrop CANNOT BE REACHED FROM A UTILITY. Tailwind has a backdrop:
+     variant for the colour, which is on the element, but the fade has to be
+     written here: ::backdrop is a pseudo-element of the top layer and there is
+     no class to hang a transition off.
+
+     allow-discrete + @starting-style are what let a dialog animate IN. Without
+     them the element goes from display:none to display:block and the browser
+     has no start frame to interpolate from, so opacity jumps.
+     ------------------------------------------------------------------------ */
+  .legal-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+    transition:
+      opacity 200ms ease-out,
+      transform 200ms ease-out,
+      overlay 200ms allow-discrete,
+      display 200ms allow-discrete;
+  }
+
+  .legal-dialog[open] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  @starting-style {
+    .legal-dialog[open] {
+      opacity: 0;
+      transform: translateY(8px) scale(0.99);
+    }
+  }
+
+  .legal-dialog::backdrop {
+    opacity: 0;
+    transition:
+      opacity 200ms ease-out,
+      overlay 200ms allow-discrete,
+      display 200ms allow-discrete;
+  }
+
+  .legal-dialog[open]::backdrop {
+    opacity: 1;
+  }
+
+  @starting-style {
+    .legal-dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .legal-dialog,
+    .legal-dialog::backdrop {
+      transition: none;
+      transform: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+     CONFETTI — white pieces falling past the viewport, once.
+
+     TWO BUGS LIVED HERE. Both made the pieces sit in a visible row along the
+     top of the page before dropping, and both are worth recording because the
+     symptom looked like one problem and was two.
+
+     1. THE START FRAME WAS -110%, NOT -110vh. A percentage in translateY is
+        relative to THE ELEMENT'S OWN HEIGHT, not the viewport — so a 12px
+        piece started 13px above the top of the screen, which is to say
+        on it. vh is the unit that means "off the top of the page".
+
+     2. FILL-MODE WAS `forwards`, WHICH DOES NOTHING DURING A DELAY. Every
+        piece has a stagger of up to 1.4s, and until its delay elapses an
+        animation with `forwards` renders the element's BASE style — no
+        transform at all, so the piece sat at top:0, fully visible, waiting
+        its turn. `both` adds backwards fill, which holds the from-frame
+        through the delay and keeps it off-screen until it is due.
+
+     The two together are why pieces appeared parked rather than falling.
+     Either one alone would have been enough to cause it.
+
+     130vh of travel at a constant rate: real confetti reaches terminal
+     velocity almost immediately, so linear is the honest curve. Easing in
+     would read as pieces being dropped rather than already falling.
+
+     NO SHADOW. There was a 1px dark shadow here to help white read against a
+     cream page, and at small sizes it greyed the pieces rather than defining
+     them. They are pure white and nothing else.
+     ------------------------------------------------------------------------ */
+  @keyframes confetti-fall {
+    from {
+      transform: translate3d(0, -15vh, 0) rotate(0deg);
+    }
+    to {
+      transform: translate3d(var(--confetti-drift, 0), 115vh, 0)
+        rotate(var(--confetti-spin, 360deg));
+    }
+  }
+
+  .confetti-piece {
+    animation-name: confetti-fall;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* Belt and braces. The component already returns null under this setting;
+       if it is ever rendered anyway, the pieces stay off screen rather than
+       landing in a heap at the top of the page. */
+    .confetti-piece {
+      display: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+     SHIMMER BUTTON — a lit edge travelling around the button's border.
+
+     ADAPTED. The source ships these as a tailwind.config.js `extend`, which
+     this project does not have: Tailwind v4 moved configuration into CSS, so
+     there is no JS config file to extend and the keyframes live here instead.
+
+     HOW IT WORKS, because the markup is not self-explanatory: a conic-gradient
+     wedge spins inside a container that slides across the button, and a solid
+     backdrop inset by --cut covers all of it except a hairline at the very
+     edge. What you see is that hairline lighting up as the wedge passes under
+     it. Nothing sweeps across the face of the button.
+
+     The container query units are load-bearing. 100cqh/100cqw size the spark
+     against the BUTTON rather than the viewport, which is what lets one rule
+     work for a button of any width without measuring anything.
+     ------------------------------------------------------------------------ */
+  @keyframes shimmer-slide {
+    to {
+      transform: translate(calc(100cqw - 100%), 0);
+    }
+  }
+
+  @keyframes spin-around {
+    0%        { transform: translateZ(0) rotate(0); }
+    15%, 35%  { transform: translateZ(0) rotate(90deg); }
+    65%, 85%  { transform: translateZ(0) rotate(270deg); }
+    100%      { transform: translateZ(0) rotate(360deg); }
+  }
+
+  .shimmer-slide {
+    animation: shimmer-slide var(--speed) ease-in-out infinite alternate;
+  }
+
+  .spin-around {
+    animation: spin-around calc(var(--speed) * 2) infinite linear;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /*
+      The spark is REMOVED, not stopped. Setting animation: none would park the
+      wedge wherever it happened to be and leave a permanent bright arc across
+      one corner — a decoration that only made sense while it was moving, frozen
+      into a defect. With it gone the button is simply a button.
+    */
+    .shimmer-spark {
+      display: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+     PROGRESS BAR COMPLETION — the fill sweeps, then a check lands on the end.
+
+     PURE CSS, DELIBERATELY. The obvious build is React state: render 0%, then
+     set the real percentage in an effect so the transition has something to
+     move between. That flashes an empty bar for anyone whose JS is slow or
+     absent, on a flow whose whole premise is that it still works without the
+     bundle (see the noscript block on the prequal page).
+
+     scaleX avoids that entirely. The element is already laid out at its true
+     width in the server HTML, and the animation only scales what is there — so
+     the bar is correct before a single line of JavaScript runs, and correct
+     forever if none ever does. It is also composited rather than triggering
+     layout on every frame, which `width` would.
+     ------------------------------------------------------------------------ */
+  @keyframes progress-fill {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  .progress-fill {
+    transform-origin: left center;
+    animation: progress-fill 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /*
+    The check lands after the fill arrives, not with it. The delay is the fill's
+    duration — the mark is meant to read as a consequence of the bar reaching
+    the end, and any overlap makes it read as decoration that happened to be
+    nearby.
+
+    The slight overshoot past 1 is what makes it land rather than fade in.
+  */
+  @keyframes progress-check {
+    0%   { opacity: 0; transform: scale(0.3); }
+    70%  { opacity: 1; transform: scale(1.12); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .progress-check {
+    animation: progress-check 420ms cubic-bezier(0.16, 1, 0.3, 1) 800ms both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /*
+      Needed on top of the blanket rule in base, which collapses duration but
+      leaves animation-delay alone — the check would still sit invisible for
+      800ms and then appear, which is the jump this setting exists to avoid.
+      Dropping the animations entirely leaves both at their natural state:
+      a full bar with the mark already on it.
+    */
+    .progress-fill,
+    .progress-check {
+      animation: none;
+    }
+  }
+
   @keyframes shine-text {
     /*
       The range has to stay inside 0%–100%.
@@ -611,25 +834,61 @@
       glyphs were left with no background at all — which, with color:
       transparent, rendered the figure invisible. 100% → 0% keeps the image
       covering the element at both ends and slides the highlight across it.
+
+      The reference for this animates 200% → -200%, which is the same idea with
+      the same problem, and it only works there because the background repeats.
+      Ours does not repeat, so it stays inside the box.
     */
-    0%   { background-position: 100% 0; }
-    45%  { background-position: 0% 0; }
-    100% { background-position: 0% 0; }
+    from { background-position: 100% 0; }
+    to   { background-position: 0% 0; }
   }
 
+  /*
+    A continuous sweep: white figure, cream glint travelling through it.
+
+    THE COLOURS ARE NOT THE REFERENCE'S. It runs #404040 → #fff → #404040 — a
+    dark base with a white highlight, right for grey text on a white page,
+    which is where it came from. This figure is white text on a dark
+    translucent card, where a #404040 base would sit at roughly 1.6:1 against
+    its own background and make the resting state unreadable. The base stays
+    white and the travelling band is cream instead.
+
+    accent-600, AND THE STEP MATTERS MORE THAN THE HUE. An earlier version of
+    this used accent-300 and was invisible, for a reason worth writing down:
+    accent-300 is oklch lightness 0.940 against a base of 1.0, so the "glint"
+    was a six percent change nobody could see. accent-600 is 0.870 — the same
+    cream, far enough from white to actually read as light moving across the
+    glyphs. Going deeper than 600 crosses 0.640 at accent-700 and starts
+    reading as the number changing colour rather than catching a highlight.
+
+    300%, NOT 200%. The element shows one third of the image, so at position
+    100% it shows the last third and at 0% the first third — both of which are
+    entirely base colour, because the band sits between 35% and 65%. That makes
+    the two ends identical, so the jump from `to` back to `from` is invisible
+    and the loop needs no pause to hide it. At 200% the element would show half
+    the image and catch the edge of the band at 0%, which reads as a flicker
+    once every cycle. If the band's stops are ever widened past 33%/67%, this
+    stops being true and the stutter comes back.
+
+    NO ANIMATION LIBRARY. The reference drives this with motion/react —
+    keyframes on backgroundPosition, linear, infinite. That is a JS animation
+    runtime, a dependency and a client component for something CSS does on the
+    compositor with no bundle cost at all, and it would have been the ninth
+    package in a project that has spent this long at eight.
+  */
   .shine-text {
     background-image: linear-gradient(
-      100deg,
-      #fff 40%,
-      var(--color-accent-300) 50%,
-      #fff 60%
+      110deg,
+      #fff 35%,
+      var(--color-accent-600) 50%,
+      #fff 65%
     );
-    background-size: 260% 100%;
+    background-size: 300% 100%;
     background-repeat: no-repeat;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    animation: shine-text 3.2s ease-in-out infinite;
+    animation: shine-text 2s linear infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {

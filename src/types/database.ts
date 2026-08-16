@@ -451,6 +451,37 @@ export type ExistingDebtRow = {
  * Not an application: no track, no amount, no qualification result. Inserted by
  * a server action on the service role; there is no insert policy for anon.
  */
+/**
+ * consents — migration 0004.
+ *
+ * ADDED LATE. The table has existed since 0004 and this file never described
+ * it, so every consent write was a type error waiting to happen: Supabase's
+ * client types the table name against this map, and an unlisted table resolves
+ * to `never`. The first code to insert a consent found out at compile time,
+ * which is the good version of this problem.
+ *
+ * application_id and profile_id are both nullable in the schema because a
+ * consent can be given before an account exists (on paper, or at prequal) or
+ * after an application is deleted. Code that writes one should still set both
+ * where it can — a record that cannot say who agreed or to which file answers
+ * much less than one that can.
+ */
+export type ConsentRow = {
+  id: string;
+  application_id: string | null;
+  profile_id: string | null;
+  consent_type: ConsentType;
+  granted: boolean;
+  /** Which wording was shown — see lib/funding-application/consent-text.ts. */
+  text_version: string;
+  /** SHA-256 of that wording, so an in-place edit becomes visible. */
+  text_hash: string | null;
+  granted_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+};
+
 export type ContactSubmissionRow = {
   id: string;
   created_at: string;
@@ -615,6 +646,7 @@ export type Database = {
       crm_tasks: Table<CrmTaskRow>;
       application_status_history: Table<ApplicationStatusHistoryRow>;
       contact_submissions: Table<ContactSubmissionRow>;
+      consents: Table<ConsentRow>;
     };
     Views: EmptyMap;
     Functions: {

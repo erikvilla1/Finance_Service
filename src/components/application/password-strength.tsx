@@ -17,10 +17,11 @@ import { assessPassword } from "@/lib/auth/password-policy";
  * server validates against the same definitions, so this cannot advertise a
  * requirement the server ignores or miss one it enforces.
  *
- * REQUIRED AND ADVISORY ARE VISUALLY DISTINCT. Only length blocks submission
- * today. Rendering the other three identically would imply the form will
- * reject a password without a capital letter, and it will not — the meter
- * would be teaching a rule that does not exist.
+ * ONLY REQUIRED RULES ARE LISTED. The advisory ones used to appear greyed out
+ * with an "optional" tag beside them, which reads as a checklist you are
+ * failing at while being told not to worry about it. They still contribute to
+ * the score — meeting both is the difference between Fair and Strong — but a
+ * requirement list should contain requirements.
  *
  * THE ANNOUNCEMENT IS DELAYED. A live region tied directly to keystrokes makes
  * a screen reader read a new strength rating on every character. Settling for
@@ -34,6 +35,16 @@ export function PasswordStrength({
   className?: string;
 }) {
   const { score, max, label, rules, guessable } = assessPassword(value);
+
+  /*
+    ONLY THE RULES THAT GATE SUBMISSION ARE LISTED.
+
+    The advisory ones were shown with an "optional" tag, which is a checklist
+    item that punishes you for not doing something it just told you not to
+    bother doing. They still count — they are what separates Fair from Strong —
+    they are simply not presented as a to-do list.
+  */
+  const shownRules = rules.filter((rule) => rule.required);
   const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
@@ -67,16 +78,15 @@ export function PasswordStrength({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
+  // One tone per stage, now that there are exactly three.
   const tone =
     score === 0
       ? { bar: "bg-ink-300", text: "text-ink-500" }
-      : guessable || score <= 1
+      : score === 1
         ? { bar: "bg-danger-600", text: "text-danger-700" }
-        : score <= 2
+        : score === 2
           ? { bar: "bg-warning-600", text: "text-warning-700" }
-          : score < max
-            ? { bar: "bg-warning-600", text: "text-warning-700" }
-            : { bar: "bg-success-600", text: "text-success-700" };
+          : { bar: "bg-success-600", text: "text-success-700" };
 
   return (
     <div className={className}>
@@ -120,7 +130,7 @@ export function PasswordStrength({
       </div>
 
       <ul className="mt-3 space-y-1.5">
-        {rules.map((rule) => (
+        {shownRules.map((rule) => (
           <li key={rule.id} className="flex items-center gap-2">
             <span
               aria-hidden="true"
@@ -138,9 +148,6 @@ export function PasswordStrength({
               }`}
             >
               {rule.label}
-              {!rule.required && (
-                <span className="ml-1.5 text-ink-400">optional</span>
-              )}
             </span>
           </li>
         ))}

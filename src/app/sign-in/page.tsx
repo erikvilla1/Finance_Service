@@ -97,13 +97,25 @@ export default async function SignInPage({
       <div className="relative w-full max-w-md">
         <div className="rounded-[2rem] border border-ink-200/80 bg-white/95 px-7 py-12 shadow-card backdrop-blur-xl sm:px-10">
           <div className="flex flex-col items-center">
-            <Link href="/" aria-label="Financial Lending Specialists">
+            {/* The dark mark: this card is white. Same hover fade as the site
+                header — see the note in site-chrome.tsx for why it is opacity
+                rather than the reference's colour swap. */}
+            {/* mt-2 on top of the card's py-12, so the mark sits 56px below the
+                card's top edge rather than 48px. The optical centre of this
+                wordmark is high — the CAPITAL line is small and leaves visual
+                space beneath it — so measuring equal padding put it looking
+                closer to the top than it measured. */}
+            <Link
+              href="/"
+              aria-label="Financial Lending Specialists"
+              className="group mt-2"
+            >
               <Image
-                src="/brand/fls-logo-full.png"
+                src="/brand/fls-capital-dark.png"
                 alt=""
-                width={2613}
-                height={527}
-                className="h-9 w-auto max-w-none"
+                width={700}
+                height={328}
+                className="h-12 w-auto max-w-none transition-opacity duration-300 group-hover:opacity-60"
                 priority
               />
             </Link>

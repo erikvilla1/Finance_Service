@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Card, Container, ProgressBar } from "@/components/ui";
+import { Card, Container } from "@/components/ui";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { CreateAccountForm } from "./create-account-form";
 
@@ -42,7 +42,7 @@ export default async function CreateAccountPage({
   const supabase = createServiceRoleClient();
   const { data: application } = await supabase
     .from("applications")
-    .select("reference_code, financing_goal, profile_id")
+    .select("id, profile_id")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -55,27 +55,56 @@ export default async function CreateAccountPage({
   return (
     <Container>
       <div className="mx-auto max-w-lg">
-        <ProgressBar value={4} max={4} label="Your application" />
+        {/*
+          NO PROGRESS BAR. This page is no longer step four of the prequal —
+          that bar now completes on the results page, where the financing
+          options it promised are actually delivered (see PREQUAL_FLOW_STEPS).
 
-        <div className="mt-8">
+          Which means this screen has to earn the account on its own terms
+          rather than by showing someone an unfinished bar. The heading and the
+          line under it are doing that job: somewhere to upload documents and
+          track the file. If this page's conversion drops, putting the bar back
+          is the first experiment to run.
+        */}
+        {/*
+          THE SAME STAGGERED ENTRANCE AS EVERY OTHER STEP — see /start,
+          /start/prequal and the results page. This screen was the last one in
+          the flow still arriving fully formed, which made it read as a
+          different site rather than the next beat of the same one.
+
+          Delays step in reading order: heading, the line under it, the form,
+          then the note. The form is deliberately last of the three visible
+          blocks, so the eye lands on what the page is asking for after it has
+          been told why.
+
+          CSS only. It costs nothing, runs on the compositor, works without
+          hydration, and the blanket prefers-reduced-motion rule in globals.css
+          already collapses it to an instant appearance.
+        */}
+        <div className="animate-fade-in-up">
           <h1 className="text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
             Create your account to continue
           </h1>
-          <p className="mt-4 leading-relaxed text-ink-600">
+          <p className="animate-fade-in-up mt-4 leading-relaxed text-ink-600 [animation-delay:90ms]">
             This is where you&apos;ll upload documents, track where your
             application stands, and pick up where you left off.
           </p>
-          <p className="mt-3 font-mono text-sm text-ink-500">
-            Application {application.reference_code}
-            {application.financing_goal ? ` · ${application.financing_goal}` : ""}
-          </p>
+          {/*
+            NO REFERENCE CODE, for the same reason it left the results page: it
+            is a case number, and there is still no case. Nothing on this site
+            accepts one, so it was a string the reader could not use, on the
+            screen where the only thing that matters is finishing the form.
+
+            It also leaks volume — the codes are sequential, so printing one
+            tells any visitor how many applications there have been this year.
+          */}
         </div>
 
-        <Card className="mt-8">
+        <Card className="animate-fade-in-up mt-8 [animation-delay:180ms]">
           <CreateAccountForm applicationToken={token} />
         </Card>
 
-        <p className="mt-6 text-sm leading-relaxed text-ink-500">
+        <p className="animate-fade-in-up mt-6 text-sm leading-relaxed text-ink-500 [animation-delay:260ms]">
           Creating an account doesn&apos;t submit your application and is not an
           application for credit. Nothing here affects your credit score.
         </p>

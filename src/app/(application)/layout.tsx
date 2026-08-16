@@ -15,8 +15,8 @@ import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-grad
  * the other breaks the alignment.
  */
 const CAPSULE = "flex h-14 shrink-0 items-center rounded-full sm:h-16";
-const CAPSULE_SURFACE =
-  "border border-white/70 bg-white/80 shadow-card backdrop-blur-xl";
+// CAPSULE_SURFACE (the white glass fill) was removed with the logo's box. It is
+// worth knowing it existed if anything is ever added back to this header.
 
 /**
  * Application flow chrome.
@@ -53,31 +53,58 @@ export default function ApplicationLayout({
           <Link
             href="/"
             aria-label="Financial Lending Specialists"
-            className={`${CAPSULE} ${CAPSULE_SURFACE} px-5 sm:px-6`}
+            className={`${CAPSULE} group pl-2`}
           >
+            {/*
+              Boxless, matching the marketing header. This capsule was pixel-
+              matched to that one on purpose (see the note above CAPSULE), so
+              when the logo there lost its surface this one had to as well —
+              otherwise clicking through from the home page swaps a bare mark
+              for a boxed one at the same coordinates, which is more jarring
+              than the mismatch the matching was meant to prevent.
+
+              The dark file, because this flow sits on the cream gradient.
+              CAPSULE is kept for its height alone, so the mark holds the same
+              centre line it had before.
+
+              The hover fade matches the marketing header — see the longer note
+              there for why it is opacity rather than the reference's colour
+              swap, and why it sits on the image.
+
+              pl-2 for the same reason it is there: the capsule's old px-5
+              sm:px-6 was holding the mark off the left edge, and removing the
+              box removed that. It has to stay in step with the marketing
+              header or the two stop lining up, which is the one thing this
+              header exists to guarantee.
+            */}
             <Image
-              src="/brand/fls-logo-icon.png"
+              src="/brand/fls-capital-dark.png"
               alt=""
-              width={824}
-              height={714}
-              className="h-9 w-auto max-w-none shrink-0 sm:hidden"
-              priority
-            />
-            <Image
-              src="/brand/fls-logo-full.png"
-              alt=""
-              width={2613}
-              height={527}
-              className="hidden h-9 w-auto max-w-none shrink-0 sm:block"
+              width={700}
+              height={328}
+              className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60 sm:h-12"
               priority
             />
           </Link>
-          <Link
-            href="/"
-            className={`${CAPSULE} ${CAPSULE_SURFACE} px-5 text-sm font-medium text-ink-600 transition-colors hover:text-ink-900 sm:px-6`}
-          >
-            Save &amp; exit
-          </Link>
+          {/*
+            NO SEPARATE EXIT CONTROL.
+
+            There was one, and it pointed at "/" — exactly where the logo
+            already goes. Two controls, one destination, in a header with two
+            things in it.
+
+            It also arrived here mislabelled as "Save & exit" while saving
+            nothing, so the honest fix turned out to be removal rather than a
+            rename: the logo is the conventional way out of a flow, and the
+            second control only doubled the number of ways to discard the
+            answers by accident.
+
+            STILL WORTH SOLVING: clicking the logo mid-prequal silently throws
+            away every answer, because the wizard holds them in React state and
+            nothing is written until the final submit. A draft row keyed on the
+            submission_token, or a confirm once at least one question is
+            answered, would fix that properly.
+          */}
         </div>
       </header>
 
