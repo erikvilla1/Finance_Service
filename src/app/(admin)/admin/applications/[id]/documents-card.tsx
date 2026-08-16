@@ -8,6 +8,8 @@ import {
   loadChecklist,
 } from "@/lib/documents/checklist";
 import { formatBytes } from "@/lib/documents/upload-rules";
+import { assessCompleteness } from "@/lib/funding-application/completeness";
+import { loadFundingApplication } from "@/lib/funding-application/load";
 import {
   acceptDocument,
   rejectDocument,
@@ -72,6 +74,21 @@ export async function DocumentsCard({
   const awaitingReview = items.filter((item) =>
     item.documents.some((document) => document.status === "uploaded"),
   ).length;
+
+  // Signing is gated on the application being complete. The FCRA wording the
+  // applicant accepts says everything submitted is "true, complete and
+  // accurate" — putting that over a form with blanks is worse than making them
+  // wait a day, and a lender receiving it either returns it or, worse, doesn't
+  // notice.
+  const fundingData = await loadFundingApplication(applicationId);
+  const completeness = assessCompleteness(
+    fundingData?.context ?? {
+      application: null, business: null, owners: [], answers: {}, debtCount: 0,
+    },
+  );
+
+  const canRequestSignature = completeness.readyToSend;
+  const missingForSignature = completeness.missing.map((field) => field.formLabel);
 
   return (
     <Card>
@@ -307,7 +324,9 @@ export async function DocumentsCard({
                 ? `Signed ${formatDateTime(signedDocument.created_at)}`
                 : signatureRequestedAt
                   ? `Waiting on the applicant since ${formatDateTime(signatureRequestedAt)}`
-                  : "The applicant sees no signing page until you release it"}
+                  : canRequestSignature
+                    ? "The applicant sees no signing page until you release it"
+                    : "The application has blanks — it cannot be signed yet"}
             </p>
           </div>
 
@@ -323,12 +342,28 @@ export async function DocumentsCard({
                 type="submit"
                 size="sm"
                 variant={signatureRequestedAt ? "secondary" : "primary"}
+                disabled={!signatureRequestedAt && !canRequestSignature}
               >
                 {signatureRequestedAt ? "Withdraw request" : "Send for signature"}
               </Button>
             </form>
           )}
         </div>
+
+        {/*
+          Named, not just refused. "Cannot send yet" without saying why sends a
+          specialist hunting through a form for blanks, which is the exact work
+          the completeness check exists to remove.
+        */}
+        {!signedDocument && !signatureRequestedAt && !canRequestSignature && (
+          <p className="mt-2 text-xs leading-relaxed text-warning-700">
+            <span className="font-medium">Still needed: </span>
+            {missingForSignature.slice(0, 6).join(", ")}
+            {missingForSignature.length > 6 &&
+              ` and ${missingForSignature.length - 6} more`}
+            . The applicant fills these in on their own application page.
+          </p>
+        )}
       </div>
 
       {available.length > 0 && (

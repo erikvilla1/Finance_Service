@@ -7,6 +7,8 @@ import {
   notifyDocumentsComplete,
   notifySignatureRequested,
 } from "@/lib/email/notifications";
+import { assessCompleteness } from "@/lib/funding-application/completeness";
+import { loadFundingApplication } from "@/lib/funding-application/load";
 
 /**
  * The specialist's side of the document loop.
@@ -266,6 +268,32 @@ export async function requestSignature(formData: FormData) {
   if (!UUID_PATTERN.test(applicationId)) throw new Error("Unknown application.");
 
   const { supabase, userId } = await requireStaff();
+
+  // The application has to be complete before anyone signs it.
+  //
+  // A signed document is evidence, and a signed document with blanks on it is
+  // evidence of a mess: the applicant has attested that everything in it is
+  // "true, complete and accurate" — the FCRA wording says exactly that — while
+  // half the fields are empty. A lender receiving it either returns it or, worse,
+  // does not notice.
+  //
+  // Checked here rather than only in the UI. A disabled button is a courtesy,
+  // not a control, and this action is reachable by POST.
+  if (!withdraw) {
+    const data = await loadFundingApplication(applicationId);
+    const report = assessCompleteness(
+      data?.context ?? {
+        application: null, business: null, owners: [], answers: {}, debtCount: 0,
+      },
+    );
+
+    if (!report.readyToSend) {
+      const missing = report.missing.map((field) => field.formLabel).join(", ");
+      throw new Error(
+        `The application is not complete yet, so it cannot be signed. Still needed: ${missing}`,
+      );
+    }
+  }
 
   const { error } = await supabase
     .from("applications")

@@ -60,9 +60,23 @@ export default async function PrintApplicationPage({
     <div className="print-page mx-auto max-w-[8.5in] bg-white p-8 text-ink-900 print:p-0">
       <div className="mb-6 print:hidden">
         <PrintButton />
+        {/*
+          This page is now the paper fallback, not the main route.
+
+          Signing happens in the portal: "Send for signature" on the application
+          releases it, the applicant signs there, and a PDF with the mark, the
+          consents and an audit trail is generated and filed automatically.
+
+          This exists for the applicant who would rather sign by hand — which
+          ESIGN requires being offered at no charge, and which the signing page
+          says in as many words.
+        */}
         <p className="mt-2 text-sm text-ink-600">
-          Print to PDF, then send through PandaDoc. The applicant completes Tax
-          ID, SSN, and signatures on the signed copy.
+          The paper route. Most applicants sign in the portal — use{" "}
+          <strong>Send for signature</strong> on the application instead. Print
+          this only for someone who has asked to sign by hand; they complete Tax
+          ID, SSN and signature on the printed copy, and it comes back as an
+          upload against the signed application.
         </p>
       </div>
 
