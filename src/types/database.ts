@@ -123,6 +123,17 @@ export type BusinessAssetType =
   | "receivables"
   | "other";
 
+/**
+ * Where a document came from (migration 0033).
+ *
+ * Only `e_signature` is produced by the signing flow and backed by consent
+ * records. A signed_application from any other source is a scan or an upload —
+ * a real answer, since a wet signature is how Robert works today, but a
+ * different thing, and the difference matters on the one document a lender
+ * relies on.
+ */
+export type DocumentSource = "applicant_upload" | "staff_upload" | "e_signature";
+
 export type ConsentType =
   | "fcra_authorization"
   | "tcpa_sms"
@@ -555,6 +566,7 @@ export type DocumentRow = {
   mime_type: string | null;
   size_bytes: number | null;
   uploaded_by: string | null;
+  source: DocumentSource;
   status: DocumentStatus;
   verification_note: string | null;
   verified_by: string | null;
@@ -646,6 +658,8 @@ export type ConsentRow = {
   application_id: string | null;
   profile_id: string | null;
   consent_type: ConsentType;
+  /** The document this consent produced, where there is one. */
+  document_id: string | null;
   granted: boolean;
   text_version: string;
   text_hash: string | null;
@@ -743,6 +757,7 @@ export type Database = {
       urgency_band: UrgencyBand;
       consent_type: ConsentType;
       lender_submission_status: LenderSubmissionStatus;
+      document_source: DocumentSource;
       deposit_trend: DepositTrend;
       prior_default_status: PriorDefaultStatus;
       business_asset_type: BusinessAssetType;

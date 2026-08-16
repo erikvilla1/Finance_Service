@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_FILE_BYTES } from "@/lib/documents/upload-rules";
+import { notifyStaff } from "@/lib/email/notifications";
 
 /**
  * Recording and retracting uploads.
@@ -102,6 +103,15 @@ export async function recordUpload(
     // retry writes to a new timestamped path rather than overwriting.
     return { error: "We couldn't save that just then. Please try again." };
   }
+
+  // Robert finds out a document arrived without refreshing the pipeline to
+  // check. Never blocks the upload — the file is already stored and recorded by
+  // this point, and a failed notification must not read as a failed upload.
+  await notifyStaff(
+    applicationId,
+    "Document received",
+    `${request.document_type_key.replaceAll("_", " ")} — ${fileName}`,
+  );
 
   // The trigger from 0021 has already moved the request to 'uploaded'; this is
   // what makes the page reflect it in the same round trip.

@@ -1,5 +1,6 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { storagePathFor } from "@/lib/documents/upload-rules";
+import { notifyStaff } from "@/lib/email/notifications";
 import {
   FCRA_AUTHORIZATION_V1,
   hashConsentText,
@@ -31,10 +32,7 @@ import { buildFundingApplicationPdf, isPngDataUrl } from "./pdf";
 export const E_SIGN_CONSENT: ConsentTextVersion = {
   version: "esign-2026-08-13",
   effectiveFrom: "2026-08-13",
-  // The enum has an `e_sign` value; the type on ConsentTextVersion is narrowed
-  // to fcra_authorization, so this is cast at the point of use rather than
-  // widening a type that exists to stop the wrong text being attached.
-  consentType: "fcra_authorization",
+  consentType: "e_sign",
   source: "ESIGN Act consent, drafted for this platform",
   body: `You agree to sign this application electronically and to receive the signed copy and related notices electronically. An electronic signature has the same legal effect as a handwritten one. You may instead request a paper copy to sign by hand at no charge by contacting your specialist, and you may withdraw this consent at any time before signing. To sign and to keep a copy you will need a device with a web browser and either a printer or somewhere to save a PDF.`,
 };
@@ -111,7 +109,7 @@ export async function signFundingApplication(
 
   let pdf: Uint8Array;
   try {
-    pdf = await buildFundingApplicationPdf(data.context, {
+    pdf = await buildFundingApplicationPdf({ context: data.context, debts: data.debts }, {
       signatureDataUrl: input.signatureDataUrl,
       signerName: input.signerName.trim().slice(0, 120),
       signerTitle: input.signerTitle?.trim().slice(0, 120) || null,
@@ -187,6 +185,9 @@ export async function signFundingApplication(
       size_bytes: pdf.byteLength,
       uploaded_by: user.id,
       status: "uploaded",
+      // The distinction 0033 exists for. Anything else in this slot is a scan
+      // or an upload; only this is backed by consent records and an audit trail.
+      source: "e_signature",
     })
     .select("id")
     .single();
@@ -202,12 +203,17 @@ export async function signFundingApplication(
   // version says which text, the hash proves it.
   await service.from("consents").insert(
     await Promise.all(
-      consents.map(async (consent, index) => ({
+      consents.map(async (consent) => ({
         application_id: application.id,
         profile_id: user.id,
-        consent_type: (index === 0 ? "fcra_authorization" : "e_sign") as
-          | "fcra_authorization"
-          | "e_sign",
+        // Tied to the document it produced (0033). "Did they ever accept the
+        // FCRA wording" is a weaker question than "what did they accept when
+        // they signed this", and only the second is worth having.
+        document_id: document.id,
+        // Taken from the text itself now, rather than inferred from position
+        // in the array — the two could drift, and the consent record is
+        // evidence.
+        consent_type: consent.consentType,
         granted: true,
         text_version: consent.version,
         text_hash: await hashConsentText(consent.body),
@@ -221,6 +227,14 @@ export async function signFundingApplication(
   // Last four of the Tax ID is the one fragment the schema does keep, so a
   // specialist can match a file to a lender's reference without us holding the
   // number itself.
+  // The end of the applicant's part in this. Robert wants to know the moment it
+  // happens, because a signed application is a file that can go out today.
+  await notifyStaff(
+    application.id,
+    "Application signed",
+    "The funding application has been signed electronically and is in the lender package.",
+  );
+
   const taxIdDigits = input.taxId?.replace(/\D/g, "") ?? "";
   if (application.business_id && taxIdDigits.length >= 4) {
     await service

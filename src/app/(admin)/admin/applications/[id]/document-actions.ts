@@ -2,6 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  notifyDocumentReturned,
+  notifyDocumentsComplete,
+  notifySignatureRequested,
+} from "@/lib/email/notifications";
+import { assessCompleteness } from "@/lib/funding-application/completeness";
+import { loadFundingApplication } from "@/lib/funding-application/load";
 
 /**
  * The specialist's side of the document loop.
@@ -81,6 +88,25 @@ export async function acceptDocument(formData: FormData) {
 
   if (error) throw new Error("Could not accept the document.");
 
+  // Sent once, when the last outstanding item settles — not on every
+  // acceptance. Four "we accepted a document" emails in an afternoon teaches
+  // someone to stop opening them, and the one that matters is the last.
+  const { data: outstanding } = await supabase
+    .from("document_requests")
+    .select("status")
+    .eq("application_id", applicationId)
+    .eq("is_required", true);
+
+  const allSettled =
+    (outstanding?.length ?? 0) > 0 &&
+    (outstanding ?? []).every(
+      (request) => request.status === "accepted" || request.status === "waived",
+    );
+
+  if (allSettled) {
+    await notifyDocumentsComplete(applicationId);
+  }
+
   refresh(applicationId);
 }
 
@@ -106,7 +132,7 @@ export async function rejectDocument(formData: FormData) {
 
   const { supabase, userId } = await requireStaff();
 
-  const { error } = await supabase
+  const { data: document, error } = await supabase
     .from("documents")
     .update({
       status: "rejected",
@@ -114,11 +140,41 @@ export async function rejectDocument(formData: FormData) {
       verified_at: new Date().toISOString(),
       verification_note: reason.slice(0, 500),
     })
-    .eq("id", documentId);
+    .eq("id", documentId)
+    .select("document_type_key")
+    .maybeSingle();
 
   if (error) throw new Error("Could not send the document back.");
 
+  // The reason travels with the message. Telling someone a document came back
+  // without saying what was wrong produces the same document again. The type
+  // key travels too: a returned signed application means "sign again", and the
+  // email routes to the signing page rather than the upload control.
+  const label = await documentLabel(supabase, document?.document_type_key ?? null);
+  await notifyDocumentReturned(
+    applicationId,
+    label,
+    reason,
+    document?.document_type_key ?? null,
+  );
+
   refresh(applicationId);
+}
+
+/** The human name for a document type, for use in a sentence. */
+async function documentLabel(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  key: string | null,
+): Promise<string> {
+  if (!key) return "document";
+
+  const { data } = await supabase
+    .from("document_type_definitions")
+    .select("label")
+    .eq("key", key)
+    .maybeSingle();
+
+  return data?.label ?? "document";
 }
 
 /**
@@ -220,6 +276,32 @@ export async function requestSignature(formData: FormData) {
 
   const { supabase, userId } = await requireStaff();
 
+  // The application has to be complete before anyone signs it.
+  //
+  // A signed document is evidence, and a signed document with blanks on it is
+  // evidence of a mess: the applicant has attested that everything in it is
+  // "true, complete and accurate" — the FCRA wording says exactly that — while
+  // half the fields are empty. A lender receiving it either returns it or, worse,
+  // does not notice.
+  //
+  // Checked here rather than only in the UI. A disabled button is a courtesy,
+  // not a control, and this action is reachable by POST.
+  if (!withdraw) {
+    const data = await loadFundingApplication(applicationId);
+    const report = assessCompleteness(
+      data?.context ?? {
+        application: null, business: null, owners: [], answers: {}, debtCount: 0,
+      },
+    );
+
+    if (!report.readyToSend) {
+      const missing = report.missing.map((field) => field.formLabel).join(", ");
+      throw new Error(
+        `The application is not complete yet, so it cannot be signed. Still needed: ${missing}`,
+      );
+    }
+  }
+
   const { error } = await supabase
     .from("applications")
     .update({
@@ -229,6 +311,13 @@ export async function requestSignature(formData: FormData) {
     .eq("id", applicationId);
 
   if (error) throw new Error("Could not update the signature request.");
+
+  // Awaited so a send failure is logged in the same request, but never thrown:
+  // releasing the file for signature has already succeeded, and an unreachable
+  // mail server is not a reason to tell the specialist it did not.
+  if (!withdraw) {
+    await notifySignatureRequested(applicationId);
+  }
 
   refresh(applicationId);
 }

@@ -64,7 +64,7 @@ export default async function DocumentsPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, reference_code, financing_goal")
+    .select("id, reference_code, financing_goal, signature_requested_at")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -188,6 +188,36 @@ export default async function DocumentsPage({
                     ))}
                   </ul>
                 )}
+
+                {/*
+                  The signed application is produced by signing, not by
+                  uploading. When it needs the applicant again — released and
+                  not yet signed, or signed and sent back — the door to open is
+                  the signing page, where the prefilled document, the reason it
+                  came back, and the signature pad all live. The upload control
+                  stays underneath as the paper route: someone who printed and
+                  signed by hand sends their scan through it.
+                */}
+                {item.key === "signed_application" &&
+                  application.signature_requested_at &&
+                  open && (
+                    <div className="mt-4 rounded-lg bg-ink-50 p-4">
+                      <Link
+                        href={`/dashboard/${applicationId}/sign`}
+                        className="text-sm font-semibold text-brand-700 hover:underline"
+                      >
+                        {item.documents.length > 0
+                          ? "Review and sign again →"
+                          : "Review and sign →"}
+                      </Link>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-600">
+                        Your application is prefilled and ready — signing it
+                        takes a couple of minutes. Rather sign on paper? Ask
+                        your specialist for a copy to print, then upload the
+                        signed pages below.
+                      </p>
+                    </div>
+                  )}
 
                 {/* Still offered once something has been sent. A second copy is
                     often exactly what is needed, and hiding the control after
