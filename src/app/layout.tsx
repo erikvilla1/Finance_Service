@@ -3,6 +3,9 @@ import "./globals.css";
 import { RecoveryRedirect } from "@/components/auth/recovery-redirect";
 
 export const metadata: Metadata = {
+  // Canonical origin for resolving relative Open Graph / canonical URLs.
+  // The apex flscapitaladvisors.com redirects here (configured in Vercel).
+  metadataBase: new URL("https://www.flscapitaladvisors.com"),
   title: {
     default: "Financial Lending Specialists — Financing Solutions Built Around Your Goals",
     template: "%s | Financial Lending Specialists",
