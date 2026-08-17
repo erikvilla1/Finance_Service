@@ -996,6 +996,97 @@
     );
   }
 
+  /* ---------------------------------------------------------------------------
+     THE AVAILABLE CARDS DRIFT. THE UNAVAILABLE ONES DO NOT.
+
+     Only .result-card-eligible floats, which is doing work beyond decoration:
+     the options someone can actually have are the live things on the page and
+     the ones they cannot are inert. That reads before anyone has parsed a
+     heading.
+
+     TRANSFORM, NOT TRANSLATE — and this is the part that would otherwise break.
+     The hover lift is Tailwind's -translate-y-1, which sets the `translate`
+     property. If this float also animated `translate` it would win for as long
+     as it ran and the card would simply refuse to lift on hover. `transform`
+     and `translate` are separate properties that the engine composes, so the
+     drift and the lift stack instead of fighting.
+
+     A WAVE, NOT A CROWD. Every card shares one duration and one curve, and the
+     only thing that varies is where in the cycle each one starts — a fixed step
+     per card in reading order. Identical period plus constant phase offset is
+     what makes a travelling wave rather than a set of independent bobs: the
+     cards stay locked to each other forever, and the crest walks along the row
+     and wraps down into the next.
+
+     THE STEP IS IN READING ORDER, NOT BY COLUMN. Keying off nth-child(3n+1) and
+     friends would give a cleaner vertical wavefront, but only at the breakpoint
+     where the grid actually has three columns — it drops to two on tablet and
+     one on a phone, and the pattern would scramble. Stepping by position means
+     consecutive cards are always neighbours whatever the column count, so the
+     ripple survives every layout.
+
+     -0.35s AGAINST A 3s CYCLE puts adjacent cards about a ninth of a period
+     apart: close enough to read as one motion passing through them, far enough
+     that you can see it move. Widen the step and the cards start looking
+     independent again; narrow it and the whole grid flattens back into the
+     page-breathing effect this is avoiding.
+
+     PAUSED ON HOVER. A card that keeps bobbing while the cursor is holding it
+     feels slippery; stopping it makes the hover feel like the card was caught.
+     ------------------------------------------------------------------------ */
+  @keyframes card-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -6px, 0);
+    }
+  }
+
+  .result-card-eligible {
+    animation: card-float 3s ease-in-out infinite;
+    animation-delay: 0s;
+  }
+
+  /* The list is capped at eight cards, so eight steps covers it. Negative, so
+     every card is already at its place in the wave on the first painted frame
+     rather than the grid starting flat and the wave building up. */
+  .result-card-eligible:nth-child(2) {
+    animation-delay: -0.35s;
+  }
+  .result-card-eligible:nth-child(3) {
+    animation-delay: -0.7s;
+  }
+  .result-card-eligible:nth-child(4) {
+    animation-delay: -1.05s;
+  }
+  .result-card-eligible:nth-child(5) {
+    animation-delay: -1.4s;
+  }
+  .result-card-eligible:nth-child(6) {
+    animation-delay: -1.75s;
+  }
+  .result-card-eligible:nth-child(7) {
+    animation-delay: -2.1s;
+  }
+  .result-card-eligible:nth-child(8) {
+    animation-delay: -2.45s;
+  }
+
+  .result-card-eligible:hover {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The blanket rule at the top of the file collapses the DURATION, which on
+       a looping animation means a card vibrating at the frame rate rather than
+       one holding still. It has to be switched off by name. */
+    .result-card-eligible {
+      animation: none;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     /* The blanket rule at the top of the file only shortens durations, which
        would make the card jump rather than not move. Both properties are named

@@ -7,9 +7,10 @@ import {
   IndicativeDisclosure,
   ProgressBar,
 } from "@/components/ui";
-import { Check, Minus } from "lucide-react";
+import { Check, ChevronDown, Minus } from "lucide-react";
 import { Confetti } from "@/components/ui/confetti";
 import { CountUpAmount } from "@/components/marketing/count-up";
+import { FluidParticles } from "@/components/ui/fluid-particles";
 import { GlowButtonLink } from "@/components/ui/glow-button-link";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { ProductMatch } from "@/lib/qualification/types";
@@ -172,19 +173,94 @@ export default async function ResultPage({
             button.
         ------------------------------------------------------------------- */}
         <div className="animate-fade-in-up mt-8 rounded-xl border border-success-600/25 bg-success-50 p-5 [animation-delay:120ms]">
-          <Badge tone="success">Prequalification complete</Badge>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
-            Here&apos;s what you could qualify for
-          </h1>
-          {/* NO max-w HERE. It was max-w-2xl — a 672px measure inside a panel
-              well over a thousand wide, which stopped the text mid-box and read
-              as a rendering fault rather than as typographic restraint. The
-              panel is the thing setting the measure now. */}
-          <p className="mt-3 leading-relaxed text-ink-700">
-            Based on what you told us, these are the programs that look like a
-            fit. Nothing has been applied for yet — starting your application is
-            the next step, and you can do it below.
-          </p>
+          {/* TWO COLUMNS ON DESKTOP, STACKED ON MOBILE.
+
+              items-start rather than items-center: the text column is three or
+              four lines tall and the button is one, so centring would float the
+              button halfway down the panel instead of aligning it with the
+              badge it sits beside. gap-6 keeps it off the text at the width
+              where they first sit side by side. */}
+          {/* sm:items-stretch, not items-start. The right-hand column has to be
+              as tall as the copy beside it for justify-between to have anywhere
+              to push the scroll cue — with items-start the column shrinks to fit
+              the button and the cue sits directly beneath it, halfway up the
+              panel rather than in the corner. */}
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch sm:justify-between">
+            <div className="min-w-0">
+              <Badge tone="success">Prequalification complete</Badge>
+              <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
+                Here&apos;s what you could qualify for
+              </h1>
+              {/* NO max-w HERE. It was max-w-2xl — a 672px measure inside a
+                  panel well over a thousand wide, which stopped the text
+                  mid-box and read as a rendering fault rather than as
+                  typographic restraint. The panel is the thing setting the
+                  measure now. */}
+              <p className="mt-3 leading-relaxed text-ink-700">
+                Based on what you told us, these are the programs that look like
+                a fit. Nothing has been applied for yet — starting your
+                application is the next step.
+              </p>
+            </div>
+
+            {/* THE PRIMARY ACTION, MOVED ABOVE THE FOLD.
+
+                variant="contrast", NOT primary. primary is cream at oklch 0.895
+                and this panel is success-50 at 0.96 — a six-percent step, which
+                is a button you have to go looking for. Near-black on pale green
+                is the highest-contrast pairing available here, and it matches
+                the dark panel at the foot of the page, so the page's two calls
+                to action read as one voice rather than two designs.
+
+                shrink-0 so a long label never compresses the button into two
+                lines, and w-full below sm so it is a full-width tap target on a
+                phone rather than a small box floating under the paragraph. */}
+            {/* sweep instead of glow, not as well as. The sweep panel paints
+                above the glow and covers it precisely when the cursor is on the
+                button, so keeping both would render a layer nothing can ever
+                see. The shimmer stays — it runs on the rim, outside the panel's
+                path, and it is what makes this the button the eye lands on
+                before anyone has moved a cursor at all. */}
+            <div className="flex shrink-0 flex-col justify-between gap-4 sm:items-end">
+              <GlowButtonLink
+                href={`/create-account?application=${token}`}
+                variant="contrast"
+                size="lg"
+                glow={false}
+                sweep
+                className="w-full sm:w-auto"
+              >
+                Start Application Now
+              </GlowButtonLink>
+
+              {/* THE HOME PAGE'S SCROLL CUE, RECOLOURED FOR A LIGHT PANEL.
+
+                  The original is brand-100/70 on white — it lives over the dark
+                  hero video. Reused as-is here it would be near-white text on
+                  pale green. ink-500 to ink-900 is the same relationship the
+                  other way up.
+
+                  It points at #options, the list of products directly below,
+                  rather than at the page's next section in document order. The
+                  cue exists because the button beside it is one of two things
+                  someone can do here; the other is read what they qualified
+                  for, and that is what this scrolls to.
+
+                  The bounce and the delayed entrance are carried over unchanged
+                  — the blanket prefers-reduced-motion rule in globals.css
+                  already collapses both. */}
+              <a
+                href="#options"
+                className="animate-fade-in-up flex items-center justify-center gap-2 text-sm text-ink-500 transition-colors [animation-delay:420ms] hover:text-ink-900 sm:justify-end"
+              >
+                Scroll to explore
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 animate-bounce"
+                />
+              </a>
+            </div>
+          </div>
           {/*
             NO REFERENCE CODE HERE.
 
@@ -277,7 +353,17 @@ export default async function ResultPage({
             One column when there is nothing in the second list, so a clean
             result does not render an empty half.
         ------------------------------------------------------------------- */}
-        <div className="animate-fade-in-up mt-10 space-y-10 [animation-delay:240ms]">
+        {/* id + scroll-mt for the "Scroll to explore" cue in the panel above.
+
+            scroll-mt-16 is breathing room, not clearance: this flow's header
+            does not scroll with the page, so nothing would cover the heading.
+            Without it the anchor still lands with "You could qualify for" flush
+            against the top edge of the window, which reads as having overshot.
+            If the header is ever made sticky this needs to grow to match it. */}
+        <div
+          id="options"
+          className="animate-fade-in-up mt-10 scroll-mt-16 space-y-10 [animation-delay:240ms]"
+        >
           {sized.length > 0 && (
             <section>
               <div className="flex items-center gap-2">
@@ -402,7 +488,8 @@ export default async function ResultPage({
                   <Card
                     as="li"
                     key={match.productSlug}
-                    className="group result-card result-card-blocked h-full transition-[translate,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover hover:ring-danger-600/25"
+                    tone="muted"
+                    className="group result-card result-card-blocked h-full transition-[translate,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-card hover:ring-danger-600/25"
                   >
                     <div className="flex items-start gap-2.5">
                       <span
@@ -447,35 +534,50 @@ export default async function ResultPage({
         )}
 
         {/*
-          THE ONE DARK BLOCK ON A CREAM PAGE.
+          THE DARK BLOCK IS BACK — AND THE PANEL MOVED SO THE BUTTON DIDN'T HAVE
+          TO.
 
-          This was brand-50 with a brand-200 border — which made the single most
-          important element on the screen the quietest thing on it. The success
-          box above is green and the caveat is amber, so the eye reached both of
-          those before the only control that does anything.
+          The problem this solves: the page's call to action appears twice, and
+          the two have to be recognisably the same control. The top one is
+          near-black on pale green. Down here the panel is near-black too, so the
+          obvious fix is to recolour the button — and every version of that
+          breaks the thing it is trying to preserve. Cream reads as a different
+          button. White reads as a different button. A near-black button with an
+          outline reads as an outlined variant of a button, which is its own
+          third thing.
 
-          It wins on contrast rather than on size. Everything else here is cream
-          or white, so near-black reads as the end of the page and the thing to
-          act on without needing to be larger than the content above it. The
-          cream button on near-black is also the highest-contrast pairing the
-          palette has, and it is the same one the hero uses — so the page closes
-          on the shape it opened with.
+          So the button is left completely alone — same `contrast` variant, same
+          size, same sweep, same label as the one at the top of the page, with no
+          per-instance overrides at all — and the SURFACE steps out of its way
+          instead. brand-950 at oklch 0.16 against the button's brand-900 at
+          0.24: still unambiguously the dark block that closes the page, now a
+          shade deeper than the control sitting on it, so the button reads as
+          raised rather than as a hole cut in the panel.
 
-          Cost, stated plainly: a hard visual stop means "What happens next"
-          below it gets read less. That is the correct trade here — it is
-          reassurance, not an action, and anyone who has already decided does not
-          need it.
+          The hover helps too. `contrast` lightens to brand-800 on hover, which
+          against a 0.16 panel is a step further away from the background rather
+          than toward it.
+
+          The ring is the second half of the same idea: one hairline of white at
+          low opacity, enough to draw the button's edge without adding a colour
+          that would make it look like a different component.
         */}
         {/* CENTRED, UNLIKE EVERYTHING ABOVE IT. The rest of the page is a
             left-aligned document; this panel is a single decision. Centring is
             what stops it reading as one more section and starts it reading as
-            the end of the page — the same reason it is the only dark block.
+            the close of the page.
 
             The paragraph keeps a measure (max-w-xl) and centres with mx-auto
             rather than losing the cap. Centred text is harder to track back to
             the start of each line, so a long one is worse centred than left —
             the cap is doing more work here than it was doing in the green box. */}
-        <div className="mt-10 rounded-2xl bg-brand-900 p-7 text-center shadow-card sm:p-9">
+        {/* isolate is what keeps the canvas inside this panel. FluidParticles
+            positions itself at -z-10 so it paints above the panel's background
+            and below the copy — but without a stacking context here, a negative
+            z-index escapes the panel entirely and the field would end up behind
+            the page. overflow-hidden clips it to the rounded corners. */}
+        <div className="relative isolate mt-10 overflow-hidden rounded-2xl bg-brand-950 p-7 text-center shadow-card sm:p-9">
+          <FluidParticles />
           <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Ready to move forward?
           </h2>
@@ -484,28 +586,26 @@ export default async function ResultPage({
             your documents, track where things stand, and pick up any time.
           </p>
 
-          {/* THE SHIMMER AND THE GLOW, same as the prequal submit button.
-
-              This is the one action the whole page exists to produce, and it is
-              the only button on the screen — so the rule about using the effect
-              once is satisfied by the page having nothing else to compete with.
-
-              It should read stronger here than it does on the prequal submit.
-              That button is cream on a cream page, where white is a ten-percent
-              step; this one is cream on brand-900, which is the white-on-dark
-              contrast the effect was originally designed for. */}
+          {/* THE SAME BUTTON AS THE TOP OF THE PAGE. Deliberately not "a button
+              styled to match" — the props are identical, and the only addition
+              is a hairline edge so it separates from the panel behind it. If the
+              treatment up there ever changes, changing it here is the same
+              edit. */}
           <div className="mt-6 flex justify-center">
             <GlowButtonLink
               href={`/create-account?application=${token}`}
+              variant="contrast"
               size="lg"
-              className="w-full sm:w-auto"
+              glow={false}
+              sweep
+              className="w-full ring-1 ring-white/20 sm:w-auto"
             >
               Start Application Now
             </GlowButtonLink>
           </div>
 
           {/* brand-100 rather than ink-600: the old colour was chosen for a
-              near-white panel and is close to unreadable on brand-900. */}
+              near-white panel and is close to unreadable on a dark one. */}
           <p className="mt-4 text-sm leading-relaxed text-brand-100/85">
             This doesn&apos;t submit an application for credit and doesn&apos;t
             affect your credit score.

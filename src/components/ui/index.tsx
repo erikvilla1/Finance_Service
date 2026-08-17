@@ -137,7 +137,12 @@ export function SectionHeading({
 // BUTTON
 // -----------------------------------------------------------------------------
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "inverted";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "inverted"
+  | "contrast";
 type ButtonSize = "sm" | "md" | "lg";
 
 const buttonBase =
@@ -150,6 +155,44 @@ const buttonVariants: Record<ButtonVariant, string> = {
     "bg-white text-brand-800 ring-1 ring-inset ring-ink-300 hover:bg-ink-50",
   ghost: "text-brand-700 hover:bg-brand-50",
   inverted: "bg-white text-brand-800 hover:bg-brand-50",
+  /**
+   * Near-black. For placing a button on a LIGHT TINTED panel, where primary
+   * fails.
+   *
+   * primary is accent-500 at oklch lightness 0.895, and the tinted panels it
+   * would sit on — success-50 at 0.96, warning-50, brand-50 — are all within a
+   * few points of it. A cream button on a pale green card is a step of about
+   * six percent: visible if you look for it, invisible if you are scanning.
+   * That is the opposite of what a call to action is for.
+   *
+   * brand-900 is 0.24, so it wins by three quarters of the lightness range
+   * instead of by six percent. It is also the surface the page's other CTA
+   * panel is built from, so the two read as the same voice rather than as two
+   * different buttons.
+   */
+  contrast: "bg-brand-900 text-white hover:bg-brand-800",
+};
+
+/**
+ * The chevron panel's tint, per variant — see the `sweep` prop.
+ *
+ * DERIVED FROM THE VARIANT RATHER THAN PASSED IN. The panel is a wash over the
+ * button's own face, so it has to be light on a dark button and dark on a light
+ * one. Exposing that as a prop would mean every call site could set it wrong,
+ * and setting it wrong fails silently: white at 15% over cream is not a subtle
+ * panel, it is no panel at all, and nothing in the markup would say why. There
+ * is exactly one correct answer per variant, so the variant chooses it.
+ *
+ * The chevron itself needs no entry here. lucide icons paint in currentColor
+ * and the panel inherits the button's text colour, so it is already brand-900
+ * on the cream face and white on the near-black one.
+ */
+const sweepPanels: Record<ButtonVariant, string> = {
+  primary: "bg-brand-900/15",
+  secondary: "bg-brand-900/10",
+  ghost: "bg-brand-900/10",
+  inverted: "bg-brand-900/15",
+  contrast: "bg-white/15",
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -374,6 +417,7 @@ export function ButtonLink({
   className,
   shimmer = false,
   glow = false,
+  sweep = false,
   children,
   style,
   ...props
@@ -390,6 +434,20 @@ export function ButtonLink({
    * the button and still fades in on hover.
    */
   glow?: boolean;
+  /**
+   * A chevron in a tinted panel at the right edge, which expands to fill the
+   * button on hover while the label fades out.
+   *
+   * Works on any variant — the panel's tint comes from sweepPanels, which is
+   * keyed off `variant` precisely so a light button cannot end up with an
+   * invisible white wash on it.
+   *
+   * DOES NOT COMBINE WITH `glow`. The panel is painted above the glow layer and
+   * covers it exactly when the cursor is over the button, which is the only time
+   * the glow is visible. Turn glow off rather than paying for a layer nothing
+   * can see.
+   */
+  sweep?: boolean;
   children: ReactNode;
 }) {
   const classes = cx(
@@ -402,7 +460,7 @@ export function ButtonLink({
   // The plain path stays a plain anchor. Every ButtonLink on the site renders
   // through here, and none of them should pay for three extra spans and a
   // stacking context to get an effect they did not ask for.
-  if (!shimmer && !glow) {
+  if (!shimmer && !glow && !sweep) {
     return (
       <Link href={href} className={classes} style={style} {...props}>
         {children}
@@ -418,7 +476,56 @@ export function ButtonLink({
       {...props}
     >
       <ButtonEffects shimmer={shimmer} glow={glow} />
-      {children}
+      {sweep ? (
+        <>
+          {/*
+            THE MARGIN IS LOAD-BEARING, NOT SPACING. The button centres its
+            content, so without it the label would sit under the resting panel.
+            The margin pushes the label left by the room the panel occupies plus
+            the gap between them — and because the button is width:auto, it is
+            also what makes the button longer. Widening the button and separating
+            the label from the chevron are the same adjustment.
+
+            mr-12 rather than the reference's mr-8: at 8 the label ended about
+            four pixels from the panel edge, which reads as the two colliding
+            rather than sitting side by side.
+
+            The label keeps its space while invisible — opacity, not display —
+            so the button does not resize as the cursor arrives.
+          */}
+          <span className="mr-12 transition-opacity duration-500 group-hover:opacity-0">
+            {children}
+          </span>
+          {/*
+            A SPAN, NOT THE REFERENCE'S <i>. That element means emphasis, and
+            this is decoration with no text in it; aria-hidden keeps the chevron
+            out of the accessibility tree entirely, so the link is announced as
+            its label and nothing else.
+
+            w-11 AT REST, NOT THE REFERENCE'S w-1/4. A percentage width makes the
+            chevron box a function of the label: a long label widens the button,
+            which widens the panel, which eats back the gap the margin just
+            bought — so the two would creep toward each other again on any button
+            with more words than this one. A fixed 2.75rem is square against the
+            panel's own height (the button is ~3.25rem tall less the two 0.25rem
+            insets) and stays put whatever the label says.
+
+            It still expands to the full width less those insets on hover, which
+            is the whole effect.
+          */}
+          <span
+            aria-hidden="true"
+            className={cx(
+              "absolute inset-y-1 right-1 z-10 grid w-11 place-items-center rounded-md transition-all duration-500 ease-out group-hover:w-[calc(100%-0.5rem)] group-active:scale-95",
+              sweepPanels[variant],
+            )}
+          >
+            <ChevronRight className="h-4 w-4" strokeWidth={2} />
+          </span>
+        </>
+      ) : (
+        children
+      )}
     </Link>
   );
 }
@@ -430,16 +537,40 @@ export function ButtonLink({
 export function Card({
   children,
   className,
+  tone = "default",
   as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
+  /**
+   * "muted" recesses the card instead of raising it: grey face, no shadow.
+   *
+   * A PROP RATHER THAN A CLASS THE CALLER PASSES IN. Handing `bg-ink-100`
+   * through className would put it in the same string as this component's own
+   * `bg-white`, and Tailwind resolves that collision by which utility it
+   * happens to emit later in the stylesheet — not by which one is written last
+   * in the attribute. It would work or not work for reasons no one could see in
+   * the markup. Swapping the class here means only one background is ever
+   * generated for the element.
+   *
+   * WHY ink-100 SPECIFICALLY. The page behind these cards is accent-500, oklch
+   * lightness 0.895. ink-200 is 0.90 — it would erase the card entirely. White
+   * is 1.0. ink-100 at 0.96 is the one value that sits clearly above the page
+   * and clearly below the available cards. It is also neutral where the page is
+   * warm, so it reads slightly cooler and duller than its surroundings, which
+   * is the whole point.
+   *
+   * The shadow goes too. A drop shadow says "this is raised toward you", which
+   * is the wrong thing to say about an option someone cannot have.
+   */
+  tone?: "default" | "muted";
   as?: "div" | "article" | "li";
 }) {
   return (
     <Tag
       className={cx(
-        "rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70",
+        "rounded-card p-6 ring-1 ring-ink-200/70",
+        tone === "muted" ? "bg-ink-100" : "bg-white shadow-card",
         // Only ever applies inside the admin shell — the dark variant is scoped
         // to that wrapper in globals.css, so these classes are inert on every
         // customer-facing page that uses this same component.
