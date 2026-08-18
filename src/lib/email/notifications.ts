@@ -77,6 +77,71 @@ function greeting(recipient: Recipient): string {
   return first ? `Hi ${first},` : "Hello,";
 }
 
+/**
+ * How a file identifies itself in staff mail.
+ *
+ * SEPARATE FROM recipientFor ON PURPOSE. That function answers "who do we write
+ * to", and gives up when an application has no profile — correctly, because
+ * there is no customer address to write to yet. Staff mail has its own address
+ * and needs none of that: it needs a name and a reference code, and both exist
+ * from the moment the prequal row is inserted, which is before any account is
+ * created.
+ *
+ * Routing staff mail through recipientFor made the earliest alert — a lead that
+ * has not signed up yet, and the most perishable thing in the pipeline — arrive
+ * as "An applicant" with no reference code and no way to find the file.
+ */
+async function fileSummary(
+  applicationId: string,
+): Promise<{ referenceCode: string | null; who: string }> {
+  const service = createServiceRoleClient();
+
+  const { data: application } = await service
+    .from("applications")
+    .select("reference_code, profile_id, business_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (!application) return { referenceCode: null, who: "An applicant" };
+
+  const [{ data: business }, { data: owner }, { data: profile }] = await Promise.all([
+    application.business_id
+      ? service
+          .from("businesses")
+          .select("legal_name")
+          .eq("id", application.business_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    service
+      .from("application_owners")
+      .select("full_name")
+      .eq("application_id", applicationId)
+      .eq("is_primary", true)
+      .maybeSingle(),
+    application.profile_id
+      ? service
+          .from("profiles")
+          .select("full_name, email")
+          .eq("id", application.profile_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  return {
+    referenceCode: application.reference_code,
+    // The business first — it is what Robert calls the file. A person's name is
+    // the next best thing, and the email address is better than nothing at the
+    // prequal stage, where a business name is optional.
+    who:
+      business?.legal_name ??
+      owner?.full_name ??
+      profile?.full_name ??
+      profile?.email ??
+      application.reference_code ??
+      "An applicant",
+  };
+}
+
 // -----------------------------------------------------------------------------
 // APPLICANT
 // -----------------------------------------------------------------------------
@@ -251,25 +316,22 @@ export async function notifyStaff(
   const to = process.env.STAFF_NOTIFICATION_EMAIL;
   if (!to) return { sent: false, reason: "no_staff_address" };
 
-  const recipient = await recipientFor(applicationId);
+  const { who, referenceCode } = await fileSummary(applicationId);
   const url = absoluteUrl(`/admin/applications/${applicationId}`);
-
-  const who =
-    recipient?.businessName ?? recipient?.name ?? recipient?.referenceCode ?? "An applicant";
 
   return sendEmail({
     to,
     subject: `${event} — ${who}`,
     text: `${event}
 
-${who}${recipient ? ` (${recipient.referenceCode})` : ""}
+${who}${referenceCode ? ` (${referenceCode})` : ""}
 ${detail}
 
 Open the file: ${url}`,
     html: wrapHtml({
       heading: event,
       body: `<p style="margin:0 0 8px;"><strong>${who}</strong>${
-        recipient ? ` &middot; ${recipient.referenceCode}` : ""
+        referenceCode ? ` &middot; ${referenceCode}` : ""
       }</p><p style="margin:0;">${detail}</p>`,
       cta: { label: "Open the file", href: url },
       footer: "Internal notification.",

@@ -47,6 +47,24 @@ export type SendOutcome =
  */
 const DEFAULT_FROM = "Financial Lending Specialists <onboarding@resend.dev>";
 
+/**
+ * Where a reply goes.
+ *
+ * THE SENDING ADDRESS IS NOT A MAILBOX. Mail goes out as
+ * notifications@mail.flscapitaladvisors.com because that is the domain verified
+ * for sending — but nothing receives there, and an applicant who hits Reply on
+ * "your application is ready to sign" is answering a real question to an
+ * address that silently drops it. That reply is the most engaged message a
+ * customer will ever send, and losing it is worse than sending nothing.
+ *
+ * EMAIL_REPLY_TO points at an inbox a person actually reads. Set it to a
+ * staff address; while there is no FLS mailbox it can be a personal one.
+ *
+ * A caller can still override per-message — notifyStaff has no reason to send
+ * staff replies to the applicant-facing address.
+ */
+const REPLY_TO = process.env.EMAIL_REPLY_TO;
+
 export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -80,7 +98,7 @@ export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
       subject,
       text: message.text,
       html: message.html,
-      replyTo: message.replyTo,
+      replyTo: message.replyTo ?? REPLY_TO,
     });
 
     if (error) {

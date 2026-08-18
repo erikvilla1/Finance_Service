@@ -40,6 +40,7 @@ import {
   TERMS_OF_USE_V1,
   hashConsentText,
 } from "@/lib/funding-application/consent-text";
+import { notifyStaff } from "@/lib/email/notifications";
 
 export async function createAccount(
   _prevState: CreateAccountState,
@@ -248,6 +249,20 @@ export async function createAccount(
       consentError,
     );
   }
+
+  // The lead now has a person attached to it.
+  //
+  // BEFORE THE REDIRECTS BELOW, NOT AFTER. redirect() throws NEXT_REDIRECT to
+  // unwind the request, so anything after either call never runs.
+  //
+  // A prequal alert already went out for this file, when it was an anonymous
+  // row. This is the follow-up that says who they are — and it is the point at
+  // which a specialist can actually reach them, which the first one was not.
+  await notifyStaff(
+    application.id,
+    "Account created",
+    `${fullName || email} created an account and claimed this application.`,
+  );
 
   // No session means the project has email confirmation switched on, so there
   // is nothing to sign the applicant into yet. Send them somewhere that says so

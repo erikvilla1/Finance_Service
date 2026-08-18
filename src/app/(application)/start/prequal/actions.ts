@@ -9,6 +9,7 @@ import type {
   Ruleset,
 } from "@/lib/qualification/types";
 import { findGoal } from "@/lib/products/goals";
+import { notifyStaff } from "@/lib/email/notifications";
 import type {
   BusinessAssetType,
   CreditBand,
@@ -421,6 +422,31 @@ export async function submitPrequal(formData: FormData) {
     rules_evaluated: result.rulesEvaluated as never,
     engine_version: ENGINE_VERSION,
   });
+
+  // THE EARLIEST ALERT, AND THE MOST PERISHABLE.
+  //
+  // Nobody has an account at this point — the row is anonymous until someone
+  // creates one, and plenty never do. Those are precisely the leads worth
+  // knowing about within the hour rather than whenever someone next opens the
+  // admin list, because a person who asked about financing this morning is a
+  // different prospect from the same person on Thursday.
+  //
+  // Before the redirect, which throws.
+  //
+  // The amount and the goal are in the message rather than left to the click:
+  // the point of a staff alert is to be triageable from a phone's lock screen.
+  await notifyStaff(
+    application.id,
+    "New prequal submitted",
+    [
+      legalBusinessName ?? "Business name not given",
+      goal?.label ?? "Goal not given",
+      requestedAmount
+        ? `$${requestedAmount.toLocaleString("en-US")} requested`
+        : "No amount given",
+      `Outcome: ${result.outcome.replaceAll("_", " ")}`,
+    ].join(" · "),
+  );
 
   redirect(`/start/result/${application.public_token}`);
 }
