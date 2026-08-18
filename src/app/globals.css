@@ -891,13 +891,210 @@
     animation: shine-text 2s linear infinite;
   }
 
+  /* The same glint, inverted for dark text on a light card.
+     -------------------------------------------------------------------------
+     .shine-text is white type with a cream highlight, built for the hero's
+     dark panel. Reusing it on the result cards would have painted the amounts
+     WHITE ON WHITE — the figure would have vanished rather than shone, and it
+     would have compiled and rendered without complaint.
+
+     So the ramp is inverted: ink-900 base, accent-700 highlight. The reference
+     for this sweeps a translucent BLACK band over mid-grey text, which works
+     when the type is already light enough to darken. These amounts are the
+     darkest thing on the card, so there is nowhere darker to go — the glint has
+     to be the lighter colour, and accent-700 is the palette's own tan rather
+     than a grey, so the sweep reads as warm light rather than as the text
+     fading out.
+
+     Everything else is shared with .shine-text: same keyframes, same 300%
+     background so both ends of the loop land on pure base colour and the sweep
+     is seamless. */
+  .shine-text-ink {
+    background-image: linear-gradient(
+      110deg,
+      var(--color-ink-900) 35%,
+      var(--color-accent-700) 50%,
+      var(--color-ink-900) 65%
+    );
+    background-size: 300% 100%;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine-text 2s linear infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     /* The blanket rule only collapses the duration, which would park the glint
        mid-sweep. Drop the effect and give the text its colour back. */
-    .shine-text {
+    .shine-text,
+    .shine-text-ink {
       animation: none;
       background-image: none;
       color: inherit;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+     RESULT CARDS — a hover wash tinted to match the verdict.
+
+     The lift and the shadow are Tailwind utilities on the card itself. The only
+     thing that needs real CSS is the gradient, because a pseudo-element is what
+     keeps it from disturbing the card's own background: the card is white, and
+     painting a gradient onto `background` directly would mean rebuilding the
+     white underneath it.
+
+     NEGATIVE Z-INDEX, AND WHY IT LANDS IN THE RIGHT PLACE. Within a stacking
+     context the paint order is: the element's own background, then negative
+     z-index children, then in-flow content. So the wash sits above the white
+     card and below the text without touching either. `isolation: isolate` is
+     what guarantees that — it pins the stacking context to the card, so a card
+     inside some future positioned ancestor cannot have its wash escape behind
+     the page.
+
+     TINTED, NOT NEUTRAL. A grey hover state would say "this card reacted".
+     Green on the affordable options and red on the blocked ones says which
+     list the card belongs to, at the moment the pointer is on it — the one
+     piece of the reference card worth keeping. Both are mixed down to roughly
+     a tenth so they read as a wash on white, not as a filled state.
+     ------------------------------------------------------------------------ */
+  .result-card {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .result-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+
+  /* focus-within as well as hover: the cards carry no interactive controls
+     today, but if a link is ever added the wash should follow the keyboard. */
+  .result-card:hover::before,
+  .result-card:focus-within::before {
+    opacity: 1;
+  }
+
+  .result-card-eligible::before {
+    background: radial-gradient(
+      115% 85% at 50% 0%,
+      color-mix(in oklch, var(--color-success-600) 13%, transparent) 0%,
+      transparent 72%
+    );
+  }
+
+  .result-card-blocked::before {
+    background: radial-gradient(
+      115% 85% at 50% 0%,
+      color-mix(in oklch, var(--color-danger-600) 10%, transparent) 0%,
+      transparent 72%
+    );
+  }
+
+  /* ---------------------------------------------------------------------------
+     THE AVAILABLE CARDS DRIFT. THE UNAVAILABLE ONES DO NOT.
+
+     Only .result-card-eligible floats, which is doing work beyond decoration:
+     the options someone can actually have are the live things on the page and
+     the ones they cannot are inert. That reads before anyone has parsed a
+     heading.
+
+     TRANSFORM, NOT TRANSLATE — and this is the part that would otherwise break.
+     The hover lift is Tailwind's -translate-y-1, which sets the `translate`
+     property. If this float also animated `translate` it would win for as long
+     as it ran and the card would simply refuse to lift on hover. `transform`
+     and `translate` are separate properties that the engine composes, so the
+     drift and the lift stack instead of fighting.
+
+     A WAVE, NOT A CROWD. Every card shares one duration and one curve, and the
+     only thing that varies is where in the cycle each one starts — a fixed step
+     per card in reading order. Identical period plus constant phase offset is
+     what makes a travelling wave rather than a set of independent bobs: the
+     cards stay locked to each other forever, and the crest walks along the row
+     and wraps down into the next.
+
+     THE STEP IS IN READING ORDER, NOT BY COLUMN. Keying off nth-child(3n+1) and
+     friends would give a cleaner vertical wavefront, but only at the breakpoint
+     where the grid actually has three columns — it drops to two on tablet and
+     one on a phone, and the pattern would scramble. Stepping by position means
+     consecutive cards are always neighbours whatever the column count, so the
+     ripple survives every layout.
+
+     -0.35s AGAINST A 3s CYCLE puts adjacent cards about a ninth of a period
+     apart: close enough to read as one motion passing through them, far enough
+     that you can see it move. Widen the step and the cards start looking
+     independent again; narrow it and the whole grid flattens back into the
+     page-breathing effect this is avoiding.
+
+     PAUSED ON HOVER. A card that keeps bobbing while the cursor is holding it
+     feels slippery; stopping it makes the hover feel like the card was caught.
+     ------------------------------------------------------------------------ */
+  @keyframes card-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -6px, 0);
+    }
+  }
+
+  .result-card-eligible {
+    animation: card-float 3s ease-in-out infinite;
+    animation-delay: 0s;
+  }
+
+  /* The list is capped at eight cards, so eight steps covers it. Negative, so
+     every card is already at its place in the wave on the first painted frame
+     rather than the grid starting flat and the wave building up. */
+  .result-card-eligible:nth-child(2) {
+    animation-delay: -0.35s;
+  }
+  .result-card-eligible:nth-child(3) {
+    animation-delay: -0.7s;
+  }
+  .result-card-eligible:nth-child(4) {
+    animation-delay: -1.05s;
+  }
+  .result-card-eligible:nth-child(5) {
+    animation-delay: -1.4s;
+  }
+  .result-card-eligible:nth-child(6) {
+    animation-delay: -1.75s;
+  }
+  .result-card-eligible:nth-child(7) {
+    animation-delay: -2.1s;
+  }
+  .result-card-eligible:nth-child(8) {
+    animation-delay: -2.45s;
+  }
+
+  .result-card-eligible:hover {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The blanket rule at the top of the file collapses the DURATION, which on
+       a looping animation means a card vibrating at the frame rate rather than
+       one holding still. It has to be switched off by name. */
+    .result-card-eligible {
+      animation: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The blanket rule at the top of the file only shortens durations, which
+       would make the card jump rather than not move. Both properties are named
+       because Tailwind v4 animates translate utilities through the `translate`
+       property, not through `transform`. */
+    .result-card {
+      transform: none !important;
+      translate: none !important;
     }
   }
 }

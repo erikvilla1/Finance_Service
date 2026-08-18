@@ -659,6 +659,12 @@ export type LenderSubmissionRow = {
  *
  * No update or delete policy exists for this table by design (0005). A consent
  * record that can be edited is worthless as evidence.
+ *
+ * application_id and profile_id are both nullable in the schema because a
+ * consent can be given before an account exists (on paper, or at prequal) or
+ * after an application is deleted. Code that writes one should still set both
+ * where it can — a record that cannot say who agreed or to which file answers
+ * much less than one that can.
  */
 export type ConsentRow = {
   id: string;

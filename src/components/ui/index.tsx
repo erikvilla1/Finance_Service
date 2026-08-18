@@ -137,7 +137,12 @@ export function SectionHeading({
 // BUTTON
 // -----------------------------------------------------------------------------
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "inverted";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "inverted"
+  | "contrast";
 type ButtonSize = "sm" | "md" | "lg";
 
 const buttonBase =
@@ -150,6 +155,44 @@ const buttonVariants: Record<ButtonVariant, string> = {
     "bg-white text-brand-800 ring-1 ring-inset ring-ink-300 hover:bg-ink-50",
   ghost: "text-brand-700 hover:bg-brand-50",
   inverted: "bg-white text-brand-800 hover:bg-brand-50",
+  /**
+   * Near-black. For placing a button on a LIGHT TINTED panel, where primary
+   * fails.
+   *
+   * primary is accent-500 at oklch lightness 0.895, and the tinted panels it
+   * would sit on — success-50 at 0.96, warning-50, brand-50 — are all within a
+   * few points of it. A cream button on a pale green card is a step of about
+   * six percent: visible if you look for it, invisible if you are scanning.
+   * That is the opposite of what a call to action is for.
+   *
+   * brand-900 is 0.24, so it wins by three quarters of the lightness range
+   * instead of by six percent. It is also the surface the page's other CTA
+   * panel is built from, so the two read as the same voice rather than as two
+   * different buttons.
+   */
+  contrast: "bg-brand-900 text-white hover:bg-brand-800",
+};
+
+/**
+ * The chevron panel's tint, per variant — see the `sweep` prop.
+ *
+ * DERIVED FROM THE VARIANT RATHER THAN PASSED IN. The panel is a wash over the
+ * button's own face, so it has to be light on a dark button and dark on a light
+ * one. Exposing that as a prop would mean every call site could set it wrong,
+ * and setting it wrong fails silently: white at 15% over cream is not a subtle
+ * panel, it is no panel at all, and nothing in the markup would say why. There
+ * is exactly one correct answer per variant, so the variant chooses it.
+ *
+ * The chevron itself needs no entry here. lucide icons paint in currentColor
+ * and the panel inherits the button's text colour, so it is already brand-900
+ * on the cream face and white on the near-black one.
+ */
+const sweepPanels: Record<ButtonVariant, string> = {
+  primary: "bg-brand-900/15",
+  secondary: "bg-brand-900/10",
+  ghost: "bg-brand-900/10",
+  inverted: "bg-brand-900/15",
+  contrast: "bg-white/15",
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -157,6 +200,146 @@ const buttonSizes: Record<ButtonSize, string> = {
   md: "px-5 py-2.5 text-[0.95rem]",
   lg: "px-7 py-3.5 text-base",
 };
+
+/**
+ * The custom properties the shimmer reads. Shared so a Button and a ButtonLink
+ * cannot drift into running the effect at two different speeds.
+ */
+const buttonEffectVars = {
+  // --speed drives both keyframes; the spin is twice this.
+  "--speed": "3s",
+  // Width of the wedge, in degrees of the conic gradient.
+  "--spread": "90deg",
+  // How far the backdrop is inset — i.e. how thick the lit edge is.
+  "--cut": "0.06em",
+} as CSSProperties;
+
+/** Classes the host element needs before any of the layers below will work. */
+const buttonEffectHost = "group relative z-0 overflow-hidden";
+
+/**
+ * The shimmer and cursor-glow layers, extracted so Button and ButtonLink render
+ * the same effect from one definition.
+ *
+ * ALL THREE LAYERS SIT BEFORE THE LABEL IN THE DOM, including the backdrop that
+ * used to be written after it. Order is irrelevant here: every layer is
+ * absolutely positioned with its own negative z-index (-30 spark, -20 backdrop,
+ * -10 glow), and within a stacking context negative-z children paint below
+ * in-flow content no matter where they appear in the markup. Keeping them in
+ * one place is what lets both components share this.
+ */
+function ButtonEffects({
+  shimmer,
+  glow,
+}: {
+  shimmer: boolean;
+  glow: boolean;
+}) {
+  return (
+    <>
+      {/*
+        WHITE, as in the source.
+
+        Worth knowing what it costs: the primary button is cream (accent-500,
+        oklch lightness 0.895), so on a cream page white is only a ten-percent
+        step rather than the hard contrast the effect was designed for. It reads
+        as a soft light passing over the rim, not a bright filament. The blur and
+        the fact that it MOVES are what carry it — a static white line at this
+        contrast would be invisible.
+
+        On the dark CTA panel the same cream button has a near-black surround, so
+        the travelling edge reads considerably stronger there. Same markup; the
+        backdrop it sits against is doing the work.
+
+        If it needs more presence, the two knobs are --cut (a thicker lit edge)
+        and the blur below, in that order. Turning the colour dark would read
+        more strongly but stops looking like light.
+      */}
+      {shimmer && (
+        <span
+          aria-hidden="true"
+          className="shimmer-spark pointer-events-none absolute inset-0 -z-30 overflow-visible blur-[2px] [container-type:size] group-disabled:hidden"
+        >
+          <span className="shimmer-slide absolute inset-0 h-[100cqh] [aspect-ratio:1]">
+            <span className="spin-around absolute -inset-full w-auto [background:conic-gradient(from_calc(270deg-(var(--spread)*0.5)),transparent_0,#ffffff_var(--spread),transparent_var(--spread))]" />
+          </span>
+        </span>
+      )}
+
+      {/*
+        THE CURSOR GLOW.
+
+        -z-10 puts it above the backdrop (-z-20) and below the label, so the
+        light passes under the text rather than washing it out. overflow-hidden
+        on the host clips it to the shape, which is what stops a 220px circle
+        spilling past a 50px-tall control.
+
+        Position comes from CSS variables, not React state. The reference stores
+        the coordinates in useState and re-renders the button on every mousemove
+        — a React render per pointer event for something the compositor can do
+        from a custom property. Here the parent writes two variables and nothing
+        re-renders at all.
+
+        scale-0 → scale-100 rather than a plain opacity fade, so it reads as
+        light arriving rather than a panel switching on.
+
+        35%, NOT the reference's 50. It started at full strength, which blew out
+        the middle of the button and left the label swimming in it, and 60 was
+        still too much. The reference is tuned for WHITE ON BLACK, where a glow
+        has most of the range between the surface and pure white to work in. Here
+        the surface is already cream — lightness 0.895 — so the same percentage
+        travels most of the remaining distance to white and reads as a blown-out
+        patch rather than a light.
+
+        The floor is roughly 25: below that it stops being perceptible against
+        cream at all. 35 is the middle of a narrow usable band, not a default.
+      */}
+      {glow && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -z-10 h-[220px] w-[220px] -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full opacity-0 transition-[opacity,transform] duration-300 ease-out group-hover:scale-100 group-hover:opacity-35 group-disabled:hidden"
+          style={{
+            left: "var(--glow-x, 50%)",
+            top: "var(--glow-y, 50%)",
+            background:
+              "radial-gradient(circle, #ffffff 10%, rgba(255,255,255,0) 70%)",
+          }}
+        />
+      )}
+
+      {/*
+        NO INSET HIGHLIGHT. The source has one — an inset white glow rising off
+        the bottom edge, brighter on hover. It was added and taken out again
+        because it reads wrong on a cream face: an inset white shadow lightens
+        the bottom into near-white and leaves the top looking dirty by
+        comparison, so the button stops looking lit and starts looking unevenly
+        printed. The effect needs a dark surface for the highlight to have
+        somewhere to come from.
+
+        If it is ever wanted, it is one span with rounded-[inherit],
+        pointer-events-none, and shadow-[inset_0_-8px_10px_#ffffffXX] — and note
+        the alpha has to be written as hex, because a slash inside an arbitrary
+        value is parsed as the opacity-modifier separator and silently discards
+        the whole declaration.
+      */}
+
+      {/*
+        The backdrop that hides everything but the edge.
+
+        bg-inherit rather than a fixed colour, so it follows the button through
+        its hover state on its own. Pinning it to accent-500 would leave a cream
+        rectangle sitting inside an accent-600 button the moment the cursor
+        arrived — which is precisely when someone is looking at it.
+      */}
+      {shimmer && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -z-20 rounded-[inherit] bg-inherit [inset:var(--cut)]"
+        />
+      )}
+    </>
+  );
+}
 
 export function Button({
   variant = "primary",
@@ -209,121 +392,20 @@ export function Button({
 
   return (
     <button
-      className={cx(classes, "group relative z-0 overflow-hidden")}
+      className={cx(classes, buttonEffectHost)}
       style={
         {
           // Merged rather than overwritten: the caller passes --glow-x/--glow-y
           // through style, and spreading props after this would have replaced
           // the whole object and silently dropped the shimmer's variables.
           ...style,
-          // --speed drives both keyframes; the spin is twice this.
-          "--speed": "3s",
-          // Width of the wedge, in degrees of the conic gradient.
-          "--spread": "90deg",
-          // How far the backdrop is inset — i.e. how thick the lit edge is.
-          "--cut": "0.06em",
+          ...buttonEffectVars,
         } as CSSProperties
       }
       {...props}
     >
-      {/*
-        WHITE, as in the source.
-
-        Worth knowing what it costs: this button is cream (accent-500, oklch
-        lightness 0.895) on a cream page, so white is only a ten-percent step
-        rather than the hard contrast it gets on the black button the effect was
-        designed for. It reads as a soft light passing over the rim, not a
-        bright filament. The blur and the fact that it MOVES are what carry it —
-        a static white line at this contrast would be invisible.
-
-        If it needs more presence, the two knobs are --cut (a thicker lit edge)
-        and the blur below, in that order. Turning the colour dark would read
-        more strongly but stops looking like light.
-      */}
-      {shimmer && (
-        <span
-          aria-hidden="true"
-          className="shimmer-spark pointer-events-none absolute inset-0 -z-30 overflow-visible blur-[2px] [container-type:size] group-disabled:hidden"
-        >
-          <span className="shimmer-slide absolute inset-0 h-[100cqh] [aspect-ratio:1]">
-            <span className="spin-around absolute -inset-full w-auto [background:conic-gradient(from_calc(270deg-(var(--spread)*0.5)),transparent_0,#ffffff_var(--spread),transparent_var(--spread))]" />
-          </span>
-        </span>
-      )}
-
-      {/*
-        THE CURSOR GLOW.
-
-        -z-10 puts it above the backdrop (-z-20) and below the label, so the
-        light passes under the text rather than washing it out. overflow-hidden
-        on the button clips it to the shape, which is what stops a 220px circle
-        spilling past a 50px-tall control.
-
-        Position comes from CSS variables, not React state on this element. The
-        reference stores the coordinates in useState and re-renders the button on
-        every mousemove — that is a React render per pointer event for something
-        the compositor can do from a custom property. Here the parent writes two
-        variables and nothing re-renders at all.
-
-        scale-0 → scale-100 rather than a plain opacity fade, so it reads as
-        light arriving rather than a panel switching on.
-
-        35%, NOT the reference's 50. It started at full strength, which blew out
-        the middle of the button and left the label swimming in it, and 60 was
-        still too much. The reference is tuned for WHITE ON BLACK, where a glow
-        has most of the range between the surface and pure white to work in.
-        Here the surface is already cream — lightness 0.895 — so the same
-        percentage travels most of the remaining distance to white and reads as
-        a blown-out patch rather than a light.
-
-        The floor is roughly 25: below that it stops being perceptible against
-        cream at all. 35 is the middle of a narrow usable band, not a default.
-      */}
-      {glow && (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -z-10 h-[220px] w-[220px] -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full opacity-0 transition-[opacity,transform] duration-300 ease-out group-hover:scale-100 group-hover:opacity-35 group-disabled:hidden"
-          style={{
-            left: "var(--glow-x, 50%)",
-            top: "var(--glow-y, 50%)",
-            background:
-              "radial-gradient(circle, #ffffff 10%, rgba(255,255,255,0) 70%)",
-          }}
-        />
-      )}
-
+      <ButtonEffects shimmer={shimmer} glow={glow} />
       {children}
-
-      {/*
-        NO GLOW LAYER. The source has one — an inset white highlight rising off
-        the bottom edge, brighter on hover. It was added and taken out again
-        because it reads wrong on this button specifically: an inset white
-        shadow on a cream face lightens the bottom into near-white and leaves
-        the top looking dirty by comparison, so the button stops looking lit and
-        starts looking unevenly printed. The effect needs a dark surface for the
-        highlight to have somewhere to come from.
-
-        If it is ever wanted here, it is one span with rounded-[inherit],
-        pointer-events-none, and shadow-[inset_0_-8px_10px_#ffffffXX] — and note
-        the alpha has to be written as hex, because a slash inside an arbitrary
-        value is parsed as the opacity-modifier separator and silently discards
-        the whole declaration.
-      */}
-
-      {/*
-        The backdrop that hides everything but the edge.
-
-        bg-inherit rather than a fixed colour, so it follows the button through
-        its hover state on its own. Pinning it to accent-500 would leave a cream
-        rectangle sitting inside an accent-600 button the moment the cursor
-        arrived — which is precisely when someone is looking at it.
-      */}
-      {shimmer && (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -z-20 rounded-[inherit] bg-inherit [inset:var(--cut)]"
-        />
-      )}
     </button>
   );
 }
@@ -333,20 +415,117 @@ export function ButtonLink({
   variant = "primary",
   size = "md",
   className,
+  shimmer = false,
+  glow = false,
+  sweep = false,
   children,
-}: {
+  style,
+  ...props
+}: Omit<ComponentPropsWithoutRef<typeof Link>, "href" | "children"> & {
   href: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   className?: string;
+  /** See Button. Same effect, same warning about using it more than once. */
+  shimmer?: boolean;
+  /**
+   * See Button. Needs a client parent writing --glow-x / --glow-y to follow the
+   * cursor; GlowButtonLink is that parent. Bare, it falls back to the centre of
+   * the button and still fades in on hover.
+   */
+  glow?: boolean;
+  /**
+   * A chevron in a tinted panel at the right edge, which expands to fill the
+   * button on hover while the label fades out.
+   *
+   * Works on any variant — the panel's tint comes from sweepPanels, which is
+   * keyed off `variant` precisely so a light button cannot end up with an
+   * invisible white wash on it.
+   *
+   * DOES NOT COMBINE WITH `glow`. The panel is painted above the glow layer and
+   * covers it exactly when the cursor is over the button, which is the only time
+   * the glow is visible. Turn glow off rather than paying for a layer nothing
+   * can see.
+   */
+  sweep?: boolean;
   children: ReactNode;
 }) {
+  const classes = cx(
+    buttonBase,
+    buttonVariants[variant],
+    buttonSizes[size],
+    className,
+  );
+
+  // The plain path stays a plain anchor. Every ButtonLink on the site renders
+  // through here, and none of them should pay for three extra spans and a
+  // stacking context to get an effect they did not ask for.
+  if (!shimmer && !glow && !sweep) {
+    return (
+      <Link href={href} className={classes} style={style} {...props}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <Link
       href={href}
-      className={cx(buttonBase, buttonVariants[variant], buttonSizes[size], className)}
+      className={cx(classes, buttonEffectHost)}
+      style={{ ...style, ...buttonEffectVars } as CSSProperties}
+      {...props}
     >
-      {children}
+      <ButtonEffects shimmer={shimmer} glow={glow} />
+      {sweep ? (
+        <>
+          {/*
+            THE MARGIN IS LOAD-BEARING, NOT SPACING. The button centres its
+            content, so without it the label would sit under the resting panel.
+            The margin pushes the label left by the room the panel occupies plus
+            the gap between them — and because the button is width:auto, it is
+            also what makes the button longer. Widening the button and separating
+            the label from the chevron are the same adjustment.
+
+            mr-12 rather than the reference's mr-8: at 8 the label ended about
+            four pixels from the panel edge, which reads as the two colliding
+            rather than sitting side by side.
+
+            The label keeps its space while invisible — opacity, not display —
+            so the button does not resize as the cursor arrives.
+          */}
+          <span className="mr-12 transition-opacity duration-500 group-hover:opacity-0">
+            {children}
+          </span>
+          {/*
+            A SPAN, NOT THE REFERENCE'S <i>. That element means emphasis, and
+            this is decoration with no text in it; aria-hidden keeps the chevron
+            out of the accessibility tree entirely, so the link is announced as
+            its label and nothing else.
+
+            w-11 AT REST, NOT THE REFERENCE'S w-1/4. A percentage width makes the
+            chevron box a function of the label: a long label widens the button,
+            which widens the panel, which eats back the gap the margin just
+            bought — so the two would creep toward each other again on any button
+            with more words than this one. A fixed 2.75rem is square against the
+            panel's own height (the button is ~3.25rem tall less the two 0.25rem
+            insets) and stays put whatever the label says.
+
+            It still expands to the full width less those insets on hover, which
+            is the whole effect.
+          */}
+          <span
+            aria-hidden="true"
+            className={cx(
+              "absolute inset-y-1 right-1 z-10 grid w-11 place-items-center rounded-md transition-all duration-500 ease-out group-hover:w-[calc(100%-0.5rem)] group-active:scale-95",
+              sweepPanels[variant],
+            )}
+          >
+            <ChevronRight className="h-4 w-4" strokeWidth={2} />
+          </span>
+        </>
+      ) : (
+        children
+      )}
     </Link>
   );
 }
@@ -358,16 +537,40 @@ export function ButtonLink({
 export function Card({
   children,
   className,
+  tone = "default",
   as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
+  /**
+   * "muted" recesses the card instead of raising it: grey face, no shadow.
+   *
+   * A PROP RATHER THAN A CLASS THE CALLER PASSES IN. Handing `bg-ink-100`
+   * through className would put it in the same string as this component's own
+   * `bg-white`, and Tailwind resolves that collision by which utility it
+   * happens to emit later in the stylesheet — not by which one is written last
+   * in the attribute. It would work or not work for reasons no one could see in
+   * the markup. Swapping the class here means only one background is ever
+   * generated for the element.
+   *
+   * WHY ink-100 SPECIFICALLY. The page behind these cards is accent-500, oklch
+   * lightness 0.895. ink-200 is 0.90 — it would erase the card entirely. White
+   * is 1.0. ink-100 at 0.96 is the one value that sits clearly above the page
+   * and clearly below the available cards. It is also neutral where the page is
+   * warm, so it reads slightly cooler and duller than its surroundings, which
+   * is the whole point.
+   *
+   * The shadow goes too. A drop shadow says "this is raised toward you", which
+   * is the wrong thing to say about an option someone cannot have.
+   */
+  tone?: "default" | "muted";
   as?: "div" | "article" | "li";
 }) {
   return (
     <Tag
       className={cx(
-        "rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70",
+        "rounded-card p-6 ring-1 ring-ink-200/70",
+        tone === "muted" ? "bg-ink-100" : "bg-white shadow-card",
         // Only ever applies inside the admin shell — the dark variant is scoped
         // to that wrapper in globals.css, so these classes are inert on every
         // customer-facing page that uses this same component.
