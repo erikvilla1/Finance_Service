@@ -13,11 +13,21 @@ import { formatCurrency, formatDate } from "@/lib/crm";
  * assembly is where things get forgotten, because nothing tells him what is
  * missing until a funder asks.
  *
- * ONE FILE PER CHECKLIST ITEM, THE NEWEST. A request can hold several documents:
- * a rejected first attempt, its replacement, a specialist's own copy. Sending
- * all of them makes a lender read the same statement twice and guess which is
- * current. The newest non-deleted file wins, which is the same one the checklist
- * shows as satisfying the request.
+ * EVERY ACCEPTED FILE PER CHECKLIST ITEM. A request can hold several documents
+ * for two very different reasons, and they need opposite handling.
+ *
+ * One is a correction: a rejected first attempt and its replacement. Sending
+ * both makes a lender read the same statement twice and guess which is current.
+ *
+ * The other is a set. "Bank statements, last 6 months" is six files by
+ * definition; so is a year of tax returns. There is no newest one to pick,
+ * because none of them supersedes another.
+ *
+ * Acceptance separates the two, and it is the right signal because it is a
+ * specialist saying "this belongs in the file". Every accepted document travels;
+ * a rejected one never travels while an accepted one exists. Before review there
+ * is nothing accepted to go on, so the newest wins as it used to — at that point
+ * a second upload is far more likely to be a correction than a second page.
  *
  * THE MANIFEST IS NOT DECORATION. It lists what is inside, and — more usefully —
  * what is not. A funder receiving a package with no debt schedule should be able
@@ -65,7 +75,9 @@ export async function buildLenderPackage(
 
   const { data: documents } = await service
     .from("documents")
-    .select("id, document_request_id, file_name, storage_path, status, created_at")
+    .select(
+      "id, document_request_id, document_type_key, file_name, storage_path, status, created_at",
+    )
     .eq("application_id", applicationId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -81,16 +93,54 @@ export async function buildLenderPackage(
     (definitions ?? []).map((d) => [d.key, d.sort_order] as const),
   );
 
-  // Newest first from the query, so the first one seen per request is the one
-  // to send.
+  // Newest first from the query. Grouped rather than reduced to one, because a
+  // single checklist item legitimately holds a set of files.
   type PackagedDocument = NonNullable<typeof documents>[number];
-  const newestByRequest = new Map<string, PackagedDocument>();
+  const byRequest = new Map<string, PackagedDocument[]>();
+
+  /**
+   * Files that belong to the application but to no checklist item.
+   *
+   * NOT A THEORETICAL CASE. signFundingApplication resolves the signed
+   * application's request id and falls back to null when there is no
+   * signed_application request on the file — so the one document a lender
+   * actually relies on is exactly the one that can arrive unlinked. Skipping
+   * these, which is what this loop used to do, meant the package could omit the
+   * signature and still describe itself as complete.
+   *
+   * They go in at the end under their own type label rather than being forced
+   * into a checklist position they do not have.
+   */
+  const unlinked = new Map<string, PackagedDocument[]>();
 
   for (const document of documents ?? []) {
-    if (!document.document_request_id) continue;
-    if (!newestByRequest.has(document.document_request_id)) {
-      newestByRequest.set(document.document_request_id, document);
-    }
+    const key = document.document_request_id;
+    const bucket = key ? byRequest : unlinked;
+    const id = key ?? document.document_type_key ?? "__unfiled__";
+
+    const group = bucket.get(id);
+    if (group) group.push(document);
+    else bucket.set(id, [document]);
+  }
+
+  /**
+   * Which of a request's files go to the funder. See the note at the top of
+   * this file for why acceptance rather than recency decides it.
+   *
+   * The old rule kept one file and reported nothing missing, so a package that
+   * had lost five of six bank statements looked complete on its own manifest.
+   * That is the part worth guarding against: a short package a lender queries
+   * costs a week, and nothing in the product said it was short.
+   */
+  function choose(group: PackagedDocument[]): PackagedDocument[] {
+    const accepted = group.filter((document) => document.status === "accepted");
+
+    // slice(0, 1) is the newest — the query ordered them that way.
+    const chosen = accepted.length > 0 ? accepted : group.slice(0, 1);
+
+    // Oldest first. Newest-first is only useful for picking a single winner;
+    // a set of statements should read in the order it was sent.
+    return [...chosen].reverse();
   }
 
   const ordered = [...(requests ?? [])].sort(
@@ -105,11 +155,61 @@ export async function buildLenderPackage(
 
   let position = 1;
 
+  /**
+   * Add one item's files to the zip under a single number.
+   *
+   * Every file of one checklist item carries that item's number, so a set stays
+   * together in a sorted folder listing instead of being interleaved with
+   * whatever happened to sort next. "(1 of 3)" then tells a reader the set is
+   * whole without opening anything.
+   */
+  async function addToPackage(label: string, files: PackagedDocument[]) {
+    const number = String(position).padStart(2, "0");
+    let part = 0;
+
+    for (const document of files) {
+      part += 1;
+      const suffix = files.length > 1 ? ` (${part} of ${files.length})` : "";
+
+      const { data: file, error } = await service.storage
+        .from("application-documents")
+        .download(document.storage_path);
+
+      if (error || !file) {
+        // Named rather than skipped silently: a package quietly one document
+        // short is worse than one that says which document failed. With a set,
+        // the file name says which part of it went missing.
+        missing.push(
+          files.length > 1
+            ? `${label} — ${document.file_name} (file could not be read)`
+            : `${label} (file could not be read)`,
+        );
+        continue;
+      }
+
+      const bytes = new Uint8Array(await file.arrayBuffer());
+
+      entries.push({
+        name: `${number} ${safeFileName(`${label}${suffix}`)}${extensionOf(document.file_name)}`,
+        data: bytes,
+        modified: new Date(document.created_at),
+      });
+
+      included.push(
+        `${label}${suffix} — ${document.file_name}${
+          document.status === "accepted" ? "" : ` (${document.status}, not yet accepted)`
+        }`,
+      );
+    }
+
+    position += 1;
+  }
+
   for (const request of ordered) {
     const label = labelByKey.get(request.document_type_key) ?? request.document_type_key;
-    const document = newestByRequest.get(request.id);
+    const files = choose(byRequest.get(request.id) ?? []);
 
-    if (!document) {
+    if (files.length === 0) {
       if (request.status === "waived") {
         included.push(`${label} — waived, not required for this file`);
       } else if (request.is_required) {
@@ -118,34 +218,17 @@ export async function buildLenderPackage(
       continue;
     }
 
-    const { data: file, error } = await service.storage
-      .from("application-documents")
-      .download(document.storage_path);
+    await addToPackage(label, files);
+  }
 
-    if (error || !file) {
-      // Named rather than skipped silently: a package quietly one document
-      // short is worse than one that says which document failed.
-      missing.push(`${label} (file could not be read)`);
-      continue;
-    }
+  // Anything the checklist never claimed. Last, and labelled by its own type so
+  // the folder still says what it is.
+  for (const [key, group] of unlinked) {
+    const label =
+      labelByKey.get(key) ??
+      (key === "__unfiled__" ? "Additional document" : key);
 
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const extension = extensionOf(document.file_name);
-    const number = String(position).padStart(2, "0");
-
-    entries.push({
-      name: `${number} ${safeFileName(label)}${extension}`,
-      data: bytes,
-      modified: new Date(document.created_at),
-    });
-
-    included.push(
-      `${label} — ${document.file_name}${
-        document.status === "accepted" ? "" : ` (${document.status}, not yet accepted)`
-      }`,
-    );
-
-    position += 1;
+    await addToPackage(label, choose(group));
   }
 
   // ---------------------------------------------------------------- manifest
