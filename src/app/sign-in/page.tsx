@@ -107,7 +107,7 @@ export default async function SignInPage({
                 closer to the top than it measured. */}
             <Link
               href="/"
-              aria-label="Financial Lending Specialists"
+              aria-label="FLS Capital Advisors"
               className="group mt-2"
             >
               <Image
@@ -129,7 +129,7 @@ export default async function SignInPage({
                 href="/start"
                 className="font-semibold text-brand-800 hover:underline"
               >
-                See your financing options
+                Get started now
               </Link>
             </p>
           </div>

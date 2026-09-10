@@ -45,7 +45,7 @@ export type SendOutcome =
  * worst case is mail that goes nowhere useful, not mail that goes to an
  * applicant from an unverified address.
  */
-const DEFAULT_FROM = "Financial Lending Specialists <onboarding@resend.dev>";
+const DEFAULT_FROM = "FLS Capital Advisors <onboarding@resend.dev>";
 
 /**
  * Where a reply goes.
@@ -159,7 +159,7 @@ export function wrapHtml(options: {
         ${cta}
         <tr><td style="border-top:1px solid #e8e8e6;padding-top:16px;
                        font-size:12px;line-height:1.6;color:#7e7d7d;">
-          ${options.footer ?? "This message was sent by Financial Lending Specialists regarding your financing application."}
+          ${options.footer ?? "This message was sent by FLS Capital Advisors regarding your financing application."}
         </td></tr>
       </table>
     </td></tr>

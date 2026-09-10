@@ -43,8 +43,9 @@ export function TermsContent() {
     <>
             <p className={P}>
               These terms are an agreement between you and Financial Lending
-              Specialists (&ldquo;FLS,&rdquo; &ldquo;we,&rdquo;
-              &ldquo;us&rdquo;). By using this site, creating an account, or
+              Specialists D.B.A. FLS Capital Advisors (&ldquo;FLS,&rdquo;
+              &ldquo;we,&rdquo; &ldquo;us&rdquo;). By using this site, creating
+              an account, or
               submitting information through it, you agree to them. If you do
               not agree, do not use the site.
             </p>
