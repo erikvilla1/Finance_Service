@@ -331,19 +331,19 @@ export default function HomePage() {
                   isn't done at runtime. */}
               <h1 className="text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
                 <span className="hero-line">
-                  <span>Financing Solutions</span>
+                  <span>Your Business.</span>
                 </span>
                 <span className="hero-line">
                   <span className="[animation-delay:110ms]">
-                    Built Around Your Goals
+                    Your Capital.
                   </span>
                 </span>
               </h1>
               <p className="animate-fade-in-up mt-6 max-w-2xl text-lg leading-relaxed text-brand-100 [animation-delay:150ms] sm:text-xl">
-                Whether you&apos;re acquiring equipment, expanding your business,
-                investing in real estate, or looking for working capital,
-                Financial Lending Specialists can help you explore financing
-                options tailored to your situation.
+                Create an account to track your file from first question to
+                funding. Your dashboard shows real-time status on your
+                application and documents, flags exactly what&apos;s needed
+                next, and connects you directly with your specialist.
               </p>
             </div>
 
@@ -379,7 +379,7 @@ export default function HomePage() {
           <div className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
             <div className="animate-fade-in-up flex flex-wrap gap-3 [animation-delay:300ms]">
               <ButtonLink href="/start" size="lg">
-                See My Financing Options
+                Get Your Free Quote
                 <ChevronRight className="h-5 w-5" />
               </ButtonLink>
               <ButtonLink
@@ -388,7 +388,7 @@ export default function HomePage() {
                 variant="ghost"
                 className="text-white ring-1 ring-inset ring-white/40 hover:bg-white/10 hover:text-white"
               >
-                See How It Works
+                How It Works
               </ButtonLink>
             </div>
 
@@ -422,7 +422,7 @@ export default function HomePage() {
               <SectionHeading
                 eyebrow="Who we are"
                 title="Financing Solutions for Real-World Business Needs"
-                description="Financial Lending Specialists helps businesses, investors, and professionals find financing for opportunities that don't always fit neatly into traditional lending programs."
+                description="With our wide range and network of lenders, we connect you to a tailored solution with a lender who works best for your situation."
               />
               <p className="mt-6 max-w-xl leading-relaxed text-ink-600">
                 From equipment and commercial real estate to working capital and

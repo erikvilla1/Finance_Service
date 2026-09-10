@@ -35,20 +35,18 @@ export default async function PortalLayout({
       <header className="border-b border-ink-200 bg-white">
         <Container>
           <div className="flex h-16 items-center justify-between gap-4">
-            <Link href="/" aria-label="Financial Lending Specialists" className="flex items-center">
+            <Link href="/" aria-label="FLS Capital Advisors" className="group flex items-center">
+              {/* Same file and sizing as the application flow's header
+                  (src/app/(application)/layout.tsx) — one dark mark, no
+                  mobile/desktop split, so the portal matches the rest of the
+                  authenticated flow instead of running its own logo variant. */}
               <Image
-                src="/brand/fls-logo-icon.png"
+                src="/brand/fls-capital-dark.png"
                 alt=""
-                width={824}
-                height={714}
-                className="h-10 w-auto max-w-none shrink-0 sm:hidden"
-              />
-              <Image
-                src="/brand/fls-logo-full.png"
-                alt=""
-                width={2613}
-                height={527}
-                className="hidden h-11 w-auto max-w-none shrink-0 sm:block"
+                width={2254}
+                height={1070}
+                className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60"
+                priority
               />
             </Link>
 

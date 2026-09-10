@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
             FLS
           </span>
           <span className="text-sm font-semibold text-ink-900">
-            Financial Lending Specialists
+            FLS Capital Advisors
           </span>
         </Link>
 

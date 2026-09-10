@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: "Contact" };
  *   - Contact details are still pending verification. The source materials
  *     list two different phone numbers, so no number is published here yet.
  *   - Platform spec §4: contact must not become the primary conversion action.
- *     The primary CTA remains "See My Financing Options", which is in the
+ *     The primary CTA remains "Get Your Free Quote", which is in the
  *     sticky header on every page and in the hero.
  */
 export default function Page() {

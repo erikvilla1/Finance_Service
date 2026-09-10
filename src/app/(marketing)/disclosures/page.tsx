@@ -55,8 +55,9 @@ export default function Page() {
           <div className="max-w-3xl">
             <h2 className={H}>We are a broker, not a lender</h2>
             <p className={P}>
-              Financial Lending Specialists arranges financing through
-              third-party funding sources. We do not lend money and we do not
+              Financial Lending Specialists D.B.A. FLS Capital Advisors
+              arranges financing through third-party funding sources. We do
+              not lend money and we do not
               make credit decisions. Every approval, decline, and set of terms
               comes from the funding source, under its own underwriting
               criteria.

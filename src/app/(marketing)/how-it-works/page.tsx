@@ -78,7 +78,7 @@ export default function HowItWorksPage() {
               description="It begins with one question: what are you trying to accomplish?"
             />
             <ButtonLink href="/start" size="lg" className="shrink-0">
-              See My Financing Options
+              Get Your Free Quote
             </ButtonLink>
           </div>
         </Container>

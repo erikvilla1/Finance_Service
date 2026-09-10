@@ -22,8 +22,9 @@ export function PrivacyContent() {
   return (
     <>
             <p className={P}>
-              This policy explains what Financial Lending Specialists
-              (&ldquo;FLS,&rdquo; &ldquo;we,&rdquo; &ldquo;us&rdquo;) collects
+              This policy explains what Financial Lending Specialists D.B.A.
+              FLS Capital Advisors (&ldquo;FLS,&rdquo; &ldquo;we,&rdquo;
+              &ldquo;us&rdquo;) collects
               when you use this website, why we collect it, and who we share it
               with. It applies to this site and to the application portal.
             </p>

@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   // The apex flscapitaladvisors.com redirects here (configured in Vercel).
   metadataBase: new URL("https://www.flscapitaladvisors.com"),
   title: {
-    default: "Financial Lending Specialists — Financing Solutions Built Around Your Goals",
-    template: "%s | Financial Lending Specialists",
+    default: "FLS Capital Advisors — Your Business. Your Capital.",
+    template: "%s | FLS Capital Advisors",
   },
   description:
-    "Financial Lending Specialists helps businesses, investors, and professionals explore financing options for opportunities that don't always fit neatly into traditional lending programs.",
+    "FLS Capital Advisors helps businesses, investors, and professionals explore financing options for opportunities that don't always fit neatly into traditional lending programs.",
   robots: {
     // Nothing is indexed until the content is verified and legal review is done
     // (BUSINESS_CONTEXT §12, platform spec §29). Flip this at launch.

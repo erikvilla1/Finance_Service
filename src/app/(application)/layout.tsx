@@ -52,7 +52,7 @@ export default function ApplicationLayout({
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/"
-            aria-label="Financial Lending Specialists"
+            aria-label="FLS Capital Advisors"
             className={`${CAPSULE} group pl-2`}
           >
             {/*
@@ -80,8 +80,8 @@ export default function ApplicationLayout({
             <Image
               src="/brand/fls-capital-dark.png"
               alt=""
-              width={700}
-              height={328}
+              width={2254}
+              height={1070}
               className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60 sm:h-12"
               priority
             />

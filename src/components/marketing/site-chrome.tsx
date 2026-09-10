@@ -12,8 +12,8 @@ import { Reveal } from "@/components/marketing/reveal";
 /**
  * Header and footer.
  *
- * Navigation follows platform spec §6. The primary CTA is "See My Financing
- * Options", never "Contact Us" — spec §4 is explicit that contact must not be
+ * Navigation follows platform spec §6. The primary CTA is "Get Your Free
+ * Quote", never "Contact Us" — spec §4 is explicit that contact must not be
  * the primary conversion action.
  */
 
@@ -21,7 +21,7 @@ import { Reveal } from "@/components/marketing/reveal";
  * In-page anchors, not routes.
  *
  * The marketing site is one scrolling page (see the home page's sections). The
- * only navigation that leaves it is "See My Financing Options" — every link
+ * only navigation that leaves it is "Get Your Free Quote" — every link
  * here moves within it, so a visitor cannot wander into a corner of the site
  * that has no path back to the application.
  *
@@ -166,7 +166,7 @@ export function SiteHeader() {
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <Link
           href="/"
-          aria-label="Financial Lending Specialists"
+          aria-label="FLS Capital Advisors"
           className={`${CAPSULE} ${capsule} group justify-self-start pl-2`}
         >
           {/*
@@ -230,8 +230,8 @@ export function SiteHeader() {
           <Image
             src={onHome ? "/brand/fls-capital-light.png" : "/brand/fls-capital-dark.png"}
             alt=""
-            width={700}
-            height={328}
+            width={2254}
+            height={1070}
             className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60 sm:h-12"
             priority
           />
@@ -290,16 +290,23 @@ export function SiteHeader() {
             Sign in
           </Link>
 
-          {/* Padding comes from size="lg" alone. Adding px-* here would put two
+          {/* Padding comes from size="md" alone. Adding px-* here would put two
               competing padding utilities on one element, and which wins is
               decided by Tailwind's stylesheet order rather than by the order
-              they are written — a coin flip that reads as a bug. */}
+              they are written — a coin flip that reads as a bug.
+
+              size="md", not "lg": "lg"'s px-7 was sized for "See Your
+              Personalized Quote" — against the shorter "Get Your Free Quote"
+              it read as an oversized box around the text. "md" trims the
+              padding; the capsule's fixed height (below) still pins this to
+              the same height as the nav pill and logo regardless of size, so
+              the row stays aligned either way. */}
           <ButtonLink
             href="/start"
-            size="lg"
+            size="md"
             className={`${CAPSULE} whitespace-nowrap shadow-card`}
           >
-            See My Financing Options
+            Get Your Free Quote
           </ButtonLink>
         </div>
       </div>
@@ -409,12 +416,12 @@ export function SiteFooter() {
               <Image
                 src="/brand/fls-capital-dark.png"
                 alt=""
-                width={700}
-                height={328}
+                width={2254}
+                height={1070}
                 className="h-10 w-auto max-w-none shrink-0"
               />
               <span className="text-sm font-semibold text-ink-900">
-                Financial Lending Specialists
+                FLS Capital Advisors
               </span>
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-600">
@@ -430,7 +437,7 @@ export function SiteFooter() {
                 across, with the rest of the footer's width in light text beside
                 it. Here it holds the corner it starts from. */}
             <ButtonLink href="/start" className="mt-6">
-              See My Financing Options
+              Get Your Free Quote
             </ButtonLink>
             <Link
               href="/sign-in"
@@ -490,15 +497,15 @@ export function SiteFooter() {
         */}
         <div className="border-t border-ink-200 py-6">
           <p className="text-xs leading-relaxed text-ink-600">
-            Financial Lending Specialists arranges financing through third-party
-            funding sources. Nothing on this site is a commitment to lend or an
-            offer of credit. All financing is subject to qualification, lender
-            review, and program availability. Program terms and availability vary
-            and may change.
+            Financial Lending Specialists D.B.A. FLS Capital Advisors arranges
+            financing through third-party funding sources. Nothing on this
+            site is a commitment to lend or an offer of credit. All financing
+            is subject to qualification, lender review, and program
+            availability. Program terms and availability vary and may change.
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
             <p className="text-xs text-ink-600">
-              © {new Date().getFullYear()} Financial Lending Specialists. All rights reserved.
+              © {new Date().getFullYear()} Financial Lending Specialists D.B.A. FLS Capital Advisors. All rights reserved.
             </p>
             <BackToTop />
           </div>

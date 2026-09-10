@@ -13,7 +13,7 @@ export default function Page() {
               About Us
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-600">
-              Financial Lending Specialists helps businesses, investors, and professionals explore financing for opportunities that don&apos;t always fit traditional lending programs.
+              FLS Capital Advisors helps businesses, investors, and professionals explore financing for opportunities that don&apos;t always fit traditional lending programs.
             </p>
           </div>
         </Container>
