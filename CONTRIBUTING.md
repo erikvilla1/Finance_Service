@@ -135,6 +135,81 @@ endings section above before doing anything else.
 
 ---
 
+## Deploying
+
+Deploys go out by running a command, not by pushing.
+
+Vercel refuses to build a commit whose GitHub author is not a member of the
+Vercel team:
+
+> The deployment was blocked because the commit author doesn't have permission
+> to create deployments for this project.
+> `seatBlock: { blockCode: "TEAM_ACCESS_REQUIRED" }`
+
+Kai commits to GitHub but holds no Vercel seat, so **every build of a commit Kai
+authored is `BLOCKED`** — including one sitting on `main`, when Kai is the one
+who merged the PR. It fails quietly: the push succeeds, CI goes green, and
+nothing reaches production.
+
+Re-triggering does not help. The check is on the commit author, not on whatever
+started the build, so a deploy hook pointed at the same commit is blocked
+identically. That was tested, not assumed.
+
+### Shipping Kai's work
+
+```bash
+git checkout main && git pull
+npm run deploy
+```
+
+`npm run deploy` goes through the Vercel CLI. A CLI deploy carries no commit
+author — Vercel records it as `source: cli`, attributed to whoever is logged in
+— so the seat check never applies and Kai's commits ship like anyone else's.
+
+It refuses to run if the working tree is dirty, or if `HEAD` is not
+`origin/main`, because the CLI uploads the working directory rather than a git
+ref: what is on disk is what ships. `npm run deploy -- --force` skips both
+checks.
+
+Needs `vercel login` once per machine, as someone holding a seat on the
+`Financial_Lending_Advisors` team.
+
+### The other way, where it applies
+
+A push to `main` still auto-deploys **if the tip commit is authored by someone
+with a seat**. So merging Kai's branch under your own merge commit also works:
+
+```bash
+git checkout main && git pull
+git merge --no-ff kai/<branch>    # --no-ff matters: it creates YOUR commit
+git push
+```
+
+A fast-forward merge leaves Kai's commit at the tip and the build is blocked, so
+`--no-ff` is the entire trick. Prefer `npm run deploy` anyway — it does not
+depend on who happened to write the last commit.
+
+### Reviewing a branch before it merges
+
+Kai's branches produce no preview URL, for the same reason. To get one:
+
+```bash
+git fetch origin && git checkout kai/<branch>
+npm run deploy:preview
+```
+
+Preview URLs sit behind Vercel's deployment protection, so open them while
+signed in to Vercel or they will just redirect.
+
+### The permanent fix
+
+Give Kai a seat on the Vercel team. That is precisely what
+`TEAM_ACCESS_REQUIRED` is asking for, and it retires everything above — his
+pushes would build and preview on their own. It costs a paid seat, which is the
+only reason this workaround exists.
+
+---
+
 ## Things that are enforced, not suggested
 
 Some rules live in the database because a convention someone has to remember is
