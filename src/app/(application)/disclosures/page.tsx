@@ -105,7 +105,7 @@ export default function Page() {
             — to be given at the time a commercial financing offer is made.
             Where that requirement applies to an offer arranged through FLS,
             the funding source making the offer provides it, in the form the
-            applicable law requires, before you accept. FLS's role is to
+            applicable law requires, before you accept. FLS&apos;s role is to
             facilitate that process, not to issue the disclosure itself.
           </p>
 

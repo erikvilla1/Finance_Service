@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ResourceGuideCard } from "@/components/marketing/resource-guide-card";
@@ -31,25 +31,43 @@ export function ResourceGuideScroller({ guides }: { guides: ResourceGuide[] }) {
     align: "start",
     containScroll: "trimSnaps",
   });
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
+  // Embla owns this state, not React — which is what useSyncExternalStore is
+  // for. The earlier version mirrored it into useState and primed it with a
+  // synchronous call in an effect; that call is a cascading render, and what
+  // react-hooks/set-state-in-effect flags. Subscribing instead reads the
+  // current value on mount and on every resubscribe, so the arrows start in
+  // the right state without an extra render pass.
+  //
+  // `subscribe` is keyed on emblaApi, so the moment the carousel finishes
+  // initialising and the api appears, React resubscribes and re-reads — which
+  // is exactly the priming the effect used to do by hand.
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!emblaApi) return () => {};
+      emblaApi.on("select", onStoreChange);
+      emblaApi.on("reInit", onStoreChange);
+      return () => {
+        emblaApi.off("select", onStoreChange);
+        emblaApi.off("reInit", onStoreChange);
+      };
+    },
+    [emblaApi],
+  );
 
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-    emblaApi.on("reInit", onSelect);
-    return () => {
-      emblaApi.off("select", onSelect);
-      emblaApi.off("reInit", onSelect);
-    };
-  }, [emblaApi, onSelect]);
+  // Both snapshots return booleans, so React's Object.is check settles them by
+  // value — no caching needed. The third argument is the server snapshot: on
+  // the server there is no carousel, and a pair of disabled arrows is the
+  // honest match for the markup that hydrates.
+  const canScrollPrev = useSyncExternalStore(
+    subscribe,
+    () => (emblaApi ? emblaApi.canScrollPrev() : false),
+    () => false,
+  );
+  const canScrollNext = useSyncExternalStore(
+    subscribe,
+    () => (emblaApi ? emblaApi.canScrollNext() : false),
+    () => false,
+  );
 
   return (
     <div>
