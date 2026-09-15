@@ -1,0 +1,24 @@
+# Trims the CLI upload. Only applies to `vercel deploy` from a machine —
+# Git-triggered builds clone from GitHub and ignore this file entirely.
+#
+# Every path here is either source material the build never reads or local
+# scratch. Leading slashes anchor to the repo root on purpose: `/Brochures`
+# is the .docx/.pdf originals, while the copies the site actually serves
+# live at public/brochures and must keep uploading.
+
+# Source material for the brochures, not the served copies.
+/Brochures
+
+# Specs and business context — read by humans, never by next build.
+/docs
+
+# Local scratch, untracked.
+/_to_delete
+
+# Build output and local env. Vercel rebuilds these itself.
+.next
+node_modules
+.env*.local
+
+# Masters for the hero video; public/video holds the encoded copies.
+*.mov
