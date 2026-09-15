@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Container, Section } from "@/components/ui";
+import { Container } from "@/components/ui";
 import { TermsContent } from "@/components/legal/terms-content";
 
 export const metadata: Metadata = { title: "Terms of Use" };
@@ -31,33 +31,27 @@ export const metadata: Metadata = { title: "Terms of Use" };
  * choices with consequences whose enforceability is state-specific, and the
  * reference's own wording is generic boilerplate that should not be inherited
  * on trust.
+ *
+ * MOVED UNDER (application), NOT (marketing). See the note on the Privacy
+ * Policy page — same reasoning, same background and header, same reason the
+ * old tinted hero band is gone.
  */
-
-
 export default function Page() {
   return (
-    <>
-      <div className="border-b border-ink-200 bg-ink-50">
-        <Container>
-          <div className="py-16 sm:py-20">
-            <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-ink-900 sm:text-5xl">
-              Terms of Use
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-600">
-              The terms that govern your use of this site.
-            </p>
-            <p className="mt-3 text-sm text-ink-500">Effective [DATE]</p>
-          </div>
-        </Container>
-      </div>
+    <Container>
+      <div className="mx-auto max-w-3xl">
+        <h1 className="text-4xl font-bold tracking-tight text-ink-900 sm:text-5xl">
+          Terms of Use
+        </h1>
+        <p className="mt-5 text-lg leading-relaxed text-ink-600">
+          The terms that govern your use of this site.
+        </p>
+        <p className="mt-3 text-sm text-ink-500">Effective September 14, 2026</p>
 
-      <Section>
-        <Container>
-          <div className="max-w-3xl">
+        <div className="mt-12">
           <TermsContent />
-          </div>
-        </Container>
-      </Section>
-    </>
+        </div>
+      </div>
+    </Container>
   );
 }

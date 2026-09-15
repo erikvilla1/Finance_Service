@@ -135,20 +135,22 @@ export function PrivacyContent() {
               </li>
             </ul>
             <p className={P}>
-              [CONFIRM: whether FLS sells personal information, shares it for
-              cross-context behavioural advertising, or discloses it to any
-              party other than those above. If none, this section should say so
-              explicitly — that is a meaningful statement and several state laws
-              require it either way.]
+              We do not sell personal information, and we do not share it for
+              cross-context behavioural advertising. We do not disclose it to
+              any party other than those listed above.
             </p>
 
             <h2 className={H}>How long we keep it</h2>
             <p className={P}>
-              [CONFIRM RETENTION PERIODS. State how long application records,
-              uploaded documents, contact messages, and consent records are
-              retained, and what happens to them after that. This must reflect
-              what actually happens, including any record-keeping obligations
-              that apply to a commercial finance broker.]
+              We keep application records, uploaded documents, contact
+              messages, and consent records for as long as your account or
+              application is active, and afterward for as long as we have a
+              legitimate business or legal reason to — for example, to service
+              an ongoing relationship with a funding source, to satisfy
+              record-keeping obligations that apply to a commercial finance
+              broker, or to resolve a dispute. You can ask us to delete
+              information we no longer need to keep for those reasons; see
+              &ldquo;Your choices and rights&rdquo; below.
             </p>
 
             <h2 className={H}>Security</h2>
@@ -167,11 +169,23 @@ export function PrivacyContent() {
               some records where the law requires it.
             </p>
             <p className={P}>
-              [CONFIRM STATE-LAW RIGHTS. Depending on where FLS operates and
-              where its clients are, California (CCPA/CPRA), and other state
-              privacy statutes may grant specific rights and require specific
-              response timelines and a designated request channel. Counsel
-              should determine which apply and add the required language.]
+              FLS does business in California, so the California Consumer
+              Privacy Act (as amended by the CPRA) applies to the personal
+              information we collect from California residents. In addition to
+              the rights above, you may ask us to confirm what personal
+              information we hold about you, and you have the right not to be
+              discriminated against for exercising any of these rights. As
+              stated above, we do not sell personal information and do not
+              share it for cross-context behavioural advertising, so there is
+              no opt-out to exercise for either. Submit a request using the
+              contact information below; we will respond within the time the
+              law requires.
+            </p>
+            <p className={P}>
+              [COUNSEL TO CONFIRM: whether any other state&apos;s privacy
+              statute also applies, based on where FLS&apos;s clients are
+              located, and whether it requires anything beyond what is stated
+              above.]
             </p>
 
             <h2 className={H}>Children</h2>
@@ -190,7 +204,8 @@ export function PrivacyContent() {
             <p className={P}>
               Questions about this policy, or requests about your information:
               [PRIVACY CONTACT EMAIL] · [BUSINESS MAILING ADDRESS] ·
-              [LEGAL ENTITY NAME AND STATE OF FORMATION].
+              Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors,
+              California.
             </p>
     </>
   );

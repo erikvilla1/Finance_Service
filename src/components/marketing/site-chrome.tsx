@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ArrowUp } from "lucide-react";
 import { ButtonLink, Container } from "@/components/ui";
-import { useScrolledPast } from "@/components/marketing/use-reduced-motion";
+import { useHeaderReveal, useScrolledPast } from "@/components/marketing/use-reduced-motion";
 import { Reveal } from "@/components/marketing/reveal";
 
 /**
@@ -130,20 +130,89 @@ function useActiveSection(enabled: boolean) {
   return active;
 }
 
+/**
+ * Whether the dark hero video is still behind the sticky header.
+ *
+ * THE BUG THIS REPLACES. The logo and "Sign in" swap to their light,
+ * white-on-dark styling whenever `onHome` is true — but `onHome` only means
+ * "this is the home page's URL," not "the hero footage is currently behind
+ * the header." Scroll past the hero into "Who We Are" or any later section
+ * and the header is still sticky at the top of a page whose path is still
+ * "/", so it kept rendering white-on-white: the mark and "Sign in" vanished
+ * against the light section now sitting behind them. Scrolling back up from
+ * mid-page reproduced the same thing without ever visiting the very top.
+ *
+ * Nav does not have this problem — see the comment on its className — because
+ * it carries its own grey capsule surface everywhere. The logo and "Sign in"
+ * do not have a surface of their own (the point of the light-header variant
+ * is the mark sitting directly on the footage), so they have nothing to fall
+ * back on except knowing whether that footage is actually there.
+ *
+ * -60% BOTTOM MARGIN, NOT 0. A plain "is #hero intersecting at all" flips only
+ * once the hero has scrolled completely out of view — a full screen too late,
+ * since the header sits over the TOP of the hero, not its bottom. Shrinking
+ * the observed band to the header's own neighbourhood (top edge, ~40% of the
+ * viewport tall) flips the state exactly when the hero's trailing edge passes
+ * under the header instead.
+ */
+function useOverHero(enabled: boolean) {
+  const [overHero, setOverHero] = useState(true);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const node = document.getElementById("hero");
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setOverHero(entry.isIntersecting),
+      { rootMargin: "0px 0px -60% 0px", threshold: 0 },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [enabled]);
+
+  return overHero;
+}
+
 export function SiteHeader() {
   const pathname = usePathname();
   const onHome = pathname === "/";
   const activeSection = useActiveSection(onHome);
-  const scrolled = useScrolledPast(80);
+  // Direction-aware: hides on scroll-down, reveals on scroll-up, from any
+  // scroll position. See the comment on useHeaderReveal for why this
+  // replaced a plain useScrolledPast(80) — that only ever revealed the
+  // header again once scrolled back within 80px of the very top.
+  const hidden = useHeaderReveal();
+  // Only actually light-on-dark while the hero footage is behind the
+  // header — see useOverHero for the bug this fixes. Called unconditionally
+  // (rules of hooks) and then combined with onHome, rather than the other
+  // way round.
+  const heroInView = useOverHero(onHome);
+  const overHero = onHome && heroInView;
 
   /**
-   * The outer capsules lift away on scroll; the nav stays.
+   * Guide landing pages (/resources/[slug]) get the logo and nothing else.
+   *
+   * These are a deliberate exit from the single-page marketing site — someone
+   * lands on one from a search result, a shared link, or the PDF, not from
+   * clicking through the nav — so the nav pill's in-page anchors and "Sign
+   * in" have nothing relevant to point at. The page's own CTA (below the
+   * headline) is the only conversion action that belongs here; repeating it
+   * a second time in the header read as two competing asks on a page that
+   * has exactly one job.
+   */
+  const isGuidePage = pathname?.startsWith("/resources/") ?? false;
+
+  /**
+   * All three capsules — logo, nav, trailing — lift away together on scroll.
    *
    * Timing, easing and the lg-only guard live in .header-capsule in globals.css
    * — see the comment there for why this is a written-out declaration rather
    * than a stack of utilities.
    */
-  const capsule = `header-capsule${scrolled ? " header-capsule--out" : ""}`;
+  const capsule = `header-capsule${hidden ? " header-capsule--out" : ""}`;
 
   return (
     <header
@@ -160,6 +229,60 @@ export function SiteHeader() {
         onHome ? "" : "pb-6 sm:pb-9"
       }`}
     >
+      {/*
+        THE BACKDROP BAR, BEHIND EVERYTHING IN THIS HEADER.
+
+        The logo and "Sign in" swapping to dark-on-light (see overHero) makes
+        them legible over whatever is behind them, but "legible" and "reads as
+        one clean bar" are different things — a dark logo directly on top of a
+        photo, a headline, or a card edge scrolling past underneath it still
+        looks like two things overlapping. This is the fix: a solid bar the
+        full width of the header, filled in behind the logo/nav/CTA row
+        exactly when they are dark-on-light, so the page scrolling underneath
+        is fully covered rather than showing through around the edges of each
+        element individually.
+
+        NOT ON GUIDE PAGES. Those already sit on the gradient hero band with
+        just the logo floating on it, by design (see the note on that band in
+        resources/[slug]/page.tsx) — this bar would flatten that back into an
+        ordinary opaque header.
+
+        TWO SIGNALS, NESTED RATHER THAN COMBINED INTO ONE. The bar should be
+        gone whenever the capsules themselves are gone (scrolling down —
+        `hidden`) and ALSO whenever the page is scrolled back up but still
+        over the hero (`overHero`) — appearing only on the one combination
+        that actually happens: scrolling up, past the hero. Both conditions
+        need to independently darken it to nothing, which is exactly what
+        opacities multiplying through nested elements does for free.
+
+        Outer element carries `capsule` (header-capsule / --out) — the exact
+        same class the logo/nav/trailing use for the scroll-direction fade,
+        so this bar's slide-and-fade is pixel-identical to theirs and, being
+        lg-only (see .header-capsule--out's media guard in globals.css),
+        leaves it always visible on mobile exactly as the rest of the header
+        does. Inner element carries the overHero opacity, unconditionally at
+        every breakpoint — mobile has no scroll-direction hide, but it still
+        must not show a light-page bar while sitting over the dark hero.
+
+        FIXED HEIGHT (6.5rem / 8.5rem = pt-6+CAPSULE+pt-6 / pt-9+CAPSULE+pt-9),
+        NOT inset-0 and not just pt+CAPSULE. inset-0 would stretch this bar
+        through the header's own pb-6/sm:pb-9 (present on non-home pages —
+        see the comment on <header>'s className), leaving its border floating
+        in blank whitespace below the capsules instead of sitting flush under
+        them. But pt+CAPSULE alone (this bar's first version) went too far the
+        other way: flush against the capsule's *own* bottom edge, with none of
+        the breathing room it has above. Repeating the top gap below the
+        capsule — the same pt-6/pt-9 again — gives the bar a symmetric margin
+        on both sides of the row it holds, rather than hugging one edge of it.
+      */}
+      {!isGuidePage && (
+        <div aria-hidden="true" className={`absolute inset-x-0 top-0 ${capsule}`}>
+          <div
+            className="h-[6.5rem] border-b border-ink-200/80 bg-white/95 shadow-card backdrop-blur-xl transition-opacity duration-300 sm:h-[8.5rem]"
+            style={{ opacity: overHero ? 0 : 1 }}
+          />
+        </div>
+      )}
       {/* Padding matches the gap between the video card's top edge and this
           row, so the logo sits the same distance from the card's left edge as
           it does from its top. See the hero arithmetic on the home page. */}
@@ -228,7 +351,7 @@ export function SiteHeader() {
             so this is not the only affordance on the link.
           */}
           <Image
-            src={onHome ? "/brand/fls-capital-light.png" : "/brand/fls-capital-dark.png"}
+            src={overHero ? "/brand/fls-capital-light.png" : "/brand/fls-capital-dark.png"}
             alt=""
             width={2254}
             height={1070}
@@ -237,78 +360,98 @@ export function SiteHeader() {
           />
         </Link>
 
-        {/* Grey capsule, white pill on the active item — the reference's
-            arrangement. It only works this way round: a white bar cannot show a
-            white highlight, so the container has to be the darker of the two. */}
-        <nav
-          aria-label="Main"
-          className={`${CAPSULE} hidden justify-self-center border ${onHome ? "border-white/50" : "border-ink-200"} bg-ink-100/80 px-2 shadow-card backdrop-blur-xl lg:flex`}
-        >
-          <ul className="flex items-center gap-1">
-            {NAV.map((item) => {
-              const hash = item.href.split("#")[1];
-              const active = onHome
-                ? hash
-                  ? activeSection === hash
-                  : activeSection === ""
-                : false;
+        {!isGuidePage && (
+          <>
+            {/*
+              Grey capsule, white pill on the active item — the reference's
+              arrangement. It only works this way round: a white bar cannot
+              show a white highlight, so the container has to be the darker
+              of the two.
 
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={[
-                      "block whitespace-nowrap rounded-full px-4 py-2 text-[0.95rem] font-medium transition-colors",
-                      active
-                        ? "bg-white text-ink-900 shadow-sm"
-                        : "text-ink-600 hover:bg-white/60 hover:text-brand-700",
-                    ].join(" ")}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+              ALWAYS HAS THE SURFACE, including at the very top of home over
+              the hero video. A transparent-over-the-hero variant was tried —
+              pills floating directly on the footage, the way the logo does —
+              and reverted: without a surface behind it the nav read as
+              missing rather than as a deliberate treatment. border-white/50
+              still swaps in over the hero so the hairline stays visible
+              against the dark video where border-ink-200 would nearly
+              disappear — keyed to overHero, not onHome, so it swaps back
+              once the page scrolls past the hero into a light section. See
+              useOverHero for why onHome alone was wrong here too.
+            */}
+            <nav
+              aria-label="Main"
+              className={`${CAPSULE} ${capsule} hidden justify-self-center border ${
+                overHero ? "border-white/50" : "border-ink-200"
+              } bg-ink-100/80 px-2 shadow-card backdrop-blur-xl lg:flex`}
+            >
+              <ul className="flex items-center gap-1">
+                {NAV.map((item) => {
+                  const hash = item.href.split("#")[1];
+                  const active = onHome
+                    ? hash
+                      ? activeSection === hash
+                      : activeSection === ""
+                    : false;
 
-        <div
-          className={`flex items-center gap-4 justify-self-end ${capsule} header-capsule--trailing`}
-        >
-          {/* No capsule. It is a tertiary action sitting beside a primary one,
-              and giving it a surface of its own made the two read as a pair of
-              equals. */}
-          <Link
-            href="/sign-in"
-            className={`hidden whitespace-nowrap text-base font-semibold transition-colors sm:inline ${
-              onHome
-                ? "text-white drop-shadow-sm hover:text-white/70"
-                : "text-ink-700 hover:text-ink-900"
-            }`}
-          >
-            Sign in
-          </Link>
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className={[
+                          "block whitespace-nowrap rounded-full px-4 py-2 text-[0.95rem] font-medium transition-colors",
+                          active
+                            ? "bg-white text-ink-900 shadow-sm"
+                            : "text-ink-600 hover:bg-white/60 hover:text-brand-700",
+                        ].join(" ")}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
 
-          {/* Padding comes from size="md" alone. Adding px-* here would put two
-              competing padding utilities on one element, and which wins is
-              decided by Tailwind's stylesheet order rather than by the order
-              they are written — a coin flip that reads as a bug.
+            <div
+              className={`flex items-center gap-4 justify-self-end ${capsule} header-capsule--trailing`}
+            >
+              {/* No capsule. It is a tertiary action sitting beside a primary one,
+                  and giving it a surface of its own made the two read as a pair of
+                  equals. */}
+              <Link
+                href="/sign-in"
+                className={`hidden whitespace-nowrap text-base font-semibold transition-colors sm:inline ${
+                  overHero
+                    ? "text-white drop-shadow-sm hover:text-white/70"
+                    : "text-ink-700 hover:text-ink-900"
+                }`}
+              >
+                Sign in
+              </Link>
 
-              size="md", not "lg": "lg"'s px-7 was sized for "See Your
-              Personalized Quote" — against the shorter "Get Your Free Quote"
-              it read as an oversized box around the text. "md" trims the
-              padding; the capsule's fixed height (below) still pins this to
-              the same height as the nav pill and logo regardless of size, so
-              the row stays aligned either way. */}
-          <ButtonLink
-            href="/start"
-            size="md"
-            className={`${CAPSULE} whitespace-nowrap shadow-card`}
-          >
-            Get Your Free Quote
-          </ButtonLink>
-        </div>
+              {/* Padding comes from size="md" alone. Adding px-* here would put two
+                  competing padding utilities on one element, and which wins is
+                  decided by Tailwind's stylesheet order rather than by the order
+                  they are written — a coin flip that reads as a bug.
+
+                  size="md", not "lg": "lg"'s px-7 was sized for "See Your
+                  Personalized Quote" — against the shorter "Get Your Free Quote"
+                  it read as an oversized box around the text. "md" trims the
+                  padding; the capsule's fixed height (below) still pins this to
+                  the same height as the nav pill and logo regardless of size, so
+                  the row stays aligned either way. */}
+              <ButtonLink
+                href="/start"
+                size="md"
+                className={`${CAPSULE} whitespace-nowrap shadow-card`}
+              >
+                Get Your Free Quote
+              </ButtonLink>
+            </div>
+          </>
+        )}
       </div>
     </header>
   );
@@ -369,25 +512,18 @@ export function SiteFooter() {
     <footer className="rounded-t-[1.75rem] border-t border-ink-200 bg-ink-100 sm:rounded-t-[2rem]">
       <Container>
         {/*
-          THREE COLUMNS, NOT FOUR. "Get started" is gone as a column of its own.
-
-          Once the CTA moved back to the brand block, that column was a heading
-          with a single link under it, next to Explore's four and Legal's three
-          — which reads as a column that lost its contents rather than one that
-          only ever had one. There is no honest fourth item to pad it with
-          either: everything a visitor can do from here is already under
-          Explore or Legal, and repeating "See my financing options" as a text
-          link beside the button is the same label twice in one footer.
-
-          So Sign in moved under the CTA, which is also where it sits in the
-          header — primary action, secondary action, together. The heading it
-          lost was doing no work: "Get started" above "Sign in" described the
-          one thing on the list that is for people who already have.
+          THREE COLUMNS. The brand column is deliberately just the mark, the
+          name, and the one-line tagline — no CTA, no Sign in. Both live in
+          the sticky header already, and repeating them here was adding
+          height to the shortest-looking way to say "here's who we are"
+          rather than adding anything a visitor could not already do. It also
+          meant this column ran taller than Explore, so the divider below sat
+          lower than it needed to for the amount of content up top.
 
           py-10, down from py-14. It was padding a shape that was lopsided.
         */}
         {/*
-          THE COLUMNS REVEAL ON SCROLL, staggered left to right.
+          THE WHOLE FOOTER REVEALS AS ONE PIECE.
 
           Reveal, not a fresh mechanism — it is the same IntersectionObserver
           the marketing sections use, so the footer arrives in the page's own
@@ -396,15 +532,26 @@ export function SiteFooter() {
           (re-animating on every pass makes content flicker when a reader
           scrolls back up), it reads prefers-reduced-motion during render rather
           than in an effect, and it renders VISIBLE before hydration — so a
-          browser that never runs the script gets a footer rather than three
-          blank columns.
+          browser that never runs the script gets a footer rather than a blank
+          block.
 
-          The legal block is deliberately slowest. The disclosure and copyright
-          are the end of the page, and arriving after the links is the order
-          they should be read in.
+          ONE Reveal, NOT four staggered ones (the earlier version of this).
+          Each Reveal owns its own IntersectionObserver, watching only its own
+          element — right for marketing sections spread down a long page,
+          where each should animate in on its own moment. A footer is a
+          single object a reader either has or hasn't scrolled to, and the
+          legal block sits far enough below the three columns (past the
+          column grid's own padding, then a border and more padding of its
+          own) that its observer was firing on a distinct, later scroll
+          position — the columns would finish their entrance and then, a beat
+          later, the disclosure text would fade in on its own, reading as a
+          second, disconnected animation rather than the rest of the same
+          reveal. One Reveal around all of it fixes that by construction:
+          there is only one trigger point, so there is nothing left to fall
+          out of sync.
         */}
+        <Reveal>
         <div className="grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-3">
-          <Reveal>
           <div>
             {/* The mark, then the name under it rather than beside it. Set
                 side by side, the wordmark and the words "Financial Lending
@@ -412,46 +559,40 @@ export function SiteFooter() {
                 CAPITAL line under the mark was about three pixels tall and
                 illegible. Stacked, the mark gets the height it needs and the
                 full name reads as the caption it is. */}
-            <div className="flex flex-col items-start gap-2.5">
+            <Link
+              href="/"
+              className="group flex flex-col items-start gap-5"
+            >
               <Image
                 src="/brand/fls-capital-dark.png"
                 alt=""
                 width={2254}
                 height={1070}
-                className="h-10 w-auto max-w-none shrink-0"
+                className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60"
               />
-              <span className="text-sm font-semibold text-ink-900">
+              <span className="text-sm font-semibold text-ink-900 transition-colors group-hover:text-brand-700">
                 FLS Capital Advisors
               </span>
-            </div>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-600">
+            </Link>
+            {/* No max-w here on purpose — at max-w-xs (20rem) "needs." wrapped
+                onto its own line, leaving this column a full line taller than
+                Explore/Legal and out of step with their last line. The column
+                is comfortably wider than one line of this sentence needs.
+
+                mt-4, not mt-3. This column's own total height (logo + gap-5
+                + name + this line) needs to land exactly on Explore's total
+                height (4 links, no heading) for "Resources" and this line to
+                share a bottom edge. The logo-to-name gap grew from gap-4 to
+                gap-5 (name sat too close to the mark), so this margin came
+                down from mt-5 to mt-4 by the same 4px to hold that total
+                height — and therefore the flush bottom edge — steady. */}
+            <p className="mt-4 text-sm leading-relaxed text-ink-600">
               Financing solutions for real-world business needs.
             </p>
-            {/* The primary action, repeated at the end of the page so it is
-                there when someone finishes reading rather than only in the
-                sticky header. Spec §4: this stays the primary conversion.
-
-                It belongs against the left edge, under the mark. A filled block
-                is the heaviest thing on this surface, and in a middle column it
-                anchored nothing — 228px of solid colour a quarter of the way
-                across, with the rest of the footer's width in light text beside
-                it. Here it holds the corner it starts from. */}
-            <ButtonLink href="/start" className="mt-6">
-              Get Your Free Quote
-            </ButtonLink>
-            <Link
-              href="/sign-in"
-              className="mt-4 block text-sm text-ink-600 hover:text-brand-700"
-            >
-              Sign in
-            </Link>
           </div>
-          </Reveal>
 
-          <Reveal delayMs={90}>
           <div>
-            <h2 className="text-sm font-semibold text-ink-900">Explore</h2>
-            <ul className="mt-3 space-y-2">
+            <ul className="space-y-2">
               {NAV.map((item) => (
                 <li key={item.href}>
                   <Link
@@ -464,11 +605,9 @@ export function SiteFooter() {
               ))}
             </ul>
           </div>
-          </Reveal>
 
-          <Reveal delayMs={180}>
           <div>
-            <h2 className="text-sm font-semibold text-ink-900">Legal</h2>
+            <h2 className="text-sm text-ink-600">Legal</h2>
             <ul className="mt-3 space-y-2">
               <li>
                 <Link href="/privacy" className="text-sm text-ink-600 hover:text-brand-700">
@@ -487,10 +626,8 @@ export function SiteFooter() {
               </li>
             </ul>
           </div>
-          </Reveal>
         </div>
 
-        <Reveal delayMs={260}>
         {/*
           Platform spec §29: legal language is placeholder until counsel
           approves it. This notice is deliberately conservative.

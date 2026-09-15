@@ -91,3 +91,53 @@ export function useScrolledPast(threshold: number): boolean {
 
   return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }
+
+/**
+ * Whether the sticky header should hide — direction-aware, not
+ * position-aware.
+ *
+ * The first version of this was `useScrolledPast(80)`: hidden once scrolled
+ * more than 80px down. That only ever reveals the header again once scrolled
+ * back within 80px of the very top, so scrolling up from anywhere deeper in
+ * the page — which is the whole point of a reveal-on-scroll-up header —
+ * never brought it back. This tracks the delta between consecutive scroll
+ * events instead of the absolute offset: hidden while actively moving down,
+ * shown the moment the direction reverses, from any scroll position. A small
+ * dead zone (4px) on the delta ignores the sub-pixel jitter trackpads and
+ * some mice report even when held still.
+ *
+ * The last-seen position and the current hidden state live in module scope,
+ * not component state — persisting them is the entire mechanism (there is no
+ * other way to know "up" from "down"), and this file's approach throughout
+ * is to keep that bookkeeping outside React rather than inside an effect.
+ * Module scope rather than per-hook-instance because the page only ever has
+ * one sticky header; a second consumer would need its own copy of this.
+ */
+let lastScrollY = 0;
+let headerHidden = false;
+
+export function useHeaderReveal(): boolean {
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastScrollY;
+
+      if (y < 80) {
+        headerHidden = false;
+      } else if (delta > 4) {
+        headerHidden = true;
+      } else if (delta < -4) {
+        headerHidden = false;
+      }
+
+      lastScrollY = y;
+      onStoreChange();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const getSnapshot = useCallback(() => headerHidden, []);
+
+  return useSyncExternalStore(subscribe, getSnapshot, () => false);
+}

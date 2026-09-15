@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Container, Section } from "@/components/ui";
+import { Container } from "@/components/ui";
 import { PrivacyContent } from "@/components/legal/privacy-content";
 
 export const metadata: Metadata = { title: "Privacy Policy" };
@@ -32,35 +32,34 @@ export const metadata: Metadata = { title: "Privacy Policy" };
  * ALSO OUTSTANDING: if FLS serves California or other states with commercial
  * financing disclosure laws, this policy is not the whole obligation. See the
  * note on /disclosures.
+ *
+ * MOVED UNDER (application), NOT (marketing). Same background and header as
+ * /start and /sign-in — the warm gradient and the logo-only header — rather
+ * than the full marketing site chrome. A legal page someone actually reads
+ * (from the sign-in checkbox, from a footer link mid-application) benefits
+ * from the same calm, low-navigation surface those flows already use; the
+ * tinted hero band the marketing version had is dropped because a flat
+ * bg-ink-50 strip with a hard border reads as a box sitting on top of the
+ * gradient rather than part of the same surface.
  */
-
-
 export default function Page() {
   return (
-    <>
-      <div className="border-b border-ink-200 bg-ink-50">
-        <Container>
-          <div className="py-16 sm:py-20">
-            <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-ink-900 sm:text-5xl">
-              Privacy Policy
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-600">
-              How we collect, use, and protect your information.
-            </p>
-            <p className="mt-3 text-sm text-ink-500">
-              Last updated [DATE] · Effective [DATE]
-            </p>
-          </div>
-        </Container>
-      </div>
+    <Container>
+      <div className="mx-auto max-w-3xl">
+        <h1 className="text-4xl font-bold tracking-tight text-ink-900 sm:text-5xl">
+          Privacy Policy
+        </h1>
+        <p className="mt-5 text-lg leading-relaxed text-ink-600">
+          How we collect, use, and protect your information.
+        </p>
+        <p className="mt-3 text-sm text-ink-500">
+          Last updated September 14, 2026 · Effective September 14, 2026
+        </p>
 
-      <Section>
-        <Container>
-          <div className="max-w-3xl">
+        <div className="mt-12">
           <PrivacyContent />
-          </div>
-        </Container>
-      </Section>
-    </>
+        </div>
+      </div>
+    </Container>
   );
 }

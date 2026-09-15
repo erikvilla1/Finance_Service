@@ -1,5 +1,4 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { CardFanCarousel } from "@/components/ui/card-fan-carousel";
+import { ChevronDown } from "lucide-react";
 import { Testimonial } from "@/components/ui/testimonial-card";
 import { Marquee } from "@/components/ui/marquee";
 import {
@@ -12,6 +11,8 @@ import { HeroVideo } from "@/components/marketing/hero-video";
 import { CountUp } from "@/components/marketing/count-up";
 import { Reveal } from "@/components/marketing/reveal";
 import { ProcessSteps } from "@/components/marketing/process-steps";
+import { ResourceGuideScroller } from "@/components/marketing/resource-guide-scroller";
+import { RESOURCE_GUIDES } from "@/lib/resource-guides/data";
 
 /**
  * Homepage.
@@ -26,73 +27,73 @@ import { ProcessSteps } from "@/components/marketing/process-steps";
  */
 
 /**
- * ⚠ PLACEHOLDER TESTIMONIALS — NOT FOR LAUNCH. ⚠
+ * Real client success stories, supplied by Robert ("Client Success
+ * Stories.docx", 2026-09-10) — replaces the placeholder block that used to
+ * live here.
  *
- * Every entry below is deliberately written to be unusable. That is the point:
- * a testimonial strip on a lending site is regulated speech, and inventing
- * plausible-sounding quotes is the single easiest way to ship a legal problem
- * by accident.
+ * ATTRIBUTION FORMAT. First name + last initial + role/industry, matching one
+ * of the acceptable formats the placeholder comment called for ("full name,
+ * first name and initial, or 'a client in <industry>'"). No company names
+ * were supplied, so `company` is left unset rather than invented.
  *
- * WHY THIS CANNOT BE FILLED IN BY GUESSING. The FTC's Endorsement Guides (16
- * CFR Part 255) and its Rule on the Use of Consumer Reviews and Testimonials
- * (16 CFR Part 465, in force since October 2024) prohibit publishing a
- * testimonial that does not reflect the honest experience of a real customer,
- * with civil penalties assessed per violation. Financial services draw more
- * scrutiny than most, not less.
+ * NO RATING DATA WAS SUPPLIED. `rating` is 0 for every entry — the Testimonial
+ * component treats 0 as "hide the star row entirely" specifically for this
+ * case, rather than defaulting to a fabricated 5 stars.
  *
- * WHAT ROBERT NEEDS TO SUPPLY FOR EACH ONE:
- *   - the actual words of an actual client,
- *   - that client's permission to publish them,
- *   - how they want to be attributed (full name, first name and initial, or
- *     "a client in <industry>" — all fine, as long as it is not invented),
- *   - whether anything of value was given in exchange, which has to be
- *     disclosed if so.
- *
- * A results-flavoured quote ("they got me $400k in a week") additionally needs
- * to be typical of what clients get, or to carry a clear disclaimer that it is
- * not. Prefer quotes about the experience over quotes about outcomes.
- *
- * The site is still robots index:false, so nothing here is public yet.
+ * FTC compliance (16 CFR Part 255 / Part 465) still rests on Robert's
+ * representation that these are real clients' actual words, published with
+ * their permission — that determination is his to make, not derivable from
+ * the copy alone.
  */
 const TESTIMONIALS = [
   {
-    name: "Client name",
-    role: "Role",
-    company: "Company",
-    rating: 5,
+    name: "Elvina B.",
+    role: "General Contractor",
+    rating: 0,
     testimonial:
-      "PLACEHOLDER — replace with a real client quote. Short one, to check how a brief card sits in the strip.",
+      "FLS helped us secure $350,000 through a combination of a business line of credit and term financing. The additional capital gave us the flexibility to improve cash flow, invest in operations, and continue growing the company.",
   },
   {
-    name: "Client name",
-    role: "Role",
-    company: "Company",
-    rating: 5,
+    name: "Ryan C.",
+    role: "Marketing Company Owner",
+    rating: 0,
     testimonial:
-      "PLACEHOLDER — replace with a real client quote. This one runs to roughly the length of a typical testimonial so the card height can be judged before the real copy exists.",
+      "FLS helped us secure $150,000 in working capital at an important stage in our growth. The financing allowed us to hire additional employees, expand our capacity, and continue investing in the business.",
   },
   {
-    name: "Client name",
-    role: "Role",
-    company: "Company",
-    rating: 4,
+    name: "Taha A.",
+    role: "Medical Practice Owner",
+    rating: 0,
     testimonial:
-      "PLACEHOLDER — replace with a real client quote about the experience of working with FLS rather than about a dollar outcome.",
+      "FLS helped us navigate financing for the purchase of our own medical office. They structured a solution around our practice and our long-term goal of owning the property where we operate.",
   },
   {
-    name: "Client name",
-    role: "Role",
-    company: "Company",
-    rating: 5,
+    name: "Alexus R.",
+    role: "Remodeling Company Owner",
+    rating: 0,
     testimonial:
-      "PLACEHOLDER — replace with a real client quote. Longest of the set, to confirm nothing overflows the card when a client is talkative.",
+      "FLS helped us secure a business line of credit that gives us the flexibility to purchase materials, manage payroll, and take on new projects without putting unnecessary pressure on our day-to-day cash flow.",
   },
   {
-    name: "Client name",
-    role: "Role",
-    company: "Company",
-    rating: 5,
-    testimonial: "PLACEHOLDER — replace with a real client quote.",
+    name: "Akbaar A.",
+    role: "Commercial Real Estate Investor",
+    rating: 0,
+    testimonial:
+      "FLS helped us structure a cash-out refinance so we could access equity from our existing properties and pursue another commercial real estate investment. Their understanding of commercial financing made the process much easier to navigate.",
+  },
+  {
+    name: "Pete P.",
+    role: "Hotel Operator",
+    rating: 0,
+    testimonial:
+      "Our existing MCA debt was putting significant pressure on cash flow. FLS helped us find a financing solution that allowed us to pay off the MCA and move into a more manageable structure.",
+  },
+  {
+    name: "Logan P.",
+    role: "Scientific Consulting Company Founder",
+    rating: 0,
+    testimonial:
+      "FLS helped us secure $150,000 in startup financing for vehicles and working capital. Having that capital available gave us the resources we needed to launch the company and begin operations.",
   },
 ];
 
@@ -107,105 +108,6 @@ const TESTIMONIALS = [
  * arranges financing, lenders decide, and a step list that ends in a promise is
  * a promise however small the type underneath it.
  */
-/**
- * Robert's program brochures, served from public/brochures.
- *
- * WHAT IS DELIBERATELY NOT HERE. The source folder also contains pricing
- * sheets, a loan matrix, a blank application and a sample invoice. Those are
- * internal sales tools, and the pricing sheets carry dated rate tables —
- * publishing a rate as a downloadable PDF is a claim, which spec §5 does not
- * allow while the catalog is unverified, and advertised rates carry their own
- * disclosure obligations. Only the marketing brochures are listed.
- *
- * STILL NEEDS ROBERT. These are his existing collateral and some covers state
- * figures ("$150K to $12M", "approved in 30 days or less"). They are his
- * claims rather than invented ones, but he should confirm each sheet is
- * current before the site is indexed.
- *
- * Covers are page 1 rendered to an image at build-prep time. The trifolds are
- * cropped to their front panel, since page 1 of a trifold is the outside
- * spread and its right third is the designed cover.
- */
-const BROCHURES = [
-  {
-    title: "SBA Loan Program",
-    imgUrl: "/brochures/covers/sba.jpg",
-    linkUrl: "/brochures/sba.pdf",
-    alt: "Cover of the SBA Loan Program brochure",
-    meta: "PDF · 738 KB",
-  },
-  {
-    title: "Real Estate Financing",
-    imgUrl: "/brochures/covers/real-estate.jpg",
-    linkUrl: "/brochures/real-estate.pdf",
-    alt: "Cover of the Real Estate Financing brochure",
-    meta: "PDF · 951 KB",
-  },
-  {
-    title: "Merchant Cash Advance",
-    imgUrl: "/brochures/covers/merchant-cash-advance.jpg",
-    linkUrl: "/brochures/merchant-cash-advance.pdf",
-    alt: "Cover of the Merchant Cash Advance brochure",
-    meta: "PDF · 703 KB",
-  },
-  {
-    title: "Church & Equipment Financing",
-    imgUrl: "/brochures/covers/church-equipment.jpg",
-    linkUrl: "/brochures/church-equipment.pdf",
-    alt: "Cover of the Church & Equipment Financing brochure",
-    meta: "PDF · 189 KB",
-  },
-  {
-    title: "Fix & Flip",
-    imgUrl: "/brochures/covers/fix-and-flip.jpg",
-    linkUrl: "/brochures/fix-and-flip.pdf",
-    alt: "Cover of the Fix & Flip brochure",
-    meta: "PDF · 354 KB",
-  },
-  {
-    title: "Healthcare Financing",
-    imgUrl: "/brochures/covers/healthcare.jpg",
-    linkUrl: "/brochures/healthcare.pdf",
-    alt: "Cover of the Healthcare Financing brochure",
-    meta: "PDF · 142 KB",
-  },
-  {
-    title: "Accounts Receivable",
-    imgUrl: "/brochures/covers/accounts-receivable.jpg",
-    linkUrl: "/brochures/accounts-receivable.pdf",
-    alt: "Cover of the Accounts Receivable brochure",
-    meta: "PDF · 490 KB",
-  },
-  {
-    title: "Start-Up Funding",
-    imgUrl: "/brochures/covers/startup-funding.jpg",
-    linkUrl: "/brochures/startup-funding.pdf",
-    alt: "Cover of the Start-Up Funding brochure",
-    meta: "PDF · 699 KB",
-  },
-  {
-    title: "Start-Up Unsecured Credit Lines",
-    imgUrl: "/brochures/covers/startup-credit-lines.jpg",
-    linkUrl: "/brochures/startup-credit-lines.pdf",
-    alt: "Cover of the Start-Up Unsecured Credit Lines brochure",
-    meta: "PDF · 112 KB",
-  },
-  {
-    title: "Start-Up Unsecured Term Loans",
-    imgUrl: "/brochures/covers/startup-term-loans.jpg",
-    linkUrl: "/brochures/startup-term-loans.pdf",
-    alt: "Cover of the Start-Up Unsecured Term Loans brochure",
-    meta: "PDF · 111 KB",
-  },
-  {
-    title: "General Services Overview",
-    imgUrl: "/brochures/covers/general-services.jpg",
-    linkUrl: "/brochures/general-services.pdf",
-    alt: "Cover of the General Services Overview brochure",
-    meta: "PDF · 736 KB",
-  },
-];
-
 const PROCESS_STEPS = [
   {
     title: "Tell us what you need",
@@ -304,7 +206,10 @@ export default function HomePage() {
           The first term is the 12/16px computed above; the second is mb-3/mb-5,
           chosen to match the mx-3/mx-5 side inset so the card sits in an even
           frame. Change either and this calc has to change with it. */}
-      <div className="relative mx-3 mb-3 -mt-[68px] flex min-h-[calc(100dvh-24px)] flex-col overflow-hidden rounded-[1.75rem] bg-brand-900 sm:mx-5 sm:mb-5 sm:-mt-[84px] sm:min-h-[calc(100dvh-36px)] sm:rounded-[2rem]">
+      <div
+        id="hero"
+        className="relative mx-3 mb-3 -mt-[68px] flex min-h-[calc(100dvh-24px)] flex-col overflow-hidden rounded-[1.75rem] bg-brand-900 sm:mx-5 sm:mb-5 sm:-mt-[84px] sm:min-h-[calc(100dvh-36px)] sm:rounded-[2rem]"
+      >
         {/* object-position pulled below centre: the frame has sky at the top and
             street level at the bottom, and centring it crops away the foreground
             that gives the shot depth. Raise the second number to show more of
@@ -378,9 +283,8 @@ export default function HomePage() {
               text on the floor rather than level with the labels. */}
           <div className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
             <div className="animate-fade-in-up flex flex-wrap gap-3 [animation-delay:300ms]">
-              <ButtonLink href="/start" size="lg">
+              <ButtonLink href="/start" size="lg" sweep>
                 Get Your Free Quote
-                <ChevronRight className="h-5 w-5" />
               </ButtonLink>
               <ButtonLink
                 href="#how-it-works"
@@ -455,15 +359,27 @@ export default function HomePage() {
       </Section>
 
       {/* ------------------------------------------------------ TESTIMONIALS */}
-      {/* No heading by request — the cards are self-evidently reviews, and a
-          band that just moves reads lighter between two full sections than one
-          that announces itself first. Section padding is trimmed because there
-          is no longer a heading to separate from the strip. */}
+      {/* Heading added to match the eyebrow/title pattern every other section
+          on this page uses (Who We Are, Resources) — a moving strip of quotes
+          with no label read as though it had wandered in from a different
+          section rather than announcing itself as reviews. Not added to the
+          site nav (see NAV above): the header links to in-page anchors people
+          might actually want to jump back to, and a testimonial strip between
+          two other sections is not a destination in that sense. */}
       <Section tone="muted" className="overflow-hidden">
+        <Container>
+          <Reveal>
+            <SectionHeading
+              eyebrow="Testimonials"
+              title="What our clients have to say..."
+            />
+          </Reveal>
+        </Container>
         {/* No pauseOnHover: the strip is wide enough that a cursor resting
             anywhere over it stopped the whole thing, which read as broken
             rather than as a considerate pause. */}
         <Marquee
+          className="mt-10"
           durationSec={70}
           fadeAmount={8}
           aria-label="Client testimonials"
@@ -479,21 +395,48 @@ export default function HomePage() {
       </Section>
 
       {/* ------------------------------------------------------- RESOURCES */}
+      {/*
+        Used to be a fanned deck of PDF brochure covers (CardFanCarousel).
+        Replaced because the brochures themselves were replaced: each
+        financing category is now a landing page on the site
+        (/resources/[slug]) rather than a PDF someone downloads and never
+        comes back from. This is a horizontally-scrolling row of buttons into
+        those pages, not a wrapped grid — the "browse sideways" feel is the
+        one thing worth keeping from the deck it replaces.
+      */}
       <Section id="resources">
         <Container>
           <Reveal>
-            <SectionHeading
-              eyebrow="Resources"
-              title="Program brochures"
-              description="One-sheets on the programs we work with most. Each opens as a PDF."
-            />
+            <div className="flex items-end justify-between gap-6">
+              <SectionHeading
+                eyebrow="Resources"
+                title="Financing guides"
+                description="How each type of financing works, what lenders evaluate, and what to prepare — organized by what you're trying to accomplish."
+              />
+              {/*
+                Decorative only — not a control. There is nothing to click:
+                the arrows below the row already do the scrolling. Level with
+                the description's last line and pinned to the right edge, the
+                same relationship the hero's "Scroll to explore" has to its
+                own text block.
+              */}
+              <span
+                aria-hidden="true"
+                className="hidden shrink-0 items-center gap-2 text-sm text-ink-500 sm:flex"
+              >
+                See more
+                <ChevronDown className="h-4 w-4 animate-bounce" strokeWidth={2.5} />
+              </span>
+            </div>
           </Reveal>
         </Container>
-        {/* Outside Container: the fan is wider than the text column and gets
-            clipped by it at the outer positions. */}
-        <Reveal delayMs={120}>
-          <CardFanCarousel cards={BROCHURES} />
-        </Reveal>
+        <Container>
+          <Reveal delayMs={120}>
+            <div className="mt-10">
+              <ResourceGuideScroller guides={RESOURCE_GUIDES} />
+            </div>
+          </Reveal>
+        </Container>
       </Section>
 
     </>

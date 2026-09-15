@@ -68,20 +68,23 @@ export default async function StartPage({
           </p>
 
           {/*
-            Compact tiles rather than the marketing card. Nine options at the
-            roomy density pushed the last few below the fold, which reads as a
-            longer form than it is — and the honest step count is the whole
-            point of this screen.
+            Compact tiles rather than the marketing card. At this count the
+            roomy density pushes the last few below the fold, which reads as
+            a longer form than it is — and the honest step count is the
+            whole point of this screen.
 
-            Three across because there are nine goals: it divides evenly and
-            no option is left stranded alone on a final row, which reads as an
-            afterthought rather than a choice. Adding a tenth goal breaks that
-            — go to two columns, or add an eleventh and twelfth.
+            Three across. FINANCING_GOALS is now derived from the eleven
+            resource guides (see lib/products/goals.ts), which doesn't
+            divide evenly into any column count — three across leaves the
+            last row two tiles instead of three. Left uneven on purpose
+            rather than forced to fit a column count: the list is a
+            projection of the guides, and padding it with an invented goal
+            just to fill a row would be the tail wagging the dog.
           */}
           {/* auto-rows-fr so every row is the height of the tallest tile in
-              the grid rather than the tallest in its own row — "I'm Not Sure"
-              wraps to two lines and would otherwise make its row taller than
-              the two above it. */}
+              the grid rather than the tallest in its own row — descriptions
+              run one to two lines depending on the guide, and without this
+              a two-line tile would make only its own row taller. */}
           <ul className="mt-8 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {FINANCING_GOALS.map((goal, index) => (
               <li

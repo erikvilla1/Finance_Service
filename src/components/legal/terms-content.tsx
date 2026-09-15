@@ -152,11 +152,15 @@ export function TermsContent() {
               receive them that way.
             </p>
             <p className={P}>
-              [COUNSEL: if any disclosure required by law will be delivered
-              electronically, the federal E-SIGN Act sets out specific consent
-              requirements that this clause does not currently meet. Confirm
-              which disclosures are in scope and whether a separate consent flow
-              is needed.]
+              Where the law requires your consent before we can deliver a
+              disclosure electronically, using this site or the portal after
+              being shown that requirement is how you give it. You can
+              withdraw that consent at any time by contacting us at the
+              address below, after which we will deliver any future
+              legally-required disclosure on paper instead. You will need a
+              device and software capable of viewing a PDF to access
+              documents delivered this way, and you should keep your contact
+              information with us current so you continue to receive them.
             </p>
 
             <h2 className={H}>10. Our materials</h2>
@@ -182,16 +186,34 @@ export function TermsContent() {
               12. Disclaimers and limitation of liability
             </h2>
             <p className={P}>
-              [COUNSEL TO DRAFT. Should address the &ldquo;as is&rdquo;
-              disclaimer of warranties, the exclusion and cap on damages, and
-              any statutory limits on those. The reference site&apos;s version
-              is generic boilerplate and should not be inherited on trust —
-              enforceability is state-specific, and this business carries
-              obligations a brochure site does not.]
+              This site and the portal are provided &ldquo;as is&rdquo; and
+              &ldquo;as available,&rdquo; without warranties of any kind,
+              express or implied, including any warranty of merchantability,
+              fitness for a particular purpose, or non-infringement. We do
+              not warrant that the site will be uninterrupted, error-free, or
+              secure, or that any estimate, program description, or other
+              content is accurate or current.
+            </p>
+            <p className={P}>
+              To the fullest extent the law allows, FLS will not be liable
+              for any indirect, incidental, consequential, special, or
+              punitive damages, or for lost profits or lost business, arising
+              from your use of this site or the portal, even if we have been
+              advised of the possibility. Our total liability for any claim
+              arising from your use of this site or the portal will not
+              exceed one hundred dollars ($100). Some jurisdictions do not
+              allow the exclusion or limitation of certain damages, so some
+              of these limits may not apply to you.
             </p>
 
             <h2 className={H}>13. Indemnity</h2>
-            <p className={P}>[COUNSEL TO DRAFT.]</p>
+            <p className={P}>
+              You agree to indemnify and hold FLS, its officers, employees,
+              and agents harmless from any claim, loss, liability, or expense
+              (including reasonable attorneys&apos; fees) arising from your
+              breach of these terms, your misuse of the site or the portal, or
+              your violation of any law or of another person&apos;s rights.
+            </p>
 
             <h2 className={H}>14. Termination</h2>
             <p className={P}>
@@ -203,11 +225,19 @@ export function TermsContent() {
 
             <h2 className={H}>15. Governing law and disputes</h2>
             <p className={P}>
-              [COUNSEL TO DRAFT. Specify governing state law and venue, and
-              decide whether to include an arbitration provision and a
-              class-action waiver. That is a business decision with real
-              consequences, not boilerplate, and the drafting requirements
-              differ by state.]
+              These terms are governed by the laws of the State of
+              California, without regard to its conflict-of-laws rules. Any
+              dispute arising from these terms or your use of the site will
+              be brought in the state or federal courts located in
+              California, and you consent to their jurisdiction.
+            </p>
+            <p className={P}>
+              [COUNSEL TO CONFIRM: this draft does not include an
+              arbitration clause or a class-action waiver — adding either is
+              a business decision with real consequences (it trades a court
+              proceeding for a private one, and drafting requirements to
+              make either enforceable differ by state), not boilerplate to
+              inherit by default.]
             </p>
 
             <h2 className={H}>16. Changes to these terms</h2>
@@ -218,8 +248,8 @@ export function TermsContent() {
 
             <h2 className={H}>17. Contact us</h2>
             <p className={P}>
-              [LEGAL ENTITY NAME] · [BUSINESS MAILING ADDRESS] ·
-              [CONTACT EMAIL]
+              Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors ·
+              [BUSINESS MAILING ADDRESS] · [CONTACT EMAIL]
             </p>
     </>
   );

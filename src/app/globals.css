@@ -205,6 +205,23 @@
     animation: fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
+  /* Horizontal counterpart to Tailwind's built-in animate-bounce (vertical
+     only) — for a "there's more this way" hint pointing sideways rather than
+     down, e.g. the resources row's "See more" nudge. Same idea as the hero's
+     "Scroll to explore": a small looping cue, not a call to action. */
+  @keyframes nudge-x {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+  }
+
+  .animate-nudge-x {
+    animation: nudge-x 1.2s ease-in-out infinite;
+  }
+
   /* ---------------------------------------------------------------------------
      MASKED LINE REVEAL — each headline line rises out from behind its own edge.
 
