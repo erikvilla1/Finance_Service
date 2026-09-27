@@ -53,7 +53,12 @@ export function Section({
 }: {
   children: ReactNode;
   className?: string;
-  tone?: "default" | "muted" | "brand";
+  /**
+   * "none" leaves the section transparent, for pages that paint one
+   * background behind everything (the resource guides sit on the sign-in
+   * gradient).
+   */
+  tone?: "default" | "muted" | "brand" | "none";
   /** Anchor target. Sections on the single-page home use this for in-page nav. */
   id?: string;
 }) {
@@ -61,6 +66,7 @@ export function Section({
     default: "bg-white",
     muted: "bg-ink-50",
     brand: "bg-brand-900 text-brand-50",
+    none: "",
   };
   return (
     <section
