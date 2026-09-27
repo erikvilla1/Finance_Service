@@ -231,15 +231,6 @@ export function TermsContent() {
               be brought in the state or federal courts located in
               California, and you consent to their jurisdiction.
             </p>
-            <p className={P}>
-              [COUNSEL TO CONFIRM: this draft does not include an
-              arbitration clause or a class-action waiver — adding either is
-              a business decision with real consequences (it trades a court
-              proceeding for a private one, and drafting requirements to
-              make either enforceable differ by state), not boilerplate to
-              inherit by default.]
-            </p>
-
             <h2 className={H}>16. Changes to these terms</h2>
             <p className={P}>
               If we change these terms we will update the effective date at the
@@ -249,7 +240,16 @@ export function TermsContent() {
             <h2 className={H}>17. Contact us</h2>
             <p className={P}>
               Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors ·
-              [BUSINESS MAILING ADDRESS] · [CONTACT EMAIL]
+              777 S Alameda St, Los Angeles, CA 90021
+            </p>
+            <p className={P}>
+              Have a question? Contact us at{" "}
+              <a
+                href="mailto:info@flscapitaladvisors.com"
+                className="underline underline-offset-2 hover:text-brand-700"
+              >
+                info@flscapitaladvisors.com
+              </a>
             </p>
     </>
   );

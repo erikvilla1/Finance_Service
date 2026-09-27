@@ -57,7 +57,7 @@ export function Testimonial({
   return (
     <figure
       className={cx(
-        "testimonial-card relative flex h-full flex-col overflow-hidden rounded-2xl border border-accent-300 p-6 shadow-card md:p-7",
+        "testimonial-card relative flex h-full flex-col overflow-hidden rounded-2xl border border-accent-300/70 p-6 shadow-card md:p-7",
         className,
       )}
       {...props}

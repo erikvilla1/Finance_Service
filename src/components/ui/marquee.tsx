@@ -1,6 +1,11 @@
 "use client";
 
-import { Children, type CSSProperties, type HTMLAttributes } from "react";
+import {
+  Children,
+  useRef,
+  type CSSProperties,
+  type HTMLAttributes,
+} from "react";
 
 /**
  * Same three lines as the `cx` in ./index.tsx, deliberately duplicated.
@@ -41,6 +46,12 @@ function cx(...parts: (string | false | null | undefined)[]) {
  *    animation-duration to 0.01ms, which for an infinite loop means it snaps
  *    to its end frame rather than stopping — see the override in globals.css.
  *
+ * SLOW-ON-HOVER EASES THE PLAYBACK RATE. Changing the duration mid-loop would
+ * make the track jump, because the position is a fraction of the duration.
+ * Instead the running CSS animation's `playbackRate` is eased toward the
+ * target a frame at a time, so the strip glides down to a crawl and back up.
+ * No React state is involved, so hovering does not re-render anything.
+ *
  * WIDTH IS THE CALLER'S PROBLEM, WITH A GUARD. A marquee only loops seamlessly
  * if one half of the track is at least as wide as its container; short lists
  * leave a visible gap on wide screens. `copies` repeats the children within
@@ -50,6 +61,11 @@ export interface MarqueeProps extends HTMLAttributes<HTMLDivElement> {
   /** Seconds for one full pass. Larger is slower. */
   durationSec?: number;
   pauseOnHover?: boolean;
+  /**
+   * Speed multiplier while hovered, eased in and out (e.g. 0.25 for a quarter
+   * speed). Leave unset to keep full speed on hover.
+   */
+  hoverSpeed?: number;
   direction?: "left" | "right" | "up" | "down";
   /** Soften the leading and trailing edges. */
   fade?: boolean;
@@ -64,12 +80,47 @@ export function Marquee({
   className = "",
   durationSec = 20,
   pauseOnHover = false,
+  hoverSpeed,
   direction = "left",
   fade = true,
   fadeAmount = 10,
   copies = 2,
   ...props
 }: MarqueeProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<number | null>(null);
+
+  // Ease the running animation's playbackRate toward `target`. Exponential
+  // smoothing: each frame closes a fixed share of the remaining gap, so the
+  // change is quick at first and settles gently.
+  function easeRateTo(target: number) {
+    const animation = trackRef.current?.getAnimations()[0];
+    // No animation under reduced motion (the CSS removes it). Nothing to do.
+    if (!animation) return;
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+
+    const step = () => {
+      const rate = animation.playbackRate;
+      const next = rate + (target - rate) * 0.08;
+      if (Math.abs(target - next) < 0.005) {
+        animation.playbackRate = target;
+        frameRef.current = null;
+        return;
+      }
+      animation.playbackRate = next;
+      frameRef.current = requestAnimationFrame(step);
+    };
+    frameRef.current = requestAnimationFrame(step);
+  }
+
+  const hoverHandlers =
+    hoverSpeed === undefined
+      ? {}
+      : {
+          onPointerEnter: () => easeRateTo(hoverSpeed),
+          onPointerLeave: () => easeRateTo(1),
+        };
+
   const items = Children.toArray(children);
   const isVertical = direction === "up" || direction === "down";
 
@@ -86,9 +137,11 @@ export function Marquee({
       data-pause-on-hover={pauseOnHover ? "true" : undefined}
       className={cx("marquee flex w-full overflow-hidden", isVertical && "flex-col", className)}
       style={fade ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
+      {...hoverHandlers}
       {...props}
     >
       <div
+        ref={trackRef}
         className="marquee-track"
         data-direction={direction}
         style={{ "--marquee-duration": `${durationSec}s` } as CSSProperties}

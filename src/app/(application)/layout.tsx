@@ -108,7 +108,10 @@ export default function ApplicationLayout({
         </div>
       </header>
 
-      <main id="main" className="relative flex-1 py-10 sm:py-14">
+      {/* More room below than above: the last row of content was sitting
+          almost on the footer's border, so the gradient read as cut off
+          rather than as a background the page rests on. */}
+      <main id="main" className="relative flex-1 pb-20 pt-10 sm:pb-28 sm:pt-14">
         {children}
       </main>
 

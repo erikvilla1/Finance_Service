@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ResourceGuideCard } from "@/components/marketing/resource-guide-card";
@@ -25,8 +25,21 @@ const ARROW_CLASSES =
  * the hovered card and nudge its neighbors aside on every mouseenter — see
  * resource-guide-card.tsx for why that was replaced with a plain per-card
  * CSS hover. This component only owns the scroll behavior now.
+ *
+ * CONTROLS SIT ABOVE THE ROW, BESIDE THE HEADING. They used to trail the
+ * cards, which put a whole control row of height between the last card and
+ * the footer. Up here they share the heading's row instead, so the section
+ * ends where the cards do. The heading is passed in as `heading` because the
+ * arrows need this component's carousel state and have to live in the same
+ * row as it.
  */
-export function ResourceGuideScroller({ guides }: { guides: ResourceGuide[] }) {
+export function ResourceGuideScroller({
+  guides,
+  heading,
+}: {
+  guides: ResourceGuide[];
+  heading?: ReactNode;
+}) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     containScroll: "trimSnaps",
@@ -53,12 +66,43 @@ export function ResourceGuideScroller({ guides }: { guides: ResourceGuide[] }) {
 
   return (
     <div>
+      <div className="flex items-end justify-between gap-6">
+        {heading}
+        <div className="shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => emblaApi?.scrollPrev()}
+              disabled={!canScrollPrev}
+              className={ARROW_CLASSES}
+              aria-label="See previous guide"
+            >
+              <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+            <button
+              type="button"
+              onClick={() => emblaApi?.scrollNext()}
+              disabled={!canScrollNext}
+              className={ARROW_CLASSES}
+              aria-label="See next guide"
+            >
+              <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/*
-        py-3 on the clipping element, not just the track inside it. Embla's
-        viewport (this div) clips to its own padding box — with none, a
-        card's hover lift would have nowhere to go but past that edge.
+        Room for the hover state on the clipping element itself, not just the
+        track inside it. Embla's viewport (this div) clips to its own padding
+        box, and a lifted card's shadow reaches ~40px below it: with only
+        py-3 the shadow was cut off in a hard line under the card. pb-12
+        gives it room to fade out, and -mb-9 hands the extra space back, so
+        the gap to the next thing below is the same 12px it always was. The
+        top is the same trade (pt-5 inside, mt-5 outside, the old mt-7 +
+        py-3 between them), for the lift and the shadow's upper edge.
       */}
-      <div className="overflow-hidden py-3" ref={emblaRef}>
+      <div className="-mb-9 mt-5 overflow-hidden pb-12 pt-5" ref={emblaRef}>
         {/*
           items-start, not the flex default of stretch. Stretch matched
           every card to the tallest one in view, and since the copy runs
@@ -84,26 +128,6 @@ export function ResourceGuideScroller({ guides }: { guides: ResourceGuide[] }) {
         </div>
       </div>
 
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => emblaApi?.scrollPrev()}
-          disabled={!canScrollPrev}
-          className={ARROW_CLASSES}
-          aria-label="See previous guide"
-        >
-          <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
-        </button>
-        <button
-          type="button"
-          onClick={() => emblaApi?.scrollNext()}
-          disabled={!canScrollNext}
-          className={ARROW_CLASSES}
-          aria-label="See next guide"
-        >
-          <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
-        </button>
-      </div>
     </div>
   );
 }
