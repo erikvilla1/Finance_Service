@@ -68,7 +68,7 @@ export function normalizeAndValidate(
  * funding application prints. A lender reading 3105551234 off a document is a
  * lender squinting.
  */
-function validatePhone(value: unknown): ValidationResult {
+export function validatePhone(value: unknown): ValidationResult {
   const digits = String(value).replace(/\D/g, "");
   const national = digits.length === 11 && digits.startsWith("1")
     ? digits.slice(1)

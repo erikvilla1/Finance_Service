@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Card, Container } from "@/components/ui";
+import { Lock } from "lucide-react";
+import { PageHeader, Panel, textLink } from "@/components/portal/ui";
 import { createClient } from "@/lib/supabase/server";
 import { isEditable } from "@/lib/application-form/load";
 import {
@@ -39,7 +40,7 @@ export default async function ObligationsPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, reference_code, status, has_existing_mca")
+    .select("id, status, has_existing_mca")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -57,34 +58,21 @@ export default async function ObligationsPage({
   const editable = isEditable(application.status);
 
   return (
-    <Container>
-      <div className="mx-auto max-w-2xl">
-        <Link
-          href={`/dashboard/${applicationId}/application`}
-          className="text-sm font-semibold text-brand-700 hover:underline"
-        >
-          ← Your application
-        </Link>
-
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-ink-900">
-          Existing obligations
-        </h1>
-        <p className="mt-2 leading-relaxed text-ink-600">
-          You told us the business has an existing advance or loan. Lenders need
-          to see what is already owed before they can consider new financing —
-          list each one below.
-        </p>
+    <div className="mx-auto max-w-3xl">
+        <PageHeader
+          eyebrow="Your application"
+          title="Existing obligations"
+          description="You told us the business has an existing advance or loan. Funding sources need to see what's already owed before they can consider new financing, so list each one below."
+        />
 
         {!editable && (
-          <div className="mt-6 rounded-lg bg-ink-100 p-4">
+          <div className="mt-6 flex items-start gap-3 rounded-2xl bg-white/70 p-4 ring-1 ring-inset ring-ink-200/70">
+            <Lock aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-ink-500" />
             <p className="text-sm leading-relaxed text-ink-700">
               Your application is with a funding source, so it can&apos;t be
-              changed here. This is what you told us — if anything needs
+              changed here. This is what you told us. If anything needs
               correcting,{" "}
-              <Link
-                href="/contact"
-                className="font-semibold text-brand-700 hover:underline"
-              >
+              <Link href="/dashboard/support" className={textLink}>
                 your specialist can help
               </Link>
               .
@@ -92,19 +80,18 @@ export default async function ObligationsPage({
           </div>
         )}
 
-        <Card className="mt-6">
+        <Panel className="mt-8">
           <ObligationsForm
             applicationId={applicationId}
             existing={debts}
             readOnly={!editable}
           />
-        </Card>
+        </Panel>
 
-        <p className="mt-6 text-sm leading-relaxed text-ink-600">
+        <p className="mt-6 pl-3 text-sm leading-relaxed text-ink-600 sm:pl-4">
           An estimate is fine if you don&apos;t have the exact figure to hand.
           Your specialist will confirm the details against your bank statements.
         </p>
-      </div>
-    </Container>
+    </div>
   );
 }

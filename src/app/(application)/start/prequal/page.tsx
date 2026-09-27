@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Container, EmptyState, ProgressBar } from "@/components/ui";
-import { PrequalWizard } from "@/components/application/prequal-wizard";
+import { Container, EmptyState } from "@/components/ui";
+import { ObjectiveWizard } from "@/components/application/objective-wizard";
+import { PrequalFlowProgress } from "@/components/application/prequal-progress";
+import { PrequalStage } from "@/components/application/prequal-stage";
 import { TimezoneField } from "@/components/application/timezone-field";
-import { loadQuestions } from "@/lib/questions";
-import { splitPrequal } from "@/lib/questions/prequal-layout";
-import { findGoal } from "@/lib/products/goals";
-import { submitPrequal } from "./actions";
-import {
-  PREQUAL_FLOW_LABEL,
-  PREQUAL_FLOW_STEPS,
-} from "@/lib/applications/flow";
+import { resolveGoal } from "@/lib/matching/objectives";
+import { questionsFor, sectionsFor } from "@/lib/matching/questions";
+import { submitPrequal, submitPrequalForResult } from "./actions";
 
 /**
  * The wizard's fallback, expressed as CSS rather than as a second render.
  *
- * PrequalWizard hides inactive steps with a class and never unmounts them, so
+ * ObjectiveWizard hides inactive steps with a class and never unmounts them, so
  * without JavaScript the whole form is already in the document — it is just
  * display:none with a Next button that does nothing. Revealing every step and
  * dropping the wizard chrome turns it back into the plain stacked form this
@@ -40,58 +37,73 @@ export const metadata: Metadata = {
 };
 
 /**
- * Tier one of the two-tier prequalification.
+ * Tier one of the two-tier prequalification: the objective's questionnaire
+ * (spec v1.1 §4-6).
  *
  * No PII, no documents. This is the lead-capture surface, so every extra field
  * costs conversion — the full application (tier two) is where detail belongs.
  *
- * Asked one question at a time (see PrequalWizard). The question count is the
- * same as it was stacked; what changes is that the applicant is never looking
- * at more than one of them, which is the difference between a form and a
- * conversation.
- *
- * Questions come from the database, not from this file (spec §9). Adding one is
- * an insert, not a deploy.
+ * The questions are configuration (src/lib/matching/questions.ts): the
+ * universal profile, then the branch for the objective chosen on /start. The
+ * branch is what makes each objective's form its own — equipment asks about
+ * the equipment, real estate about the property, debt refinance about the
+ * positions being replaced — and conditional questions appear only when an
+ * earlier answer makes them relevant (see ObjectiveWizard).
  */
 export default async function PrequalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ goal?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const goal = findGoal(params.goal);
+  const goalParam = typeof params.goal === "string" ? params.goal : null;
+  const resolved = resolveGoal(goalParam);
 
   // The goal lives only in the query string, so anything that drops it — a
   // failed submission reloading the page, a truncated shared link, a typo —
   // lands here. Send them back to pick a goal rather than showing a 404.
   // A dead end mid-application is a lost applicant.
-  if (!goal) redirect("/start");
+  if (!resolved) redirect("/start");
 
-  const questions = await loadQuestions(["prequal"], goal.likelyTrack);
+  const { objective } = resolved;
+  const fields = questionsFor(objective.id);
 
-  // What the engine reads, and what merely helps. See prequal-layout.ts — the
-  // split is derived from requiredness, so it follows the database rather than
-  // needing to be maintained here.
-  //
-  // ONLY THE ESSENTIAL HALF IS ASKED. `details` is deliberately discarded: tier
-  // one has no optional questions any more. The seven it contains — legal
-  // business name, industry, urgency, existing balance, monthly debt payments,
-  // asset value, asset debt — are read by no rule in any ruleset, so dropping
-  // them changes no result the engine produces.
-  //
-  // WHAT IT DOES COST. Nothing else asks for them. The full application loads
-  // core_business, financial_snapshot, the track modules and owner — not
-  // prequal — so these seven are now collected by a specialist on the phone or
-  // not at all. That is a deliberate trade of specialist convenience for a
-  // shorter form, not an oversight. If any of them are worth keeping, the fix
-  // is to move them into a tier-two module rather than to reopen this section.
-  const { essential } = splitPrequal(questions);
+  // Answers a link already knows (a guide that is specifically about fix &
+  // flip). Accepted only for this objective's single-choice questions, and
+  // only as one of that question's own options, so a hand-edited URL can
+  // skip a question but never post a value the form couldn't have.
+  const prefill: Record<string, string> = { ...resolved.prefill };
+  for (const field of fields) {
+    const value = params[field.id];
+    if (
+      field.type === "single_select" &&
+      typeof value === "string" &&
+      field.options?.some((option) => option.value === value)
+    ) {
+      prefill[field.id] = value;
+    }
+  }
 
   // Idempotency key for this form render (migration 0018). Minted here rather
   // than in the browser so it cannot be replayed or omitted by the client, and
   // per render rather than per session so a deliberate second application —
   // reloading the page and filling it in again — is still allowed through.
   const submissionToken = crypto.randomUUID();
+
+  const header = (
+    <div className="mt-8">
+      <p className="animate-fade-in-up text-sm font-semibold uppercase tracking-wider text-brand-600 [animation-delay:90ms]">
+        {objective.label}
+      </p>
+      <h1 className="animate-fade-in-up mt-2 text-3xl font-bold tracking-tight text-ink-900 [animation-delay:150ms] sm:text-4xl">
+        Tell us about your situation
+      </h1>
+      <p className="animate-fade-in-up mt-4 leading-relaxed text-ink-600 [animation-delay:220ms]">
+        A few quick questions about your business and what you need. No
+        documents, and nothing here affects your credit.
+      </p>
+    </div>
+  );
 
   return (
     <Container>
@@ -100,39 +112,29 @@ export default async function PrequalPage({
             moving between the two steps feels like one flow rather than two
             pages. CSS only — see the note on /start. */}
         <div className="animate-fade-in-up">
-          <ProgressBar
-            value={2}
-            max={PREQUAL_FLOW_STEPS}
-            label={PREQUAL_FLOW_LABEL}
-          />
+          <PrequalFlowProgress />
         </div>
 
-        <div className="mt-8">
-          <p className="animate-fade-in-up text-sm font-semibold uppercase tracking-wider text-brand-600 [animation-delay:90ms]">
-            {goal.label}
-          </p>
-          <h1 className="animate-fade-in-up mt-2 text-3xl font-bold tracking-tight text-ink-900 [animation-delay:150ms] sm:text-4xl">
-            Tell us about your situation
-          </h1>
-          <p className="animate-fade-in-up mt-4 leading-relaxed text-ink-600 [animation-delay:220ms]">
-            {essential.length} quick questions. No documents, and nothing here
-            affects your credit.
-          </p>
-        </div>
-
-        {/* The stepper and first question land after the copy that explains
-            them. */}
-        {questions.length === 0 ? (
-          <div className="mt-8">
-            <EmptyState
-              title="This form isn't available right now"
-              description="Please try again shortly, or speak with a financing specialist."
-            />
-          </div>
+        {fields.length === 0 ? (
+          <>
+            {header}
+            <div className="mt-8">
+              <EmptyState
+                title="This form isn't available right now"
+                description="Please try again shortly, or speak with a financing specialist."
+              />
+            </div>
+          </>
         ) : (
-          <form action={submitPrequal} className="mt-8">
+          // The heading and form fade out together on submit, into the
+          // loading state that leads to the results page (PrequalStage).
+          <PrequalStage
+            header={header}
+            action={submitPrequal}
+            submitForResult={submitPrequalForResult}
+          >
             <noscript dangerouslySetInnerHTML={{ __html: NO_JS_STYLES }} />
-            <input type="hidden" name="goal" value={goal.slug} />
+            <input type="hidden" name="objective" value={objective.id} />
             <input
               type="hidden"
               name="submission_token"
@@ -140,8 +142,12 @@ export default async function PrequalPage({
             />
             <TimezoneField />
 
-            <PrequalWizard essential={essential} />
-          </form>
+            <ObjectiveWizard
+              fields={fields}
+              sections={sectionsFor(objective.id)}
+              prefill={prefill}
+            />
+          </PrequalStage>
         )}
       </div>
     </Container>

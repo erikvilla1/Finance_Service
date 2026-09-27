@@ -2,98 +2,51 @@
 
 import { redirect } from "next/navigation";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { evaluate, ENGINE_VERSION } from "@/lib/qualification/engine";
-import type {
-  CandidateProduct,
-  QualificationInput,
-  Ruleset,
-} from "@/lib/qualification/types";
-import { findGoal } from "@/lib/products/goals";
 import { notifyStaff } from "@/lib/email/notifications";
+import { MATCH_STATE_STAFF_LABEL } from "@/lib/matching/copy";
+import { match } from "@/lib/matching/engine";
+import { findObjective } from "@/lib/matching/objectives";
+import { questionsFor } from "@/lib/matching/questions";
+import { readAnswers } from "@/lib/matching/form";
 import type {
-  BusinessAssetType,
+  Answers,
+  FieldDef,
+  MatchResult,
+  MatchState,
+  ObjectiveId,
+} from "@/lib/matching/types";
+import type {
   CreditBand,
   DepositTrend,
   PriorDefaultStatus,
   ProductTrack,
-  RevenueBand,
+  QualificationOutcome,
   TimeInBusinessBand,
-  UrgencyBand,
 } from "@/types/database";
 
 /**
- * Tier-one prequalification submission.
+ * Tier-one submission for the objective questionnaire (spec v1.1).
  *
  * Runs on the service role because the applicant is anonymous — there is no
  * auth.uid() to satisfy the RLS insert policy. That is deliberate: the write
  * path stays in server code we control and validate, rather than exposing
  * table-level insert to the anon role.
  *
- * Everything collected here is banded and non-PII (spec §8 STEP 6). Name,
- * address, SSN, and financial detail come later, after the applicant has seen
- * a reason to keep going.
- */
-
-const CREDIT_BANDS = new Set([
-  "below_600", "600_649", "650_679", "680_719", "720_759", "760_plus", "unknown",
-]);
-const REVENUE_BANDS = new Set([
-  "under_100k", "100k_250k", "250k_500k", "500k_1m", "1m_5m", "5m_plus", "unknown",
-]);
-const TIB_BANDS = new Set([
-  "startup_under_1y", "1_2y", "2_5y", "5_10y", "10y_plus",
-]);
-const URGENCY_BANDS = new Set([
-  "immediately", "within_30_days", "within_90_days", "just_exploring",
-]);
-const DEPOSIT_TRENDS = new Set([
-  "consistent_growing", "declining", "seasonal_irregular",
-]);
-const PRIOR_DEFAULT_STATUSES = new Set([
-  "none", "discharged_resolved", "active_recent",
-]);
-const ASSET_TYPES = new Set([
-  "none", "real_estate", "equipment", "vehicles", "inventory", "receivables",
-  "other",
-]);
-
-function pick<T extends string>(
-  value: FormDataEntryValue | null,
-  allowed: Set<string>,
-): T | null {
-  const raw = typeof value === "string" ? value.trim() : "";
-  return raw && allowed.has(raw) ? (raw as T) : null;
-}
-
-/**
- * Currency and number fields, parsed defensively.
+ * STORAGE, WITHOUT A MIGRATION. The new engine's lead record (spec §13) is
+ * written into the tables that already exist:
  *
- * Strips formatting the applicant may have typed ("$138,000") and rejects
- * anything that isn't a finite non-negative number. Returns null rather than
- * 0 for absent input — 0 is a meaningful answer for a debt balance and must not
- * be manufactured from a blank field.
- */
-function parseAmount(value: FormDataEntryValue | null): number | null {
-  const raw = typeof value === "string" ? value.trim() : "";
-  if (!raw) return null;
-  const parsed = Number(raw.replace(/[^0-9.]/g, ""));
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
-
-/**
- * Credit score, constrained to the FICO range.
+ *   applications          the columns staff views and tier two already read,
+ *                         mapped from the new answers where they mean the same
+ *                         thing (and left null where they don't, rather than
+ *                         forced into a band that would misstate them)
+ *   application_answers   every answer, keyed by question id
+ *   qualification_results product_matches = the customer view,
+ *                         rules_evaluated = the staff view (internal routes,
+ *                         metrics, evaluated objectives), engine_version "3.x"
  *
- * Out-of-range values are dropped rather than clamped: a 63 is far more likely
- * to be a typo than a real 630, and silently promoting it would change which
- * products the applicant is shown.
+ * The result and admin pages branch on engine_version, so applications scored
+ * by the previous engine still render as they did.
  */
-function parseCreditScore(value: FormDataEntryValue | null): number | null {
-  const raw = typeof value === "string" ? value.trim() : "";
-  if (!raw) return null;
-  const parsed = Number(raw.replace(/[^0-9]/g, ""));
-  if (!Number.isInteger(parsed)) return null;
-  return parsed >= 300 && parsed <= 850 ? parsed : null;
-}
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -101,9 +54,102 @@ const UUID_PATTERN =
 /** Postgres unique_violation. Raised by applications_submission_token_idx. */
 const UNIQUE_VIOLATION = "23505";
 
-export async function submitPrequal(formData: FormData) {
-  const goalSlug = String(formData.get("goal") ?? "");
-  const goal = findGoal(goalSlug);
+// -----------------------------------------------------------------------------
+// Mapping onto the existing application columns
+// -----------------------------------------------------------------------------
+
+/** The underwriting track tier two loads its modules for. */
+const TRACK: Record<ObjectiveId, ProductTrack | null> = {
+  working_capital: "working_capital",
+  equipment: "equipment",
+  commercial_real_estate: "cre",
+  investment_real_estate: "cre",
+  business_acquisition: "sba",
+  accounts_receivable: "ar_factoring",
+  debt_refinance: "working_capital",
+  startup: "unsecured",
+  unsure: null,
+};
+
+/**
+ * Only where the new band sits wholly inside an old one. "740+" spans two old
+ * bands, so it is left null rather than guessed; the exact answer is in
+ * application_answers either way.
+ */
+const CREDIT_BAND: Record<string, CreditBand> = {
+  lt_500: "below_600",
+  "500_549": "below_600",
+  "550_599": "below_600",
+  "600_619": "600_649",
+  "620_649": "600_649",
+  "650_679": "650_679",
+  "680_699": "680_719",
+  "700_719": "680_719",
+  "720_739": "720_759",
+  not_sure: "unknown",
+};
+
+/** Same rule: "5+ years" spans 5-10 and 10+, so it is left null. */
+const TIB_BAND: Record<string, TimeInBusinessBand> = {
+  startup_pre_revenue: "startup_under_1y",
+  lt_3m: "startup_under_1y",
+  "3_6m": "startup_under_1y",
+  "6_12m": "startup_under_1y",
+  "1_2y": "1_2y",
+  "2_5y": "2_5y",
+};
+
+const DEPOSIT_TREND: Record<string, DepositTrend> = {
+  growing: "consistent_growing",
+  consistent: "consistent_growing",
+  seasonal: "seasonal_irregular",
+  declining: "declining",
+};
+
+/** The spec's four states onto the database's existing outcome enum. */
+const OUTCOME: Record<MatchState, QualificationOutcome> = {
+  strong: "potential_match",
+  potential: "potential_match",
+  specialist_review: "requires_review",
+  no_current_match: "no_match_identified",
+};
+
+const str = (value: Answers[string]) => (typeof value === "string" ? value : null);
+const num = (value: Answers[string]) => (typeof value === "number" ? value : null);
+const list = (value: Answers[string]) => (Array.isArray(value) ? value : []);
+
+function priorDefaultStatus(events: string[]): PriorDefaultStatus | null {
+  if (events.length === 0) return null;
+  if (events.includes("bk_active") || events.includes("current_financing_default")) {
+    return "active_recent";
+  }
+  if (
+    events.includes("bk_discharged") ||
+    events.includes("prior_business_default") ||
+    events.includes("foreclosure_short_sale")
+  ) {
+    return "discharged_resolved";
+  }
+  return events.length === 1 && events[0] === "none" ? "none" : null;
+}
+
+function optionLabel(fields: FieldDef[], id: string, value: Answers[string]) {
+  const field = fields.find((f) => f.id === id);
+  return field?.options?.find((option) => option.value === value)?.label ?? null;
+}
+
+// -----------------------------------------------------------------------------
+
+/**
+ * Validates the answers, runs the engine, stores the lead, alerts staff, and
+ * returns the result page's token. Shared by the two entry points below.
+ */
+async function createLead(formData: FormData): Promise<string> {
+  const objective = findObjective(String(formData.get("objective") ?? ""));
+
+  // The objective arrives in a hidden field. Without one there is nothing to
+  // score against, so send the applicant back to choose rather than erroring.
+  if (!objective) redirect("/start");
 
   // Idempotency key minted by the page for this form render (migration 0018).
   // Validated rather than trusted: it arrives from the client, and a malformed
@@ -111,100 +157,9 @@ export async function submitPrequal(formData: FormData) {
   const tokenRaw = String(formData.get("submission_token") ?? "").trim();
   const submissionToken = UUID_PATTERN.test(tokenRaw) ? tokenRaw : null;
 
-  const rawAmount = String(formData.get("prequal_requested_amount") ?? "").trim();
-  const parsedAmount = Number(rawAmount.replace(/[^0-9.]/g, ""));
-  const requestedAmount =
-    Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : null;
-
-  // Retained for applications submitted before migration 0016 replaced the
-  // banded question with an exact score. New submissions leave this null and
-  // the database trigger derives the band from the score instead.
-  const creditBand = pick<CreditBand>(
-    formData.get("prequal_credit_band"), CREDIT_BANDS);
-  const revenueBand = pick<RevenueBand>(
-    formData.get("prequal_revenue_band"), REVENUE_BANDS);
-  const timeInBusiness = pick<TimeInBusinessBand>(
-    formData.get("prequal_time_in_business"), TIB_BANDS);
-  const urgency = pick<UrgencyBand>(
-    formData.get("prequal_urgency"), URGENCY_BANDS);
-
-  const industryRaw = String(formData.get("prequal_industry") ?? "").trim();
-  const industry = industryRaw ? industryRaw.slice(0, 120) : null;
-
-  // --- Business profile -------------------------------------------------------
-  const legalNameRaw = String(
-    formData.get("prequal_legal_business_name") ?? "").trim();
-  const legalBusinessName = legalNameRaw ? legalNameRaw.slice(0, 200) : null;
-  const creditScore = parseCreditScore(formData.get("prequal_credit_score"));
-
-  // --- Revenue ----------------------------------------------------------------
-  const avgMonthlyRevenue = parseAmount(
-    formData.get("prequal_avg_monthly_revenue"));
-  const depositTrend = pick<DepositTrend>(
-    formData.get("prequal_deposit_trend"), DEPOSIT_TRENDS);
-
-  // --- Existing obligations ---------------------------------------------------
-  const existingBalance = parseAmount(formData.get("prequal_existing_balance"));
-  const monthlyDebtPayments = parseAmount(
-    formData.get("prequal_monthly_debt_payments"));
-  const priorDefaultStatus = pick<PriorDefaultStatus>(
-    formData.get("prequal_prior_defaults"), PRIOR_DEFAULT_STATUSES);
-
-  // --- Current assets ---------------------------------------------------------
-  //
-  // Repeatable (see asset-rows.tsx). Every row posts under the same three
-  // names, so FormData preserves them in document order and getAll() zips them
-  // back into rows by index.
-  //
-  // Value and debt are read positionally against the TYPE list, not against
-  // their own: a row whose type is "none" renders no money inputs at all, so
-  // the three lists are only the same length when every row has figures.
-  // Indexing each list independently would silently attach the second asset's
-  // value to the first asset. Rows are therefore built from the type list and
-  // the money inputs are matched by counting only the rows that have them.
-  const assetTypesRaw = formData.getAll("prequal_asset_type");
-  const assetValuesRaw = formData.getAll("prequal_asset_value");
-  const assetDebtsRaw = formData.getAll("prequal_asset_debt");
-
-  const assetRows: {
-    type: BusinessAssetType;
-    value: number | null;
-    debt: number | null;
-  }[] = [];
-
-  let moneyIndex = 0;
-  for (const raw of assetTypesRaw) {
-    const type = pick<BusinessAssetType>(raw, ASSET_TYPES);
-    if (!type) continue;
-
-    // "none" is a real answer about the applicant, not a description of an
-    // asset, so it carries no figures and consumes no money inputs.
-    if (type === "none") {
-      assetRows.push({ type, value: null, debt: null });
-      continue;
-    }
-
-    assetRows.push({
-      type,
-      value: parseAmount(assetValuesRaw[moneyIndex] ?? null),
-      debt: parseAmount(assetDebtsRaw[moneyIndex] ?? null),
-    });
-    moneyIndex += 1;
-  }
-
-  // Kept for the columns and answers below, which are single-valued and predate
-  // multiple assets. The first row is the one an applicant with one asset gave.
-  const assetType = assetRows[0]?.type ?? null;
-  const assetValue = assetRows[0]?.value ?? null;
-  const assetDebt = assetRows[0]?.debt ?? null;
-
-  // ANY row, not the first. An applicant who lists equipment and then a
-  // building must still reach commercial real estate — this is the single
-  // condition on ucs_real_estate_secured that the applicant controls, and
-  // reading only row one would close the product on ordering alone.
-  const hasRealEstateAsset = assetRows.some(
-    (row) => row.type === "real_estate",
-  );
+  const fields = questionsFor(objective.id);
+  const answers = readAnswers(fields, formData);
+  const result: MatchResult = match(objective.id, answers);
 
   // Reported by the browser. Validated rather than trusted — this arrives from
   // the client, so a bad value should be dropped, not stored.
@@ -220,7 +175,31 @@ export async function submitPrequal(formData: FormData) {
       ? offsetRaw
       : null;
 
-  const track: ProductTrack | null = goal?.likelyTrack ?? null;
+  const events = list(answers.credit_events);
+  const bankruptcyKnown = events.length > 0 && !(events.length === 1 && events[0] === "other_not_sure");
+  const hasBankruptcy = events.includes("bk_active") || events.includes("bk_discharged");
+  const debtTypes = list(answers.debt_types);
+  const positions = str(answers.open_positions_count);
+
+  // The exact figure where the branch asks for one (equipment cost less the
+  // down payment, the loan requested on a property, ...). Working capital and
+  // startup only ask for a range, and a range is not an amount: null, with
+  // the range kept in application_answers.
+  const downPayment = num(answers.equipment_down_payment) ?? 0;
+  const equipmentCost = num(answers.equipment_cost);
+  const requestedAmount =
+    (equipmentCost != null ? Math.max(equipmentCost - downPayment, 0) : null) ??
+    num(answers.cre_requested_loan) ??
+    num(answers.re_requested_loan) ??
+    num(answers.acq_requested_financing) ??
+    num(answers.ar_amount_requested) ??
+    num(answers.debt_total_balance);
+
+  const useOfFunds =
+    optionLabel(fields, "use_of_funds", answers.use_of_funds) ??
+    optionLabel(fields, "unsure_use", answers.unsure_use);
+
+  const industry = str(answers.industry);
 
   const supabase = createServiceRoleClient();
 
@@ -231,31 +210,26 @@ export async function submitPrequal(formData: FormData) {
   const { data: application, error: insertError } = await supabase
     .from("applications")
     .insert({
-      financing_goal: goal?.label ?? null,
-      track,
-      requested_amount: requestedAmount,
-      credit_band: creditBand,
-      owner_credit_score: creditScore,
-      revenue_band: revenueBand,
-      time_in_business: timeInBusiness,
-      urgency,
-      industry,
-      avg_monthly_revenue: avgMonthlyRevenue,
-      deposit_trend: depositTrend,
-      existing_debt_balance: existingBalance,
-      total_monthly_debt_payments: monthlyDebtPayments,
-      prior_default_status: priorDefaultStatus,
-      // Derived rather than asked twice: the applicant already told us their
-      // prior-default status, so re-asking "any bankruptcies?" on the full
-      // application would be a second chance to contradict themselves.
-      has_bankruptcy:
-        priorDefaultStatus == null ? null : priorDefaultStatus !== "none",
-      bankruptcy_discharged:
-        priorDefaultStatus == null
-          ? null
-          : priorDefaultStatus === "discharged_resolved",
-      has_existing_mca:
-        existingBalance == null ? null : existingBalance > 0,
+      financing_goal: objective.label,
+      track: TRACK[objective.id],
+      requested_amount: requestedAmount && requestedAmount > 0 ? requestedAmount : null,
+      use_of_funds: useOfFunds,
+      credit_band: CREDIT_BAND[str(answers.owner_credit_range) ?? ""] ?? null,
+      time_in_business: TIB_BAND[str(answers.time_in_business) ?? ""] ?? null,
+      industry: industry ? industry.slice(0, 120) : null,
+      avg_monthly_revenue: num(answers.avg_monthly_revenue) ?? num(answers.ar_monthly_sales),
+      deposit_trend: DEPOSIT_TREND[str(answers.deposit_trend) ?? ""] ?? null,
+      existing_debt_balance:
+        num(answers.current_financing_balance) ?? num(answers.debt_total_balance) ??
+        (positions === "0" ? 0 : null),
+      total_monthly_debt_payments:
+        num(answers.monthly_debt_payments) ?? num(answers.debt_total_monthly_payment),
+      prior_default_status: priorDefaultStatus(events),
+      has_bankruptcy: bankruptcyKnown ? hasBankruptcy : null,
+      bankruptcy_discharged: hasBankruptcy
+        ? events.includes("bk_discharged") && !events.includes("bk_active")
+        : null,
+      has_existing_mca: debtTypes.includes("mca") ? true : positions === "0" ? false : null,
       applicant_timezone: applicantTimezone,
       applicant_utc_offset_minutes: applicantOffset,
       status: "draft",
@@ -272,13 +246,7 @@ export async function submitPrequal(formData: FormData) {
   // A unique violation on submission_token means this exact form render has
   // already been submitted — the applicant clicked twice, the browser retried,
   // or they came back and resubmitted. The first submission won and is already
-  // committed: Postgres blocks the second insert on the index until the first
-  // transaction commits, so by the time this error surfaces the row it conflicts
-  // with is readable.
-  //
-  // Send them to that application rather than surfacing an error. From where the
-  // applicant is standing, they asked for their options twice and got them —
-  // which is the correct outcome. Robert gets one lead instead of two.
+  // committed, so send them to it. Robert gets one lead instead of two.
   // ---------------------------------------------------------------------------
   if (insertError?.code === UNIQUE_VIOLATION && submissionToken) {
     const { data: existing } = await supabase
@@ -287,166 +255,99 @@ export async function submitPrequal(formData: FormData) {
       .eq("submission_token", submissionToken)
       .maybeSingle();
 
-    // The result page tolerates a qualification_results row that has not landed
-    // yet — it renders the "a specialist will review this" state rather than
-    // failing — so redirecting here is safe even while the first request is
+    // The result page tolerates a qualification_results row that has not
+    // landed yet, so redirecting here is safe even while the first request is
     // still finishing its remaining writes.
-    if (existing) redirect(`/start/result/${existing.public_token}`);
+    if (existing) return existing.public_token;
   }
 
   if (insertError || !application) {
     throw new Error("Could not start your application. Please try again.");
   }
 
-  // The asset row is only worth writing when something was actually offered.
-  // "none" is a real answer, but it does not describe an asset, so it belongs
-  // on the application rather than in a table of assets.
-  const pledgedAssets = assetRows.filter((row) => row.type !== "none");
-
-  if (pledgedAssets.length > 0) {
-    await supabase.from("business_assets").insert(
-      pledgedAssets.map((row, i) => ({
-        application_id: application.id,
-        asset_type: row.type,
-        estimated_value: row.value,
-        debt_owed: row.debt,
-        // 1-based, and the order the applicant listed them in. They ranked
-        // these themselves by putting one first; renumbering by value would
-        // discard that.
-        position: i + 1,
-      })),
-    );
-  }
-
-  // Store the raw answers too, so the dynamic engine has them keyed by question.
-  const answers = [
-    ["prequal_requested_amount", requestedAmount],
-    ["prequal_legal_business_name", legalBusinessName],
-    ["prequal_credit_score", creditScore],
-    ["prequal_revenue_band", revenueBand],
-    ["prequal_time_in_business", timeInBusiness],
-    ["prequal_urgency", urgency],
-    ["prequal_industry", industry],
-    ["prequal_avg_monthly_revenue", avgMonthlyRevenue],
-    ["prequal_deposit_trend", depositTrend],
-    ["prequal_existing_balance", existingBalance],
-    ["prequal_monthly_debt_payments", monthlyDebtPayments],
-    ["prequal_prior_defaults", priorDefaultStatus],
-    ["prequal_asset_type", assetType],
-    ["prequal_asset_value", assetValue],
-    ["prequal_asset_debt", assetDebt],
-  ] as const;
-
-  await supabase.from("application_answers").insert(
-    answers
-      .filter(([, value]) => value !== null)
-      .map(([key, value]) => ({
-        application_id: application.id,
-        question_key: key,
-        value: value as never,
-        is_pii: false,
-      })),
-  );
-
-  // ---------------------------------------------------------------------------
-  // Run the engine.
-  // ---------------------------------------------------------------------------
-  const { data: productRows } = await supabase
-    .from("financing_products")
-    .select("slug, name, track, amount_min, amount_max, min_fico, terms_verified")
-    .is("deleted_at", null);
-
-  const candidates: CandidateProduct[] = (productRows ?? []).map((row) => ({
-    slug: row.slug,
-    name: row.name,
-    track: row.track,
-    amountMin: row.amount_min,
-    amountMax: row.amount_max,
-    minFico: row.min_fico,
-    termsVerified: row.terms_verified,
+  // Every answer, keyed by question id: the "universal_profile" and
+  // "branch_inputs" of the spec's lead record, and what staff read.
+  const answerRows = Object.entries(answers).map(([key, value]) => ({
+    application_id: application.id,
+    question_key: key,
+    value: value as never,
+    is_pii: false,
   }));
+  answerRows.push({
+    application_id: application.id,
+    question_key: "objective",
+    value: objective.id as never,
+    is_pii: false,
+  });
+  await supabase.from("application_answers").insert(answerRows);
 
-  let ruleset: Ruleset | null = null;
-  let rulesetVersion: number | null = null;
-
-  // The v2 ruleset is universal — the same rules are written to every track,
-  // because eligibility is a property of the product, not of the goal the
-  // applicant happened to click. The track only decides which row we read, so
-  // an applicant who picked "I'm not sure" (track null) still gets rules rather
-  // than falling through to a blanket review.
-  const rulesetTrack: ProductTrack = track ?? "working_capital";
-
-  const { data: rulesetRow } = await supabase
-    .from("qualification_rulesets")
-    .select("ruleset, version")
-    .eq("track", rulesetTrack)
-    .eq("is_active", true)
-    .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (rulesetRow) {
-    ruleset = rulesetRow.ruleset as unknown as Ruleset;
-    rulesetVersion = rulesetRow.version;
-  }
-
-  const input: QualificationInput = {
-    track,
-    financingGoal: goal?.slug ?? null,
-    requestedAmount,
-    revenueBand,
-    creditBand,
-    creditScore,
-    timeInBusiness,
-    industry,
-    avgMonthlyRevenue,
-    depositTrend,
-    priorDefaultStatus,
-    hasRealEstateAsset,
-  };
-
-  const result = evaluate(input, candidates, ruleset, rulesetVersion);
+  // Only a documented sizing formula produces a range (spec §7), and only the
+  // top product's range is summarised on the row; every product keeps its own.
+  const topRange = result.productMatches.find((m) => m.estimatedRange)?.estimatedRange ?? null;
 
   // Written on the service role by design — a qualification result the
   // applicant could edit would be worthless as a record (spec §26).
   await supabase.from("qualification_results").insert({
     application_id: application.id,
-    outcome: result.outcome,
+    outcome: OUTCOME[result.overallState],
     product_matches: result.productMatches as never,
-    indicative_amount_min: result.indicativeAmountMin,
-    indicative_amount_max: result.indicativeAmountMax,
-    missing_information: result.missingInformation as never,
-    risk_flags: result.riskFlags as never,
-    review_required: result.reviewRequired,
-    ruleset_version: result.rulesetVersion,
-    rules_evaluated: result.rulesEvaluated as never,
-    engine_version: ENGINE_VERSION,
+    indicative_amount_min: topRange?.min ?? null,
+    indicative_amount_max: topRange?.max ?? null,
+    missing_information: result.missingItems as never,
+    risk_flags: [] as never,
+    // Every lead is reviewed by a specialist before terms (spec §18).
+    review_required: true,
+    ruleset_version: null,
+    rules_evaluated: {
+      objectiveId: result.objectiveId,
+      evaluatedObjectives: result.evaluatedObjectives,
+      overallState: result.overallState,
+      nextAction: result.nextAction,
+      calculatedMetrics: result.calculatedMetrics,
+      internalRoutes: result.internalRoutes,
+    } as never,
+    engine_version: result.engineVersion,
   });
 
-  // THE EARLIEST ALERT, AND THE MOST PERISHABLE.
-  //
-  // Nobody has an account at this point — the row is anonymous until someone
-  // creates one, and plenty never do. Those are precisely the leads worth
-  // knowing about within the hour rather than whenever someone next opens the
-  // admin list, because a person who asked about financing this morning is a
-  // different prospect from the same person on Thursday.
-  //
-  // Before the redirect, which throws.
-  //
-  // The amount and the goal are in the message rather than left to the click:
-  // the point of a staff alert is to be triageable from a phone's lock screen.
+  // THE EARLIEST ALERT, AND THE MOST PERISHABLE. Nobody has an account yet,
+  // and plenty never will; a person who asked about financing this morning is
+  // a different prospect from the same person on Thursday. Triageable from a
+  // lock screen: the objective, the amount and the result are in the message.
+  const amountLabel =
+    requestedAmount && requestedAmount > 0
+      ? `$${requestedAmount.toLocaleString("en-US")} requested`
+      : optionLabel(fields, "requested_amount_range", answers.requested_amount_range) ??
+        "No amount given";
+  const topRoute = result.internalRoutes.find((route) => route.state !== "no_current_match");
+
   await notifyStaff(
     application.id,
     "New prequal submitted",
     [
-      legalBusinessName ?? "Business name not given",
-      goal?.label ?? "Goal not given",
-      requestedAmount
-        ? `$${requestedAmount.toLocaleString("en-US")} requested`
-        : "No amount given",
-      `Outcome: ${result.outcome.replaceAll("_", " ")}`,
+      objective.label,
+      amountLabel,
+      `Result: ${MATCH_STATE_STAFF_LABEL[result.overallState]}`,
+      topRoute ? `Top route: ${topRoute.programId}` : "No automated route",
     ].join(" · "),
   );
 
-  redirect(`/start/result/${application.public_token}`);
+  return application.public_token;
+}
+
+/**
+ * The form's own action: what runs when the browser posts the form natively
+ * (no JavaScript), and redirects straight to the result.
+ */
+export async function submitPrequal(formData: FormData) {
+  redirect(`/start/result/${await createLead(formData)}`);
+}
+
+/**
+ * The same submission for the scripted path (PrequalStage), which returns the
+ * token instead of redirecting so the page can finish its progress bar and
+ * loading state before navigating, rather than being yanked away the moment
+ * the server answers.
+ */
+export async function submitPrequalForResult(formData: FormData): Promise<{ token: string }> {
+  return { token: await createLead(formData) };
 }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Card, Container, EmptyState } from "@/components/ui";
+import { CircleAlert, CircleCheck, Hourglass } from "lucide-react";
+import { PageHeader, Panel, textLink } from "@/components/portal/ui";
 import { createClient } from "@/lib/supabase/server";
 import { FCRA_AUTHORIZATION_V1 } from "@/lib/funding-application/consent-text";
 import { E_SIGN_CONSENT } from "@/lib/funding-application/sign";
@@ -50,7 +52,7 @@ export default async function SignPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, reference_code, signature_requested_at")
+    .select("id, signature_requested_at")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -89,70 +91,62 @@ export default async function SignPage({
   const data = readyToSign ? await loadFundingApplication(applicationId) : null;
 
   return (
-    <Container>
-      <div className="mx-auto max-w-3xl">
-        <Link
-          href="/dashboard"
-          className="text-sm font-semibold text-brand-700 hover:underline"
-        >
-          ← Your applications
-        </Link>
-
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-ink-900">
-          Sign your application
-        </h1>
-        <p className="mt-1 font-mono text-sm text-ink-500">
-          {application.reference_code}
-        </p>
+    <div className="mx-auto max-w-4xl">
+        <PageHeader
+          title="Sign your application"
+          description={
+            alreadySigned || !application.signature_requested_at
+              ? undefined
+              : "This is the application that goes to a funding source, prefilled from what you've told us. Review it, then read the authorization, add the details below, and sign at the bottom."
+          }
+        />
 
         {alreadySigned ? (
-          <div className="mt-8">
-            <EmptyState
-              title="Already signed"
-              description="Your signed application is with your specialist. You can see it under your documents."
-            />
-          </div>
+          <SignState
+            icon={<CircleCheck aria-hidden="true" className="h-5 w-5" />}
+            tone="done"
+            title="Already signed"
+            description="Your signed application is with your specialist. You can see it under your documents."
+          />
         ) : !application.signature_requested_at ? (
-          <div className="mt-8">
-            <EmptyState
-              title="Not ready to sign yet"
-              description="Your specialist will review everything first and let you know when the application is ready for your signature."
-            />
-          </div>
+          <SignState
+            icon={<Hourglass aria-hidden="true" className="h-5 w-5" />}
+            tone="waiting"
+            title="Not ready to sign yet"
+            description="Your specialist will review everything first and let you know when the application is ready for your signature."
+          />
         ) : (
           <>
             {returned && (
-              <div className="mt-4 rounded-lg bg-warning-50 p-4">
-                <p className="text-sm font-semibold text-warning-700">
-                  Your specialist needs you to sign again
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-ink-700">
-                  {returned.verification_note ??
-                    "Something on the signed copy needs another look. Review the application below and sign it again."}
-                </p>
+              <div className="mt-6 flex items-start gap-3 rounded-2xl bg-warning-50 p-4 ring-1 ring-inset ring-warning-600/20">
+                <CircleAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-warning-700" />
+                <div>
+                  <p className="text-sm font-semibold text-warning-700">Your specialist needs you to sign again</p>
+                  <p className="mt-1 text-sm leading-relaxed text-ink-700">
+                    {returned.verification_note ??
+                      "Something on the signed copy needs another look. Review the application below and sign it again."}
+                  </p>
+                </div>
               </div>
             )}
 
-            <p className="mt-3 leading-relaxed text-ink-600">
-              This is the application that goes to a funding source, prefilled
-              from what you have told us. Review it, then read the
-              authorization, add the details below, and sign at the bottom.
-              Tax ID and Social Security number are added when you sign — they
+            <p className="mt-4 pl-3 text-sm leading-relaxed text-ink-500 sm:pl-4">
+              Tax ID and Social Security number are added when you sign. They
               appear on the signed document only.
             </p>
 
             {data && (
-              <Card className="mt-6 overflow-x-auto bg-white">
+              <Panel className="mt-6 overflow-x-auto bg-white">
                 <FundingApplicationSheet
                   context={data.context}
                   debts={data.debts}
                   referenceCode={data.referenceCode}
                   mode="review"
                 />
-              </Card>
+              </Panel>
             )}
 
-            <Card className="mt-6">
+            <Panel className="mt-6">
               <SignForm
                 applicationId={applicationId}
                 fcra={FCRA_AUTHORIZATION_V1}
@@ -160,21 +154,43 @@ export default async function SignPage({
                 defaultName={owner?.full_name ?? ""}
                 defaultTitle={owner?.title ?? ""}
               />
-            </Card>
+            </Panel>
 
-            <p className="mt-6 text-sm leading-relaxed text-ink-600">
-              Would you rather sign on paper? There is no charge either way —{" "}
-              <Link
-                href="/contact"
-                className="font-semibold text-brand-700 hover:underline"
-              >
-                ask your specialist
+            <p className="mt-6 pl-3 text-sm leading-relaxed text-ink-600 sm:pl-4">
+              Would you rather sign on paper? There&apos;s no charge either way.{" "}
+              <Link href="/dashboard/support" className={textLink}>
+                Ask your specialist
               </Link>{" "}
-              and they will send you a copy to print.
+              and they&apos;ll send you a copy to print.
             </p>
           </>
         )}
-      </div>
-    </Container>
+    </div>
+  );
+}
+
+function SignState({
+  icon,
+  tone,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  tone: "done" | "waiting";
+  title: string;
+  description: string;
+}) {
+  return (
+    <Panel className="mt-8 text-center">
+      <span
+        className={`mx-auto grid h-12 w-12 place-items-center rounded-2xl ${
+          tone === "done" ? "bg-success-50 text-success-700" : "bg-ink-100 text-ink-600"
+        }`}
+      >
+        {icon}
+      </span>
+      <h2 className="mt-4 text-lg font-bold text-ink-900">{title}</h2>
+      <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-ink-600">{description}</p>
+    </Panel>
   );
 }

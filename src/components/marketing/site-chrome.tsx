@@ -373,15 +373,32 @@ export function SiteHeader() {
 
             Keyboard users get the global :focus-visible ring from globals.css,
             so this is not the only affordance on the link.
+
+            BOTH MARKS ARE ALWAYS RENDERED, STACKED; overHero FADES BETWEEN
+            THEM. Swapping one <img>'s src left the old mark on screen until
+            the new file arrived, so a slow image request (a cold dev server,
+            a slow connection) showed the dark mark over the dark hero. Both
+            files load up front now, the right one is visible immediately,
+            and crossing the hero's edge is a crossfade instead of a jump.
           */}
-          <Image
-            src={overHero ? "/brand/fls-capital-light.png" : "/brand/fls-capital-dark.png"}
-            alt=""
-            width={2254}
-            height={1070}
-            className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60 sm:h-12"
-            priority
-          />
+          <span className="relative block shrink-0 transition-opacity duration-300 group-hover:opacity-60">
+            <Image
+              src="/brand/fls-capital-dark.png"
+              alt=""
+              width={2254}
+              height={1070}
+              className={`h-10 w-auto max-w-none transition-opacity duration-300 sm:h-12 ${overHero ? "opacity-0" : "opacity-100"}`}
+              priority
+            />
+            <Image
+              src="/brand/fls-capital-light.png"
+              alt=""
+              width={2254}
+              height={1070}
+              className={`absolute inset-0 h-10 w-auto max-w-none transition-opacity duration-300 sm:h-12 ${overHero ? "opacity-100" : "opacity-0"}`}
+              priority
+            />
+          </span>
         </Link>
 
         {!isGuidePage && (

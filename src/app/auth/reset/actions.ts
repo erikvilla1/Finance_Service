@@ -51,13 +51,6 @@ export async function updatePassword(
     return { error: `That password needs: ${missing}.` };
   }
 
-  if (assessment.guessable) {
-    return {
-      error:
-        "That password is one of the first things an attacker tries. Choose something less predictable.",
-    };
-  }
-
   const supabase = await createClient();
 
   const {

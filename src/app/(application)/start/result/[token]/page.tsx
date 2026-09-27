@@ -14,6 +14,14 @@ import { FluidParticles } from "@/components/ui/fluid-particles";
 import { GlowButtonLink } from "@/components/ui/glow-button-link";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { ProductMatch } from "@/lib/qualification/types";
+import { MatchResults } from "@/components/application/match-results";
+import { findObjective } from "@/lib/matching/objectives";
+import { profileChips } from "@/lib/matching/profile";
+import type {
+  MatchState,
+  ObjectiveId,
+  ProductMatch as MatchedFamily,
+} from "@/lib/matching/types";
 import {
   PREQUAL_FLOW_LABEL,
   PREQUAL_FLOW_STEPS,
@@ -81,6 +89,46 @@ export default async function ResultPage({
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // Scored by the spec v1.1 engine: match states and product families, no
+  // lender names (see MatchResults). Everything below this branch renders
+  // applications scored by the previous engine, unchanged.
+  if (result?.engine_version?.startsWith("3.")) {
+    const evaluated = result.rules_evaluated as {
+      objectiveId?: ObjectiveId;
+      overallState?: MatchState;
+      internalRoutes?: { lenderId: string }[];
+    } | null;
+    const objective = findObjective(evaluated?.objectiveId) ?? findObjective("unsure");
+    const routes = evaluated?.internalRoutes ?? [];
+
+    // Only the four universal answers the chips show; nothing sensitive is
+    // collected at this stage, and nothing else on this page reads answers.
+    const { data: answerRows } = await supabase
+      .from("application_answers")
+      .select("question_key, value")
+      .eq("application_id", application.id)
+      .in("question_key", ["requested_amount_range", "time_in_business", "owner_credit_range", "industry"]);
+    const answers = Object.fromEntries(
+      (answerRows ?? []).map((row) => [row.question_key, row.value as string]),
+    );
+
+    return (
+      <>
+        {/* No Container: the hero sizes itself to the window, like the home page's. */}
+        <MatchResults
+          token={token}
+          objectiveId={objective?.id ?? "unsure"}
+          objectiveLabel={objective?.label ?? application.financing_goal ?? ""}
+          overallState={evaluated?.overallState ?? "specialist_review"}
+          matches={(result.product_matches ?? []) as unknown as MatchedFamily[]}
+          programsCompared={routes.length}
+          fundingSources={new Set(routes.map((route) => route.lenderId)).size}
+          profile={profileChips(answers)}
+        />
+      </>
+    );
+  }
 
   const matches = (result?.product_matches ?? []) as unknown as ProductMatch[];
   const potential = matches.filter((m) => m.confidence === "potential_match");

@@ -23,6 +23,7 @@ import type { ApplicationStatus } from "@/types/database";
  */
 
 export type CustomerStage =
+  | "started"
   | "received"
   | "reviewing"
   | "need_from_you"
@@ -40,6 +41,7 @@ export interface CustomerStatusView {
 }
 
 export const CUSTOMER_STAGES: CustomerStage[] = [
+  "started",
   "received",
   "reviewing",
   "need_from_you",
@@ -48,6 +50,7 @@ export const CUSTOMER_STAGES: CustomerStage[] = [
 ];
 
 export const CUSTOMER_STAGE_LABELS: Record<CustomerStage, string> = {
+  started: "Finishing your application",
   received: "Application received",
   reviewing: "Reviewing your file",
   need_from_you: "We need a few things",
@@ -60,8 +63,15 @@ export const CUSTOMER_STAGE_LABELS: Record<CustomerStage, string> = {
  * no mapping would fall through to a default and quietly tell an applicant
  * something wrong.
  */
+/*
+ * DRAFT IS "STARTED", NOT "RECEIVED". Every prequal lands as 'draft', and an
+ * applicant never moves it out themselves: there is no submit button, staff
+ * advance the file. So 'draft' means they are still filling it in, and
+ * "Application received" (which it used to map to) told someone who had only
+ * answered the short questionnaire that they had submitted an application.
+ */
 const STAGE_BY_STATUS: Record<ApplicationStatus, CustomerStage> = {
-  draft: "received",
+  draft: "started",
   submitted: "received",
   initial_review: "received",
 
@@ -88,6 +98,8 @@ const STAGE_BY_STATUS: Record<ApplicationStatus, CustomerStage> = {
 };
 
 const STAGE_COPY: Record<CustomerStage, string> = {
+  started:
+    "Complete your application and send your documents. Once they're in, a specialist reviews your file and reaches out with next steps.",
   received:
     "We have your information and a financing specialist will review it shortly.",
   reviewing:
@@ -100,8 +112,28 @@ const STAGE_COPY: Record<CustomerStage, string> = {
     "This application is complete. If anything changes, your specialist will reach out.",
 };
 
-export function customerStatus(status: ApplicationStatus): CustomerStatusView {
-  const stage = STAGE_BY_STATUS[status] ?? "reviewing";
+/** What the applicant has done, from their side of the file. */
+export interface ApplicantProgress {
+  /** Every required question answered, including any follow-up section. */
+  applicationDone: boolean;
+  /** No requested document is still waiting on them. */
+  documentsSent: boolean;
+}
+
+/**
+ * The stage an applicant sees.
+ *
+ * A DRAFT WHOSE APPLICANT HAS FINISHED READS AS RECEIVED. There is no submit
+ * button: an applicant finishes by answering everything and sending every
+ * document, and the status only leaves 'draft' when staff move it. Going by
+ * status alone, someone who had done all of it was still told "Finishing your
+ * application", step 1 of 4. So `progress` can carry a finished draft to
+ * "received" (the In review step). It only ever moves 'started' forward, and
+ * only on the screen; the stored status is still staff's to change.
+ */
+export function customerStatus(status: ApplicationStatus, progress?: ApplicantProgress): CustomerStatusView {
+  let stage = STAGE_BY_STATUS[status] ?? "reviewing";
+  if (stage === "started" && progress?.applicationDone && progress.documentsSent) stage = "received";
   return {
     stage,
     label: CUSTOMER_STAGE_LABELS[stage],

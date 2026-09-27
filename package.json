@@ -2,13 +2,14 @@
   "name": "fls-platform",
   "version": "0.1.0",
   "private": true,
-  "description": "Financial Lending Specialists — digital lending platform",
+  "description": "Financial Lending Specialists \u2014 digital lending platform",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "node --import ./scripts/test-loader.mjs --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
     "deploy": "node scripts/deploy.mjs",
     "deploy:preview": "vercel deploy"
   },

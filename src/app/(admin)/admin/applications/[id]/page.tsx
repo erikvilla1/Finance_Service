@@ -32,6 +32,8 @@ import { loadFundingApplication } from "@/lib/funding-application/load";
 import { addNote, assignToMe, updateStatus } from "./actions";
 import { DocumentsCard } from "./documents-card";
 import { SubmissionsCard } from "./submissions-card";
+import { MatchRoutes, type StoredMatch } from "./match-routes";
+import type { ProductMatch as MatchedFamily } from "@/lib/matching/types";
 
 export const metadata: Metadata = {
   title: "Application",
@@ -101,8 +103,9 @@ export default async function ApplicationDetailPage({
     },
   );
 
+  const isV3 = result?.engine_version?.startsWith("3.") ?? false;
   const matches = (result?.product_matches ?? []) as unknown as ProductMatch[];
-  const rulesEvaluated = (result?.rules_evaluated ?? []) as unknown as {
+  const rulesEvaluated = (isV3 ? [] : result?.rules_evaluated ?? []) as unknown as {
     ruleId: string;
     description: string;
     matched: boolean;
@@ -355,7 +358,22 @@ export default async function ApplicationDetailPage({
                   <span className="font-mono text-xs">{result.engine_version}</span>
                 </p>
 
-                {matches.length > 0 && (
+                {/* Scored by the spec v1.1 engine: match states and lender
+                    routes. The two blocks after this are the previous
+                    engine's shape and render only for its results. */}
+                {isV3 && (
+                  <MatchRoutes
+                    stored={(result.rules_evaluated ?? {}) as unknown as StoredMatch}
+                    matches={(result.product_matches ?? []) as unknown as MatchedFamily[]}
+                    missing={
+                      Array.isArray(result.missing_information)
+                        ? (result.missing_information as string[])
+                        : []
+                    }
+                  />
+                )}
+
+                {!isV3 && matches.length > 0 && (
                   <ul className="mt-4 space-y-2">
                     {matches.map((match) => (
                       <li
@@ -386,7 +404,7 @@ export default async function ApplicationDetailPage({
                   result. Showing them here is what makes the engine auditable
                   in practice rather than only in principle.
                 */}
-                {rulesEvaluated.length > 0 && (
+                {!isV3 && rulesEvaluated.length > 0 && (
                   <details className="mt-5 border-t border-ink-100 pt-4">
                     <summary className="cursor-pointer text-sm font-medium text-brand-700">
                       Why — {rulesEvaluated.length} rule

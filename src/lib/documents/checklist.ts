@@ -33,6 +33,8 @@ export type ChecklistDocument = {
   source: DocumentSource;
   /** Only ever set by staff, and only worth showing when something came back. */
   note: string | null;
+  /** When a specialist accepted or returned it, for the activity feed. */
+  verifiedAt: string | null;
   /** Whether the applicant can still take this one back. */
   withdrawable: boolean;
 };
@@ -163,7 +165,7 @@ export async function loadChecklist(
     supabase
       .from("documents")
       .select(
-        "id, document_request_id, file_name, size_bytes, status, source, created_at, verification_note",
+        "id, document_request_id, file_name, size_bytes, status, source, created_at, verification_note, verified_at",
       )
       .eq("application_id", applicationId)
       .is("deleted_at", null)
@@ -186,6 +188,7 @@ export async function loadChecklist(
       uploadedAt: document.created_at,
       source: document.source,
       note: document.verification_note,
+      verifiedAt: document.verified_at,
       // Matches the guard inside withdraw_document(). Showing the control when
       // the function would refuse produces a button that does nothing.
       withdrawable: document.status === "uploaded",

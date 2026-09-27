@@ -10,6 +10,11 @@ import {
   SectionHeading,
 } from "@/components/ui";
 import { getResourceGuide, RESOURCE_GUIDES } from "@/lib/resource-guides/data";
+import {
+  GUIDE_OBJECTIVE,
+  GUIDE_PREFILL,
+  prequalHref,
+} from "@/lib/matching/objectives";
 import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-gradient";
 
 /**
@@ -54,8 +59,13 @@ export default async function ResourceGuidePage({
   const guide = getResourceGuide(slug);
   if (!guide) notFound();
 
-  // Straight to step 2: the prequal, already set to this guide's category.
-  const quoteHref = `/start/prequal?goal=${guide.slug}`;
+  // Straight to step 2: the questionnaire for the objective this guide belongs
+  // to (spec §14), with any answer the guide already implies filled in. A guide
+  // without a mapping falls back to the goal picker rather than a dead link.
+  const objective = GUIDE_OBJECTIVE[guide.slug];
+  const quoteHref = objective
+    ? prequalHref(objective, GUIDE_PREFILL[guide.slug])
+    : "/start";
 
   return (
     <>

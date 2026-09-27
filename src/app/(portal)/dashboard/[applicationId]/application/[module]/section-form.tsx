@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Check, CircleAlert, LoaderCircle } from "lucide-react";
+import { Field, Input, Select, Textarea } from "@/components/ui";
+import { primaryButton } from "@/components/portal/ui";
 import type { Question } from "@/lib/questions";
 import { hiddenQuestionKeys } from "@/lib/questions/rules";
 import type { QuestionRuleRow } from "@/types/database";
@@ -37,6 +40,8 @@ export function SectionForm({
   rules,
   baseValues,
   readOnly,
+  nextHref,
+  isLast,
 }: {
   applicationId: string;
   module: string;
@@ -45,15 +50,123 @@ export function SectionForm({
   rules: QuestionRuleRow[];
   baseValues: Record<string, unknown>;
   readOnly: boolean;
+  /** Where a successful save goes: the next section, or the overview. */
+  nextHref: string;
+  isLast: boolean;
 }) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Field errors from either path (autosave or the button), by question key.
+  // Held here rather than read off the action state so autosave can set them
+  // and typing in a field can clear its own.
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Autosave bookkeeping (see AUTOSAVE below).
+  const pendingSave = useRef(false);
+  const inFlight = useRef(false);
+  const debounce = useRef<number | undefined>(undefined);
+
+  // "Save and continue" continues. A save with a rejected field stays put so
+  // it can be fixed; the button reads "Saving…" until the next page is up,
+  // because the navigation runs inside the same transition.
   const [state, formAction, pending] = useActionState<SectionState, FormData>(
-    saveSectionAction,
+    async (previous, formData) => {
+      pendingSave.current = false;
+      window.clearTimeout(debounce.current);
+      const result = await saveSectionAction(previous, formData);
+      setErrors(result.fieldErrors ?? {});
+      if (result.saved && !result.error) router.push(nextHref);
+      return result;
+    },
     {},
   );
 
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     seedFrom(questions, values),
   );
+
+  /*
+   * AUTOSAVE. "Your answers save as you go" was on the dashboard in four
+   * places and wasn't true: nothing was written until the button. Now the
+   * whole section (exactly what the button would send) is saved a moment
+   * after typing stops, as soon as someone leaves a field, and when the tab
+   * is hidden or the page is left.
+   *
+   * The WHOLE section, not the one field: the business row is created on the
+   * first save that carries a legal name, and a lone "city" would be refused.
+   *
+   * One save at a time. A change that lands while one is in flight marks the
+   * section dirty again and is saved as soon as it returns, so the last word
+   * always gets written.
+   *
+   * A field's error isn't shown while the cursor is still in it: "that
+   * number is too short" after three digits is nagging, not help.
+   */
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [autosave, setAutosave] = useState<
+    { state: "idle" } | { state: "saving" } | { state: "saved" } | { state: "error"; message: string }
+  >({ state: "idle" });
+
+  // The latest flush, for timers and listeners set up earlier than this render.
+  const flushRef = useRef<() => void>(() => {});
+  // The form's contents as of the last render. Used when leaving the page:
+  // by the time an unmount cleanup runs, React has already detached formRef.
+  const lastData = useRef<FormData | null>(null);
+
+  async function flush() {
+    const data = formRef.current ? new FormData(formRef.current) : lastData.current;
+    if (readOnly || !data || !pendingSave.current) return;
+    if (inFlight.current) return; // picked up when the current save returns
+    pendingSave.current = false;
+    window.clearTimeout(debounce.current);
+    inFlight.current = true;
+    setAutosave({ state: "saving" });
+    try {
+      const result = await saveSectionAction({}, data);
+      setErrors(result.fieldErrors ?? {});
+      setAutosave(
+        result.error && !result.fieldErrors
+          ? { state: "error", message: result.error }
+          : result.fieldErrors
+            ? { state: "error", message: "Saved, except the fields marked below." }
+            : { state: "saved" },
+      );
+    } catch {
+      pendingSave.current = true;
+      setAutosave({ state: "error", message: "Couldn't save just now. We'll try again in a moment." });
+    } finally {
+      inFlight.current = false;
+      if (pendingSave.current) debounce.current = window.setTimeout(() => flushRef.current(), 1500);
+    }
+  }
+
+  useEffect(() => {
+    flushRef.current = () => void flush();
+    if (formRef.current) lastData.current = new FormData(formRef.current);
+  });
+
+  function scheduleSave() {
+    if (readOnly) return;
+    pendingSave.current = true;
+    window.clearTimeout(debounce.current);
+    debounce.current = window.setTimeout(() => flushRef.current(), 1200);
+  }
+
+  // Leaving: hide the tab, close it, or navigate within the portal.
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flushRef.current();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onHide);
+      window.clearTimeout(debounce.current);
+      flushRef.current();
+    };
+  }, []);
 
   /**
    * Which follow-up questions the current answers have earned.
@@ -82,7 +195,7 @@ export function SectionForm({
     }
   }, [state.error]);
 
-  const failed = state.fieldErrors ?? {};
+  const failed = errors;
   const failedLabels = questions
     .filter((question) => failed[question.key])
     .map((question) => question.label);
@@ -92,7 +205,23 @@ export function SectionForm({
   // being nulled behind the applicant's back.
 
   return (
-    <form action={formAction} className="mt-6 space-y-6">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-6"
+      onFocusCapture={(event) => {
+        const target = event.target;
+        const named =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLSelectElement ||
+          target instanceof HTMLTextAreaElement;
+        setActiveKey(named ? target.name : null);
+      }}
+      onBlurCapture={() => {
+        setActiveKey(null);
+        void flush();
+      }}
+    >
       <input type="hidden" name="application_id" value={applicationId} />
       <input type="hidden" name="module" value={module} />
 
@@ -101,10 +230,18 @@ export function SectionForm({
           key={question.key}
           question={question}
           value={draft[question.key] ?? ""}
-          onChange={(next) =>
-            setDraft((current) => ({ ...current, [question.key]: next }))
-          }
-          error={failed[question.key]}
+          onChange={(next) => {
+            setDraft((current) => ({ ...current, [question.key]: next }));
+            if (errors[question.key]) {
+              setErrors((current) => {
+                const next = { ...current };
+                delete next[question.key];
+                return next;
+              });
+            }
+            scheduleSave();
+          }}
+          error={question.key === activeKey ? undefined : failed[question.key]}
           disabled={readOnly}
         />
       ))}
@@ -125,23 +262,45 @@ export function SectionForm({
         </p>
       )}
 
-      {state.saved && !state.error && (
-        <p role="status" className="text-sm font-medium text-success-700">
-          Saved.
-        </p>
-      )}
-
       {!readOnly && (
-        <div className="flex items-center gap-3 border-t border-ink-100 pt-5">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save and continue"}
-          </Button>
-          <p className="text-sm text-ink-500">
-            You can leave this and come back — nothing is lost.
-          </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-ink-100 pt-6">
+          <button type="submit" disabled={pending} className={primaryButton}>
+            {pending ? "Saving…" : isLast ? "Save and finish" : "Save and continue"}
+          </button>
+          <AutosaveStatus status={autosave} />
         </div>
       )}
     </form>
+  );
+}
+
+/** The quiet line beside the button: what autosave is doing. */
+function AutosaveStatus({
+  status,
+}: {
+  status: { state: "idle" } | { state: "saving" } | { state: "saved" } | { state: "error"; message: string };
+}) {
+  return (
+    <p role="status" aria-live="polite" className="flex items-center gap-1.5 text-sm">
+      {status.state === "saving" ? (
+        <>
+          <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin text-ink-400" />
+          <span className="text-ink-500">Saving…</span>
+        </>
+      ) : status.state === "saved" ? (
+        <>
+          <Check aria-hidden="true" className="h-4 w-4 text-success-700" strokeWidth={2.5} />
+          <span className="text-success-700">All changes saved</span>
+        </>
+      ) : status.state === "error" ? (
+        <>
+          <CircleAlert aria-hidden="true" className="h-4 w-4 shrink-0 text-warning-700" />
+          <span className="text-warning-700">{status.message}</span>
+        </>
+      ) : (
+        <span className="text-ink-500">Your answers save automatically as you go.</span>
+      )}
+    </p>
   );
 }
 

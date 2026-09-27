@@ -61,8 +61,9 @@ const MODULE_META: Record<string, { title: string; description?: string }> = {
     description: "Details about the business applying for financing.",
   },
   financial_snapshot: {
-    title: "Financial picture",
-    description: "A high-level view of how the business is performing.",
+    // "Financial picture" read as vague: people couldn't tell what it asked.
+    title: "Your finances",
+    description: "Your sales, what the funds are for, and any loans or advances you already have.",
   },
   owner: {
     title: "Ownership",

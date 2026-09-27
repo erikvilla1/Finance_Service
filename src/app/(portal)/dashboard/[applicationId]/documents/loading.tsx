@@ -1,4 +1,4 @@
-import { Container, LoadingRows } from "@/components/ui";
+import { ListPageSkeleton } from "@/components/portal/skeletons";
 
 /**
  * Spec §39 requires a loading state on every view. This one earns its keep:
@@ -7,14 +7,5 @@ import { Container, LoadingRows } from "@/components/ui";
  * which reads as "you have no documents" rather than "still loading".
  */
 export default function Loading() {
-  return (
-    <Container>
-      <div className="mx-auto max-w-3xl">
-        <div className="h-9 w-64 animate-pulse rounded bg-ink-200" />
-        <div className="mt-6">
-          <LoadingRows rows={4} />
-        </div>
-      </div>
-    </Container>
-  );
+  return <ListPageSkeleton rows={4} label="Loading your documents" />;
 }

@@ -46,11 +46,10 @@
  * which this now rejects despite being far harder to guess than anything eight
  * characters long.
  *
- * It was asked for, it is defensible on a financial site where an examiner or
- * a partner may expect to see a composition rule, and the meter still caps a
- * guessable password at Weak regardless of which boxes it ticks. But the thing
- * that would actually reduce account takeovers is still the toggle above:
- * leaked-password protection, which remains OFF.
+ * It was asked for, and it is defensible on a financial site where an examiner
+ * or a partner may expect to see a composition rule. But the thing that would
+ * actually reduce account takeovers is still the toggle above: leaked-password
+ * protection, which remains OFF.
  *
  * ALREADY-EXISTING ACCOUNTS ARE UNAFFECTED. This gates creation, not sign-in,
  * so nobody is locked out of a password they already have.
@@ -66,18 +65,14 @@ const COMFORTABLE_LENGTH = 12;
 /** Punctuation and symbols across the printable ASCII ranges. */
 const SYMBOL = /[!-/:-@[-`{-~]/;
 
-/**
- * Patterns a guessing attack tries early: known-common passwords, a character
- * repeated four or more times, and short keyboard or alphabet runs.
- *
- * A stand-in for a breach list, not a substitute for one. Turn on leaked
- * password protection and this becomes a courtesy rather than a defence.
+/*
+ * NO "COMMONLY GUESSED" CHECK. There was one: a short regex list of common
+ * passwords, repeated characters and keyboard runs, which capped the meter at
+ * Weak and blocked password resets. It flagged long passphrases for containing
+ * "1234" somewhere, and it was never a real defence. The real one is
+ * Supabase's leaked-password protection (checks candidates against breach
+ * corpora server-side), which is a project setting, not code here.
  */
-const COMMON =
-  /^(?:password|passw0rd|qwerty|letmein|welcome|admin|iloveyou|monkey|dragon|abc123|111111|123123|123456)/i;
-const REPEATED = /(.)\1{3,}/;
-const SEQUENCE =
-  /(?:0123|1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|defg|qwer|wert|erty|asdf)/i;
 
 export interface PasswordRule {
   id: string;
@@ -133,8 +128,6 @@ export interface PasswordAssessment {
   max: number;
   label: string;
   rules: (PasswordRule & { met: boolean })[];
-  /** Matched a pattern a guessing attack tries early. */
-  guessable: boolean;
   /** Every REQUIRED rule passes. The only thing that gates submission. */
   meetsPolicy: boolean;
 }
@@ -142,9 +135,6 @@ export interface PasswordAssessment {
 export function assessPassword(value: string): PasswordAssessment {
   const rules = PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(value) }));
   const meetsPolicy = rules.every((rule) => !rule.required || rule.met);
-  const guessable =
-    value.length > 0 &&
-    (COMMON.test(value) || REPEATED.test(value) || SEQUENCE.test(value));
 
   /*
     THE SCORE IS THE VISIBLE CHECKLIST, NOTHING ELSE.
@@ -163,31 +153,19 @@ export function assessPassword(value: string): PasswordAssessment {
 
     Written as met + 1 rather than a chain of ternaries so that adding a third
     required rule does not silently strand a stage: it clamps at Strong.
-
-    THE GUESSABLE CAP SURVIVES, and it is the one thing here that overrides the
-    checklist. "Password1" ticks both boxes and is among the first strings any
-    attack tries. The meter says Weak and prints "Commonly guessed" beside it,
-    so the disagreement with the ticks is explained rather than mysterious.
-    Delete the `guessable ||` below if that is not wanted — it is the only
-    reason a fully ticked password can read Weak.
   */
   const requiredMet = rules.filter(
     (rule) => rule.required && rule.met,
   ).length;
 
   const score =
-    value.length === 0
-      ? 0
-      : guessable
-        ? 1
-        : Math.min(requiredMet + 1, PASSWORD_SCORE_MAX);
+    value.length === 0 ? 0 : Math.min(requiredMet + 1, PASSWORD_SCORE_MAX);
 
   return {
     score,
     max: PASSWORD_SCORE_MAX,
     label: LABELS[Math.min(score, LABELS.length - 1)] ?? "",
     rules,
-    guessable,
     meetsPolicy,
   };
 }
