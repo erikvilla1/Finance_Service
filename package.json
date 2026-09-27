@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import ./scripts/test-loader.mjs --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\""
+    "test": "node --import ./scripts/test-loader.mjs --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
+    "deploy": "node scripts/deploy.mjs",
+    "deploy:preview": "vercel deploy"
   },
   "dependencies": {
     "@ark-ui/react": "^5.38.1",

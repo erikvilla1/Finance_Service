@@ -19,6 +19,11 @@ dist/
 .env.test.local
 .env.production.local
 
+# vercel — CLI link metadata (project/org ids) and any env pulled down
+# locally by `vercel env pull`. Neither belongs in the repo.
+.vercel/
+.env*.local
+
 # supabase local
 .branches
 .temp
