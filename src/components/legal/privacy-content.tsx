@@ -181,13 +181,6 @@ export function PrivacyContent() {
               contact information below; we will respond within the time the
               law requires.
             </p>
-            <p className={P}>
-              [COUNSEL TO CONFIRM: whether any other state&apos;s privacy
-              statute also applies, based on where FLS&apos;s clients are
-              located, and whether it requires anything beyond what is stated
-              above.]
-            </p>
-
             <h2 className={H}>Children</h2>
             <p className={P}>
               This site is for business financing and is not directed to anyone
@@ -202,10 +195,17 @@ export function PrivacyContent() {
 
             <h2 className={H}>Contact</h2>
             <p className={P}>
-              Questions about this policy, or requests about your information:
-              [PRIVACY CONTACT EMAIL] · [BUSINESS MAILING ADDRESS] ·
-              Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors,
-              California.
+              Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors ·
+              777 S Alameda St, Los Angeles, CA 90021
+            </p>
+            <p className={P}>
+              Have a question? Contact us at{" "}
+              <a
+                href="mailto:info@flscapitaladvisors.com"
+                className="underline underline-offset-2 hover:text-brand-700"
+              >
+                info@flscapitaladvisors.com
+              </a>
             </p>
     </>
   );

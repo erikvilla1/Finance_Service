@@ -1,4 +1,5 @@
-import { ChevronDown } from "lucide-react";
+import Image from "next/image";
+import { BadgeCheck, ChevronDown } from "lucide-react";
 import { Testimonial } from "@/components/ui/testimonial-card";
 import { Marquee } from "@/components/ui/marquee";
 import {
@@ -108,46 +109,41 @@ const TESTIMONIALS = [
  * arranges financing, lenders decide, and a step list that ends in a promise is
  * a promise however small the type underneath it.
  */
+/** Robert's LinkedIn, linked from both his photo and the button beside it. */
+const ROBERT_LINKEDIN = "https://www.linkedin.com/in/robert-saucedo-1b144b340/";
+
 const PROCESS_STEPS = [
   {
     title: "Tell us what you need",
-    body: "Start with your goal in plain language. You don't need to know which loan product you're looking for — that's our job.",
-    meta: ["No account needed", "Plain language"],
+    body: "Click “Get Your Free Quote” and start with your goal in plain language. You don't need to know which loan product fits — that's our job.",
   },
   {
     title: "Tell us about your business",
     body: "Eight quick questions about revenue, time in business, and credit. No documents, and nothing here affects your credit.",
-    meta: ["8 questions", "No documents", "No credit impact"],
   },
   {
     title: "See what may be available",
     body: "Indicative ranges based on what you shared, with the reasoning behind each one. A starting point, not an offer.",
-    meta: ["Indicative ranges", "Not an offer"],
   },
   {
     title: "Create an account and apply",
     body: "Save your place, then complete the full application at your own pace. It only asks what your situation actually needs.",
-    meta: ["Save your place", "Only what applies"],
   },
   {
     title: "Upload what's asked for",
     body: "A checklist tells you exactly which documents are needed for your file — no guessing, and nothing requested twice.",
-    meta: ["An exact checklist", "Nothing asked twice"],
   },
   {
     title: "We take it to lenders",
     body: "A specialist packages your file and puts it in front of the programs it genuinely fits — not a blast to everyone.",
-    meta: ["Packaged by a specialist", "Matched, not blasted"],
   },
   {
     title: "Track it from your dashboard",
-    body: "Document requests, status changes, and what's still outstanding, in one place. No wondering where things stand.",
-    meta: ["Live status", "Document requests"],
+    body: "Document requests, status changes, and what's still outstanding, all in one place. We email you whenever something changes, so you never have to wonder where things stand.",
   },
   {
     title: "Close, if a lender approves",
     body: "We walk you through signing and disbursement, and stay on the file until the money lands.",
-    meta: ["Signing and disbursement", "We stay on the file"],
   },
 ];
 
@@ -206,9 +202,14 @@ export default function HomePage() {
           The first term is the 12/16px computed above; the second is mb-3/mb-5,
           chosen to match the mx-3/mx-5 side inset so the card sits in an even
           frame. Change either and this calc has to change with it. */}
+      {/* The clip-path repeats the radius on purpose. overflow-hidden plus
+          rounded should clip the corners, but Chrome promotes a playing
+          <video> to its own GPU layer and then intermittently skips the
+          rounded clip for it, so the footage showed through as square
+          corners. clip-path clips composited layers too. */}
       <div
         id="hero"
-        className="relative mx-3 mb-3 -mt-[68px] flex min-h-[calc(100dvh-24px)] flex-col overflow-hidden rounded-[1.75rem] bg-brand-900 sm:mx-5 sm:mb-5 sm:-mt-[84px] sm:min-h-[calc(100dvh-36px)] sm:rounded-[2rem]"
+        className="relative mx-3 mb-3 -mt-[68px] flex min-h-[calc(100dvh-24px)] flex-col overflow-hidden rounded-[1.75rem] bg-brand-900 [clip-path:inset(0_round_1.75rem)] sm:mx-5 sm:mb-5 sm:-mt-[84px] sm:min-h-[calc(100dvh-36px)] sm:rounded-[2rem] sm:[clip-path:inset(0_round_2rem)]"
       >
         {/* object-position pulled below centre: the frame has sky at the top and
             street level at the bottom, and centring it crops away the foreground
@@ -309,51 +310,203 @@ export default function HomePage() {
 
       {/* --------------------------------------------------------- PROCESS
 
-          A plain <section>, not <Section>: the pinned wrapper sets its own
-          height and manages its own vertical rhythm, and Section's py-16/py-24
-          would sit outside the sticky child and push the pin off by a screenful
-          of padding. The muted background is applied here instead. */}
-      <section id="how-it-works" className="scroll-mt-28 bg-ink-50 sm:scroll-mt-32">
+          A plain <section>, not <Section>: ProcessSteps pins on wide screens
+          and sets its own height and padding, and Section's py-16/py-24 would
+          sit outside the pinned part. The muted background fades to white
+          over the last stretch so this runs into "Who we are" without a hard
+          colour edge. */}
+      <section
+        id="how-it-works"
+        className="scroll-mt-28 bg-[linear-gradient(to_bottom,var(--color-ink-50)_calc(100%-12rem),white)] sm:scroll-mt-32"
+      >
         <ProcessSteps steps={PROCESS_STEPS} />
       </section>
 
       {/* ---------------------------------------------------------- ABOUT US */}
-      <Section id="about">
+      {/* Less top padding than other sections: the pinned How It Works stage
+          above already ends in its own bottom space. The bottom is trimmed to
+          the 5rem rhythm shared with Testimonials and Resources below: at the
+          default 6rem each side, every boundary between these sections was
+          ~12rem of empty band. */}
+      <Section id="about" className="pb-14 pt-4 sm:pb-20 sm:pt-8">
         <Container>
-          <Reveal>
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-            <div>
-              <SectionHeading
-                eyebrow="Who we are"
-                title="Financing Solutions for Real-World Business Needs"
-                description="With our wide range and network of lenders, we connect you to a tailored solution with a lender who works best for your situation."
-              />
-              <p className="mt-6 max-w-xl leading-relaxed text-ink-600">
-                From equipment and commercial real estate to working capital and
-                specialized financing, we take a comprehensive approach to
-                understanding your situation and identifying potential funding
-                solutions.
-              </p>
-            </div>
-            {/*
-              Video well. Drop the file at public/video/about.mp4.
+          {/*
+            WHO WE ARE. The whole section is the one gold card, and its own
+            labels ("Meet the founder", "About the firm") do the heading's
+            job; a visible "Who we are" on top of them was one label too many.
+            The section heading is kept for screen readers only, so the
+            section still has a name (the nav's "Who We Are" lands here).
 
-              THE MUTED BACKGROUND IS THE FALLBACK, NOT DECORATION. HeroVideo
-              unmounts itself on decode failure or a missing file, so until the
-              file exists this renders as a plain rounded panel rather than a
-              broken player. That is also what a browser blocking autoplay
-              shows.
+            THE CARD: the photo on the left; beside it Robert on top, a
+            hairline, and the firm underneath. Robert's block starts level
+            with the photo's top edge and the firm follows 2rem under it.
+            (Pinning the firm to the photo's bottom edge left too wide a gap
+            once Robert's bio came down to two lines.) The LinkedIn button and
+            the credential share one row to keep the column about the
+            photo's height.
 
-              aspect-video reserves the box before the video loads, so nothing
-              on the page jumps when it arrives.
-            */}
-            <div className="aspect-video self-start overflow-hidden rounded-[1.75rem] border border-ink-200 bg-ink-100">
-              <HeroVideo
-                src="/video/about.mp4"
-                className="h-full w-full object-cover"
-              />
-            </div>
-          </div>
+            COPY SOURCES. The firm description, the quote and the founding
+            year come from Robert's LinkedIn (founded Nov 2024, Los Angeles,
+            nationwide, the financing types, the opening of his About
+            section). The years of experience and the CBCA designation
+            (Corporate Finance Institute, July 2026) were supplied directly.
+          */}
+          {/*
+            THE PHOTO IS FIXED at 28rem x 35rem on desktop, with object-top
+            keeping the head in frame, at the top of the card. Its size and
+            crop are settled; change the layout around it, not the photo.
+            Below lg it is the same 28rem at 4:5 (the same box), capped at
+            max-w-md so a phone doesn't turn it into a full-bleed poster.
+            next/image serves a resized copy; the original is ~9 MB.
+
+            The photo links to his LinkedIn too. On hover the whole photo,
+            frame and picture together, grows slightly, and a small LinkedIn
+            badge (dark, like the button) fades up in the corner, so it reads
+            as clickable. One motion, not two: the frame lifting while the
+            picture zoomed inside it read as two things moving at once. A badge rather than a label: the "Connect on
+            LinkedIn" button is beside it, and the same words twice read as
+            clutter. The button stays the obvious link, since touch screens
+            never see the hover.
+
+            SMOOTH, NOT JUMPY. The link itself never moves; only the photo
+            inside it does. When the link itself lifted, a pointer near its
+            bottom edge fell off it, the photo dropped back under the
+            pointer, and the hover flickered on and off. Only transform and opacity
+            animate (a moving box-shadow repaints every frame and stutters),
+            on an ease-in-out curve rather than a fast-start one, and the
+            badge fades rather than scaling up, which read as a pop.
+          */}
+          <Reveal delayMs={120}>
+            <article
+              aria-labelledby="about-heading"
+              className="rounded-[2rem] bg-accent-100 p-5 ring-1 ring-inset ring-accent-300/70 sm:p-8 lg:p-10"
+            >
+              <h2 id="about-heading" className="sr-only">
+                Who we are
+              </h2>
+              <div className="grid gap-8 lg:grid-cols-[28rem_minmax(0,1fr)] lg:gap-12">
+              <a
+                href={ROBERT_LINKEDIN}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Robert Saucedo, II on LinkedIn (opens in a new tab)"
+                className="group relative mx-auto block aspect-[4/5] w-full max-w-md rounded-[1.5rem] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-800 lg:mx-0 lg:aspect-auto lg:h-[35rem] lg:max-w-none lg:self-start"
+              >
+                <span className="absolute inset-0 overflow-hidden rounded-[1.5rem] bg-ink-100 shadow-[0_24px_44px_-30px_rgb(40_30_10/0.55)] transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform group-hover:scale-[1.025] group-focus-visible:scale-[1.025] motion-reduce:transition-none motion-reduce:group-hover:scale-100 motion-reduce:group-focus-visible:scale-100">
+                  <Image
+                    src="/brand/robert.jpg"
+                    alt="Robert Saucedo, II, founder of FLS Capital Advisors"
+                    fill
+                    sizes="(min-width: 1024px) 28rem, (min-width: 448px) 28rem, 100vw"
+                    className="object-cover object-top"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-4 right-4 flex h-11 w-11 translate-y-1.5 items-center justify-center rounded-full bg-brand-900 text-white opacity-0 shadow-lg ring-1 ring-white/15 transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-[1.125rem] w-[1.125rem] fill-current">
+                      <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.22.79 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z" />
+                    </svg>
+                  </span>
+                </span>
+              </a>
+
+              <div>
+                <Reveal delayMs={200}>
+                  <p className="text-sm font-semibold uppercase tracking-wider text-accent-800">
+                    Meet the founder
+                  </p>
+                  <h3 className="mt-2 text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
+                    Robert Saucedo, II
+                  </h3>
+                  <p className="mt-1.5 text-lg text-ink-600">
+                    Founder &amp; Financial Lending Specialist
+                  </p>
+
+                  <blockquote className="mt-5 max-w-4xl border-l-2 border-accent-700 pl-4 text-lg font-medium leading-snug text-ink-900">
+                    &ldquo;The right financing can accelerate growth. The wrong
+                    financing can slow it down.&rdquo;
+                  </blockquote>
+
+                  {/* One paragraph, from his LinkedIn About in the third
+                      person. max-w-4xl, the same measure as the firm's
+                      paragraph below, so the two blocks share a right edge. */}
+                  <p className="mt-5 max-w-4xl leading-relaxed text-ink-700">
+                    Robert founded Financial Lending Specialists in 2024,
+                    bringing two years in commercial finance and five years of
+                    helping business owners find the right solutions. He gets to
+                    know each client&apos;s goals before recommending a
+                    strategy.
+                  </p>
+
+                  {/* The button, then the credential beside it (stated the
+                      way the issuer names it, the issuer on its own line). */}
+                  <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
+                  <a
+                    href={ROBERT_LINKEDIN}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2.5 self-start rounded-lg bg-brand-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                      <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.22.79 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z" />
+                    </svg>
+                    Connect on LinkedIn
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </a>
+                    <p className="flex items-start gap-2.5 text-sm leading-snug text-ink-700">
+                      <BadgeCheck
+                        aria-hidden="true"
+                        className="mt-px h-5 w-5 shrink-0 text-accent-800"
+                        strokeWidth={1.75}
+                      />
+                      <span>
+                        <span className="block font-semibold text-ink-900">
+                          Commercial Banking &amp; Credit Analyst (CBCA&reg;)
+                        </span>
+                        <span className="mt-0.5 block text-ink-500">Corporate Finance Institute</span>
+                      </span>
+                    </p>
+                  </div>
+                </Reveal>
+
+                {/* The firm, under a hairline. */}
+                <Reveal delayMs={280} className="mt-8 border-t border-accent-300 pt-7">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-accent-800">
+                    About the firm
+                  </p>
+                  <p className="mt-3 max-w-4xl leading-relaxed text-ink-700">
+                    FLS Capital Advisors is a commercial finance brokerage based
+                    in Los Angeles, working with business owners nationwide.
+                    Through our network of lenders, we match you with the
+                    solution that fits your situation.
+                  </p>
+
+                  {/* The financing types, as Robert lists them on LinkedIn. */}
+                  <h3 className="mt-5 text-sm font-semibold uppercase tracking-wider text-ink-900">
+                    What we finance
+                  </h3>
+                  <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-ink-700 lg:grid-cols-3 min-[100rem]:grid-cols-4">
+                    {[
+                      "Commercial real estate",
+                      "SBA 7(a) & 504 loans",
+                      "Equipment",
+                      "Working capital",
+                      "Invoice factoring",
+                      "Construction & fix-and-flip",
+                      "Business acquisitions",
+                      "Healthcare practices",
+                    ].map((item) => (
+                      <li key={item} className="flex items-baseline gap-2.5">
+                        <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 translate-y-[-1px] rounded-full bg-accent-700" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </Reveal>
+              </div>
+              </div>
+            </article>
           </Reveal>
         </Container>
       </Section>
@@ -366,8 +519,10 @@ export default function HomePage() {
           site nav (see NAV above): the header links to in-page anchors people
           might actually want to jump back to, and a testimonial strip between
           two other sections is not a destination in that sense. */}
-      <Section tone="muted" className="overflow-hidden">
-        <Container>
+      <Section tone="muted" className="relative overflow-hidden pb-14 pt-11 sm:pb-20 sm:pt-14">
+        {/* The How It Works dot grid, held still, behind the cards. */}
+        <div aria-hidden="true" className="section-dots pointer-events-none absolute inset-0" />
+        <Container className="relative">
           <Reveal>
             <SectionHeading
               eyebrow="Testimonials"
@@ -375,12 +530,13 @@ export default function HomePage() {
             />
           </Reveal>
         </Container>
-        {/* No pauseOnHover: the strip is wide enough that a cursor resting
-            anywhere over it stopped the whole thing, which read as broken
-            rather than as a considerate pause. */}
+        {/* Slows rather than pauses on hover: the strip is wide enough that a
+            cursor resting anywhere over it stopped the whole thing, which read
+            as broken. Easing down to a crawl keeps it alive but readable. */}
         <Marquee
-          className="mt-10"
+          className="relative mt-10"
           durationSec={70}
+          hoverSpeed={0.2}
           fadeAmount={8}
           aria-label="Client testimonials"
         >
@@ -404,37 +560,23 @@ export default function HomePage() {
         those pages, not a wrapped grid — the "browse sideways" feel is the
         one thing worth keeping from the deck it replaces.
       */}
-      <Section id="resources">
+      {/* The arrows moved up beside the heading, so the section ends at the
+          cards. 4rem below them, then the site-wide Back to Top link and the
+          footer (see SiteFooter): about the 6rem of space the page had before
+          the link moved out of the footer. */}
+      <Section id="resources" className="pb-16 pt-14 sm:pb-24 sm:pt-20">
         <Container>
           <Reveal>
-            <div className="flex items-end justify-between gap-6">
-              <SectionHeading
-                eyebrow="Resources"
-                title="Financing guides"
-                description="How each type of financing works, what lenders evaluate, and what to prepare — organized by what you're trying to accomplish."
-              />
-              {/*
-                Decorative only — not a control. There is nothing to click:
-                the arrows below the row already do the scrolling. Level with
-                the description's last line and pinned to the right edge, the
-                same relationship the hero's "Scroll to explore" has to its
-                own text block.
-              */}
-              <span
-                aria-hidden="true"
-                className="hidden shrink-0 items-center gap-2 text-sm text-ink-500 sm:flex"
-              >
-                See more
-                <ChevronDown className="h-4 w-4 animate-bounce" strokeWidth={2.5} />
-              </span>
-            </div>
-          </Reveal>
-        </Container>
-        <Container>
-          <Reveal delayMs={120}>
-            <div className="mt-10">
-              <ResourceGuideScroller guides={RESOURCE_GUIDES} />
-            </div>
+            <ResourceGuideScroller
+              guides={RESOURCE_GUIDES}
+              heading={
+                <SectionHeading
+                  eyebrow="Resources"
+                  title="Financing guides"
+                  description="How each type of financing works, what lenders evaluate, and what to prepare — organized by what you're trying to accomplish."
+                />
+              }
+            />
           </Reveal>
         </Container>
       </Section>

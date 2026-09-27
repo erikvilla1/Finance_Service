@@ -120,7 +120,16 @@ export default function Page() {
           <h2 className={H}>Contact</h2>
           <p className={P}>
             Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors ·
-            [BUSINESS MAILING ADDRESS] · [CONTACT EMAIL AND PHONE]
+            777 S Alameda St, Los Angeles, CA 90021
+          </p>
+          <p className={P}>
+            Have a question? Contact us at{" "}
+            <a
+              href="mailto:info@flscapitaladvisors.com"
+              className="underline underline-offset-2 hover:text-brand-700"
+            >
+              info@flscapitaladvisors.com
+            </a>
           </p>
         </div>
       </div>

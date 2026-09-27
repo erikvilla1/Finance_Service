@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { usePathname } from "next/navigation";
 import { ArrowUp } from "lucide-react";
 import { ButtonLink, Container } from "@/components/ui";
@@ -40,6 +40,29 @@ const NAV = [
   { href: "/#about", label: "Who We Are" },
   { href: "/#resources", label: "Resources" },
 ];
+
+/**
+ * Click handler for the links to "/" (the logos, "Home"): on the home page
+ * itself, go back to the top.
+ *
+ * Next does nothing for a link to the page already showing. With the address
+ * bar at exactly "/", clicking the logo or "Home" partway down the page
+ * neither navigated nor scrolled. So on "/" this takes over: back to the top
+ * (smoothly, unless the reader asked for reduced motion; "instant" beats the
+ * smooth scroll-behavior in globals.css, as in BackToTop) and any #section
+ * cleared from the address bar. Modified clicks (new tab, new window) are
+ * left to the browser, and every other page routes home as normal.
+ */
+function scrollHomeToTop(event: MouseEvent<HTMLAnchorElement>, pathname: string | null) {
+  if (pathname !== "/") return;
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return;
+  }
+  event.preventDefault();
+  window.history.replaceState(window.history.state, "", "/");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: reduced ? "instant" : "smooth" });
+}
 
 /**
  * Floating capsule header.
@@ -290,6 +313,7 @@ export function SiteHeader() {
         <Link
           href="/"
           aria-label="FLS Capital Advisors"
+          onClick={(event) => scrollHomeToTop(event, pathname)}
           className={`${CAPSULE} ${capsule} group justify-self-start pl-2`}
         >
           {/*
@@ -398,6 +422,11 @@ export function SiteHeader() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        onClick={
+                          item.href === "/"
+                            ? (event) => scrollHomeToTop(event, pathname)
+                            : undefined
+                        }
                         aria-current={active ? "page" : undefined}
                         className={[
                           "block whitespace-nowrap rounded-full px-4 py-2 text-[0.95rem] font-medium transition-colors",
@@ -490,7 +519,7 @@ function BackToTop() {
         const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         window.scrollTo({ top: 0, behavior: reduced ? "instant" : "smooth" });
       }}
-      className="group inline-flex items-center gap-1.5 text-xs font-medium text-ink-600 transition-colors hover:text-brand-700"
+      className="group inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 transition-colors hover:text-brand-700"
     >
       Back to Top
       <ArrowUp
@@ -502,6 +531,7 @@ function BackToTop() {
 }
 
 export function SiteFooter() {
+  const pathname = usePathname();
   // ink-100 rather than ink-50: at #FAFAFA the footer was a shade off pure
   // white and read as more page rather than as a distinct block at the end of
   // it. ink-100 is #F5F5F4 — still light, but it reads as a surface.
@@ -561,6 +591,7 @@ export function SiteFooter() {
                 full name reads as the caption it is. */}
             <Link
               href="/"
+              onClick={(event) => scrollHomeToTop(event, pathname)}
               className="group flex flex-col items-start gap-5"
             >
               <Image
@@ -597,6 +628,11 @@ export function SiteFooter() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    onClick={
+                      item.href === "/"
+                        ? (event) => scrollHomeToTop(event, pathname)
+                        : undefined
+                    }
                     className="text-sm text-ink-600 hover:text-brand-700"
                   >
                     {item.label}
@@ -606,7 +642,12 @@ export function SiteFooter() {
             </ul>
           </div>
 
-          <div>
+          {/* Back to Top shares the Legal column, pushed to its right edge
+              and down to its foot, so its bottom edge sits level with
+              "Disclosures" (and "Resources" beside it). Same text size as the
+              links, so the baselines match as well as the boxes. */}
+          <div className="flex items-end justify-between gap-6">
+            <div>
             <h2 className="text-sm text-ink-600">Legal</h2>
             <ul className="mt-3 space-y-2">
               <li>
@@ -625,6 +666,8 @@ export function SiteFooter() {
                 </Link>
               </li>
             </ul>
+            </div>
+            <BackToTop />
           </div>
         </div>
 
@@ -632,20 +675,23 @@ export function SiteFooter() {
           Platform spec §29: legal language is placeholder until counsel
           approves it. This notice is deliberately conservative.
         */}
+        {/*
+          Justified on desktop so its lines run to the container's right edge,
+          the same edge "Back to Top" and the divider end on. Ragged, the
+          first line stopped short of the button by an amount that changed
+          with every window width.
+        */}
         <div className="border-t border-ink-200 py-6">
-          <p className="text-xs leading-relaxed text-ink-600">
+          <p className="text-xs leading-relaxed text-ink-600 lg:text-justify">
             Financial Lending Specialists D.B.A. FLS Capital Advisors arranges
             financing through third-party funding sources. Nothing on this
             site is a commitment to lend or an offer of credit. All financing
             is subject to qualification, lender review, and program
             availability. Program terms and availability vary and may change.
           </p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <p className="text-xs text-ink-600">
-              © {new Date().getFullYear()} Financial Lending Specialists D.B.A. FLS Capital Advisors. All rights reserved.
-            </p>
-            <BackToTop />
-          </div>
+          <p className="mt-4 text-xs text-ink-600">
+            © {new Date().getFullYear()} Financial Lending Specialists D.B.A. FLS Capital Advisors. All rights reserved.
+          </p>
         </div>
         </Reveal>
       </Container>

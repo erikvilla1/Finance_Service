@@ -112,12 +112,24 @@ export function useScrolledPast(threshold: number): boolean {
  * is to keep that bookkeeping outside React rather than inside an effect.
  * Module scope rather than per-hook-instance because the page only ever has
  * one sticky header; a second consumer would need its own copy of this.
+ *
+ * RESET WHEN THE HEADER GOES AWAY. Module scope outlives the header. Scroll
+ * down the home page (hidden), follow a footer link to a legal page (those use
+ * the application layout's header, so this one unmounts), then take the logo
+ * home: the new header mounted at the top of the page, got no scroll event to
+ * say so, and read the stale `true`. The header was simply missing until the
+ * reader happened to scroll up. So unsubscribing (unmount) clears the hidden
+ * flag, and subscribing starts the direction tracking from wherever the page
+ * actually is. Cleared on the way out rather than on the way in so the header
+ * is already visible on its first render, instead of rendering hidden and
+ * then sliding in.
  */
 let lastScrollY = 0;
 let headerHidden = false;
 
 export function useHeaderReveal(): boolean {
   const subscribe = useCallback((onStoreChange: () => void) => {
+    lastScrollY = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;
       const delta = y - lastScrollY;
@@ -134,7 +146,10 @@ export function useHeaderReveal(): boolean {
       onStoreChange();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      headerHidden = false;
+    };
   }, []);
 
   const getSnapshot = useCallback(() => headerHidden, []);

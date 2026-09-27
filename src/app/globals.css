@@ -106,6 +106,18 @@
   /* Deep companion — marks on light, never surfaces. */
   --color-accent-800: oklch(0.470 0.045 74);
   --color-accent-900: oklch(0.360 0.038 70);
+  /* Champagne gold, for display marks only (the How It Works numerals and
+     progress). The accent scale jumps from cream (600) straight to bronze
+     (700); this sits between them, at the hue of the cream but with enough
+     chroma to read as gold rather than beige, and without going brown. */
+  --color-gold-400: oklch(0.865 0.068 87);
+  --color-gold-500: oklch(0.795 0.088 84);
+  --color-gold-600: oklch(0.725 0.098 81);
+  /* Champagne: the tone of the sign-in page's gradient, where its tan sweep
+     (accent-700 at 55%) crosses the cream base. Softer and less saturated
+     than gold; used for the How It Works numerals and progress. */
+  --color-champagne-400: oklch(0.875 0.036 86);
+  --color-champagne-500: oklch(0.775 0.052 81);
 
   /* Neutrals — true gray, anchored at ink-500 = #7e7d7d */
   --color-ink-50:  oklch(0.985 0.0005 109);
@@ -410,79 +422,104 @@
     }
   }
 
-  /* ----------------------------------------------------- PROCESS STEP CARD */
+  /* ---------------------------------------------------- HOW IT WORKS STAGE */
   /*
-    A warm wash instead of a flat white card.
+    The pinned How It Works stage's backdrop and numeral. --p is written by
+    ProcessSteps on every scroll frame (0 → 1 across the pinned run).
 
-    WHERE THE GRADIENTS SIT IS THE POINT. The card is deliberately taller than
-    two lines of copy need, which left an empty lower-right quadrant. Both
-    radials are anchored to the right edge — one behind the numeral, one filling
-    that quadrant — so the colour lands exactly where the emptiness was rather
-    than being spread evenly and thinning out to nothing.
-
-    OKLCH FOR THE MIX. The accent scale is authored in oklch, and mixing in
-    oklch keeps a 12% tint of red actually reading as pale red. The same mix in
-    sRGB drifts grey-pink as it approaches transparent.
-
-    Kept well under the threshold where text contrast is affected — ink-600 body
-    copy on the strongest point of this wash is still comfortably AA.
+    The dot grid is a layer taller than the stage that translates, rather than
+    a background-position that changes: a transform is composited, a
+    background-position repaints the whole viewport-sized layer every frame.
+    The mask sits on the fixed parent so the fade stays put while the dots
+    move under it.
   */
-  .step-card {
-    background-color: var(--color-accent-100);
-    background-image:
-      radial-gradient(
-        62% 70% at 100% 0%,
-        color-mix(in oklch, var(--color-accent-600) 55%, transparent) 0%,
-        transparent 70%
-      ),
-      radial-gradient(
-        58% 62% at 88% 100%,
-        color-mix(in oklch, var(--color-accent-500) 45%, transparent) 0%,
-        transparent 72%
-      ),
-      /* The wide, faint one. The two above hug the right edge, but the emptiest
-         part of the card is the horizontal band between the copy and the chips,
-         which runs its full width. This sits below the card's bottom edge and
-         only its top arc shows, so the band reads as a soft floor rather than
-         as a blank strip. */
-      radial-gradient(
-        75% 48% at 40% 112%,
-        color-mix(in oklch, var(--color-accent-400) 38%, transparent) 0%,
-        transparent 76%
-      );
+  .process-dots {
+    mask-image: radial-gradient(ellipse 60% 62% at 64% 52%, black 20%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 62% at 64% 52%, black 20%, transparent 78%);
+  }
+  .process-dots-layer {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: calc(100% + 320px);
+    background-image: radial-gradient(circle, var(--color-ink-300) 1px, transparent 1.5px);
+    background-size: 26px 26px;
+    transform: translate3d(0, calc(var(--p, 0) * -320px), 0);
+    will-change: transform;
   }
 
-  /* The ghost numeral picks up the accent rather than staying neutral grey, so
-     it belongs to the wash behind it instead of sitting on top of it. */
-  .step-numeral {
-    color: color-mix(in oklch, var(--color-accent-800) 16%, transparent);
+  /* The same dot grid, still, for sections that want the How It Works
+     texture without its scroll drift (Testimonials). Same dots and spacing,
+     masked to fade out toward the edges, and much fainter: behind a row of
+     cards that are already busy, full-strength dots competed with them. */
+  .section-dots {
+    opacity: 0.35;
+    background-image: radial-gradient(circle, var(--color-ink-300) 1px, transparent 1.5px);
+    background-size: 26px 26px;
+    mask-image: radial-gradient(ellipse 70% 75% at 50% 55%, black 25%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 75% at 50% 55%, black 25%, transparent 80%);
+  }
+
+  /* A fading champagne fill, not a solid one: at 6.5rem a solid numeral outweighs
+     the step title beneath it. Not an outline either: -webkit-text-stroke
+     draws every contour of a variable font, including the ones where a
+     glyph's parts overlap, which showed as stray marks inside the digits.
+     On a diagonal: faint at the top left, solid at the bottom right. The
+     element is sized to its digits (w-fit), so the diagonal runs corner to
+     corner across the number itself rather than across the whole column. */
+  .process-numeral {
+    background-image: linear-gradient(
+      to top left,
+      var(--color-champagne-500) 10%,
+      color-mix(in oklch, var(--color-champagne-400) 60%, transparent) 95%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* The showcase's idle motion (How It Works). Only the current step's screen
+     and overlay carry these classes, so each restarts from the top when its
+     step comes round.
+
+     The page inside the browser window scrolls slowly down and back, as if
+     someone were reading it: --window-h is the window's viewport height, so
+     calc(-100% + --window-h) is exactly the point where the page's bottom
+     meets the window's, and 0.55 of it keeps the drift to the upper half. */
+  @keyframes showcase-pan {
+    0%, 12% { transform: translateY(0); }
+    100% { transform: translateY(min(0px, calc((-100% + var(--window-h)) * 0.55))); }
+  }
+  .animate-showcase-pan {
+    animation: showcase-pan 14s cubic-bezier(0.45, 0, 0.55, 1) 0.8s infinite alternate both;
+  }
+  /* The fake cursor's resting drift between moves: a hand on a mouse is
+     never quite still. Small and slow enough not to look like a tremor. */
+  @keyframes cursor-idle {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(3px, -2px); }
+    66% { transform: translate(-2px, 2px); }
+  }
+  .animate-cursor-idle {
+    animation: cursor-idle 7s ease-in-out infinite;
+  }
+  @keyframes showcase-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+  }
+  .animate-showcase-float {
+    animation: showcase-float 6s ease-in-out infinite;
   }
 
   /* -------------------------------------------------------- TESTIMONIAL CARD */
   /*
-    Warmer and more saturated than .step-card on purpose. These are small cards
-    seen in motion and at a glance, so the same 11-13% tint that reads as a
-    considered wash on a 26rem panel would read as "slightly dirty white" here.
-
-    The linear pass carries the body of the colour from the top-left; the radial
-    concentrates it behind the quote glyph in the top-right so the corner has
-    somewhere to resolve to. Both mixed in oklch — sRGB drifts grey-pink as it
-    fades out, which is exactly the muddy result this is avoiding.
+    The same cream as the Who We Are card (accent-100), so the page's gold
+    surfaces are one colour. These used to be a deeper, gradient gold of
+    their own (accent-300 washed into accent-100, with an accent-500 glow
+    behind the quote mark), which sat next to the flat cream card a section
+    above as two different golds.
   */
   .testimonial-card {
-    background-color: var(--color-accent-300);
-    background-image:
-      linear-gradient(
-        145deg,
-        color-mix(in oklch, var(--color-accent-300) 85%, transparent) 0%,
-        color-mix(in oklch, var(--color-accent-100) 80%, transparent) 48%,
-        transparent 100%
-      ),
-      radial-gradient(
-        85% 90% at 100% 0%,
-        color-mix(in oklch, var(--color-accent-500) 60%, transparent) 0%,
-        transparent 68%
-      );
+    background-color: var(--color-accent-100);
   }
 
   /* ------------------------------------------------------- CARD FAN DECK */
@@ -536,71 +573,11 @@
     .fan-card { width: 16rem; }
   }
 
-  /* ------------------------------------------------------------- CHIP SHINE */
-  /*
-    A highlight that sweeps across the step-card chips.
-
-    ON A PSEUDO-ELEMENT, NOT THE CHIP. The sweep needs to be clipped to the
-    pill and to travel further than the pill is wide, which a single element
-    cannot do to itself. ::after is inset to the chip with overflow hidden on
-    the parent, so the gradient runs off both edges cleanly.
-
-    TRANSFORM, NOT background-position. Both look identical; only transform is
-    composited. These loop forever, so it is the difference between a repaint
-    of the section on every frame and none.
-
-    SWEEP THEN PAUSE. The sweep occupies the first 45% of a 3.2s cycle, so it
-    is roughly 1.4s of travel and 1.8s of stillness. Some dead time is what
-    keeps it reading as a highlight — a sweep with no gap reads as a loading
-    skeleton. Shorten the duration to make it more frequent; take the 45% up
-    towards 100% and it stops being a glimmer.
-  */
-  @keyframes chip-shine {
-    0%   { transform: translateX(-130%); }
-    45%  { transform: translateX(130%); }
-    100% { transform: translateX(130%); }
-  }
-
-  .step-chip {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
-  }
-  .step-chip::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(
-      105deg,
-      transparent 38%,
-      rgb(255 255 255 / 0.9) 50%,
-      transparent 62%
-    );
-    transform: translateX(-130%);
-    animation: chip-shine 3.2s ease-in-out infinite;
-    /* Staggered per chip from the component, so a row does not flash in unison. */
-    animation-delay: var(--shine-delay, 0s);
-    will-change: transform;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    /* The blanket rule collapses the duration, which would park the highlight
-       mid-sweep rather than stopping it. Remove it outright. */
-    .step-chip::after {
-      animation: none;
-      opacity: 0;
-    }
-  }
-
   /* ---------------------------------------------------------- SHINE TEXT */
   /*
-    A glint that travels across large text. Same rhythm as .step-chip so the
-    two read as one idea.
+    A glint that travels across large text.
 
-    WHY THIS IS NOT THE CHIP TREATMENT. The chips sweep a translucent white
-    overlay across a pale pill. The hero figure is white text on a near-black
+    WHY NOT A WHITE OVERLAY SWEEP. The hero figure is white text on a near-black
     card, where a white overlay is invisible. This clips a moving gradient to
     the glyphs instead, so the shine happens *in* the letterforms.
 
