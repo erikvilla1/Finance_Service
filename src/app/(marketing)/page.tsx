@@ -109,7 +109,14 @@ const TESTIMONIALS = [
  * arranges financing, lenders decide, and a step list that ends in a promise is
  * a promise however small the type underneath it.
  */
-/** Robert's LinkedIn, linked from both his photo and the button beside it. */
+/**
+ * Robert's LinkedIn, linked from both his photo and the button beside it.
+ *
+ * rel="noopener", NOT "noopener noreferrer". Without a referrer LinkedIn
+ * treats a logged-out click as direct traffic and sends it to the sign-up
+ * wall (linkedin.com/authwall?trk=bf...) instead of the public profile; with
+ * the site as referrer it shows the profile, as other sites' profile links do.
+ */
 const ROBERT_LINKEDIN = "https://www.linkedin.com/in/robert-saucedo-1b144b340/";
 
 const PROCESS_STEPS = [
@@ -388,7 +395,7 @@ export default function HomePage() {
               <a
                 href={ROBERT_LINKEDIN}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
                 aria-label="Robert Saucedo, II on LinkedIn (opens in a new tab)"
                 className="group relative mx-auto block aspect-[4/5] w-full max-w-md rounded-[1.5rem] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-800 lg:mx-0 lg:aspect-auto lg:h-[35rem] lg:max-w-none lg:self-start"
               >
@@ -445,7 +452,7 @@ export default function HomePage() {
                   <a
                     href={ROBERT_LINKEDIN}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                     className="inline-flex items-center gap-2.5 self-start rounded-lg bg-brand-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
                   >
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
