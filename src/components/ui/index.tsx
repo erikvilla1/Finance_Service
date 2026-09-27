@@ -712,11 +712,29 @@ export function ProgressBar({
   value,
   max,
   label,
+  fill,
+  tone = "default",
+  showCheck = false,
   animated = false,
 }: {
   value: number;
   max: number;
   label?: string;
+  /** "inverted" for a dark surface, such as the results page's video hero. */
+  tone?: "default" | "inverted";
+  /**
+   * Land the check on the end once the bar is full, without `animated`'s
+   * sweep-from-empty on mount. For a bar that fills in place, like the
+   * questionnaire's on submit.
+   */
+  showCheck?: boolean;
+  /**
+   * How full the bar is, 0 to 1, when that isn't simply value / max. The
+   * prequal questionnaire is step 2 of 3 throughout, but its bar advances as
+   * questions are answered, so the label stays "2 of 3" while the fill moves
+   * through the middle third.
+   */
+  fill?: number;
   /**
    * Sweep the fill on mount, and land a check on the end when it reaches 100%.
    *
@@ -732,14 +750,18 @@ export function ProgressBar({
   animated?: boolean;
 }) {
   const safeMax = Math.max(max, 1);
-  const pct = Math.min(100, Math.round((value / safeMax) * 100));
-  const complete = animated && pct >= 100;
+  const ratio = fill ?? value / safeMax;
+  const pct = Math.min(100, Math.max(0, Math.round(ratio * 100)));
+  const complete = (animated || showCheck) && pct >= 100;
+  const inverted = tone === "inverted";
 
   return (
     <div>
       <div className="mb-2 flex items-center justify-between text-sm">
-        <span className="font-medium text-ink-700">{label ?? "Progress"}</span>
-        <span className="tabular-nums text-ink-500">
+        <span className={`font-medium ${inverted ? "text-white/85" : "text-ink-700"}`}>
+          {label ?? "Progress"}
+        </span>
+        <span className={`tabular-nums ${inverted ? "text-white/60" : "text-ink-500"}`}>
           {value} of {safeMax}
         </span>
       </div>
@@ -753,11 +775,11 @@ export function ProgressBar({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label={label ?? "Progress"}
-          className="h-2 w-full overflow-hidden rounded-full bg-ink-200"
+          className={`h-2 w-full overflow-hidden rounded-full ${inverted ? "bg-white/15" : "bg-ink-200"}`}
         >
           <div
-            className={`h-full rounded-full bg-brand-600 ${
-              animated ? "progress-fill" : "transition-all duration-300"
+            className={`h-full rounded-full ${inverted ? "bg-white" : "bg-brand-600"} ${
+              animated ? "progress-fill" : "transition-all duration-500 ease-out"
             }`}
             style={{ width: `${pct}%` }}
           />
@@ -773,7 +795,9 @@ export function ProgressBar({
             // the badge is darker than the track it sits on, so the two already
             // read apart — the white outline was solving a problem that did not
             // exist and adding a halo that did.
-            className="progress-check absolute right-0 top-1/2 grid h-5 w-5 -translate-y-1/2 translate-x-1/2 place-items-center rounded-full bg-brand-600 text-white"
+            className={`progress-check absolute right-0 top-1/2 grid h-5 w-5 -translate-y-1/2 translate-x-1/2 place-items-center rounded-full ${
+              inverted ? "bg-white text-brand-900" : "bg-brand-600 text-white"
+            }`}
           >
             <Check className="h-3 w-3" strokeWidth={3} />
           </span>
@@ -914,10 +938,13 @@ export function Field({
   );
 }
 
+// aria-invalid turns the outline red, so a field a form has flagged (see
+// create-account-form.tsx) is marked where it sits, not only in its message.
 const controlClasses =
   "block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-ink-900 " +
   "ring-1 ring-inset ring-ink-300 placeholder:text-ink-400 " +
-  "focus:ring-2 focus:ring-inset focus:ring-brand-500 sm:text-[0.95rem]";
+  "focus:ring-2 focus:ring-inset focus:ring-brand-500 sm:text-[0.95rem] " +
+  "aria-invalid:ring-danger-600";
 
 export function Input({
   className,

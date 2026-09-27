@@ -34,7 +34,7 @@ export function PasswordStrength({
   value: string;
   className?: string;
 }) {
-  const { score, max, label, rules, guessable } = assessPassword(value);
+  const { score, max, label, rules } = assessPassword(value);
 
   /*
     ONLY THE RULES THAT GATE SUBMISSION ARE LISTED.
@@ -63,7 +63,6 @@ export function PasswordStrength({
       setAnnouncement(
         [
           `Password strength ${label.toLowerCase()}.`,
-          guessable ? "This is a commonly guessed pattern." : "",
           unmet.length
             ? `Still to add: ${unmet.join(", ")}.`
             : "All suggestions met.",
@@ -74,7 +73,7 @@ export function PasswordStrength({
     }, 700);
 
     return () => window.clearTimeout(id);
-    // rules/label/guessable are all derived from value on every render.
+    // rules and label are both derived from value on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
@@ -118,15 +117,10 @@ export function PasswordStrength({
         ))}
       </div>
 
-      <div className="mt-2 flex min-h-5 items-center justify-between gap-3">
+      <div className="mt-2 flex min-h-5 items-center">
         <span className={`text-xs font-semibold transition-colors ${tone.text}`}>
           {label}
         </span>
-        {guessable && (
-          <span className="text-xs font-medium text-danger-700">
-            Commonly guessed
-          </span>
-        )}
       </div>
 
       <ul className="mt-3 space-y-1.5">

@@ -1,22 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  Badge,
-  Card,
-  Container,
-  EmptyState,
-  ProgressBar,
-} from "@/components/ui";
+import type { ReactNode } from "react";
+import { Check, FolderUp } from "lucide-react";
+import { PageHeader, Panel, textLink } from "@/components/portal/ui";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/crm";
-import {
-  DOCUMENT_STATUS_LABEL,
-  documentStatusTone,
-  loadChecklist,
-  needsApplicant,
-} from "@/lib/documents/checklist";
-import { UploadControl, UploadedFile } from "./upload-controls";
+import { loadChecklist, needsApplicant, type ChecklistItem } from "@/lib/documents/checklist";
+import { DocumentItem, DocumentsProgress, GROUP_LABEL, type Group } from "./document-item";
 
 export const metadata: Metadata = {
   title: "Your documents",
@@ -64,7 +54,7 @@ export default async function DocumentsPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, reference_code, financing_goal, signature_requested_at")
+    .select("id, financing_goal, signature_requested_at")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -76,186 +66,136 @@ export default async function DocumentsPage({
 
   if (!checklist || checklist.items.length === 0) {
     return (
-      <Container>
-        <div className="mx-auto max-w-3xl">
-          <BackLink />
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-ink-900">
-            Your documents
-          </h1>
-          <div className="mt-8">
-            <EmptyState
-              title="Nothing to send yet"
-              description="When your specialist needs paperwork from you, it will appear here with instructions."
-            />
-          </div>
-        </div>
-      </Container>
+      <div className="mx-auto max-w-5xl">
+        <PageHeader title="Your documents" />
+        <Panel className="mt-8 text-center">
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-ink-100 text-ink-600">
+            <FolderUp aria-hidden="true" className="h-5 w-5" />
+          </span>
+          <h2 className="mt-4 text-lg font-bold text-ink-900">Nothing to send yet</h2>
+          <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-ink-600">
+            When your specialist needs paperwork from you, it will appear here with instructions.
+          </p>
+        </Panel>
+      </div>
     );
   }
 
   const { outstanding, requiredSettled, requiredTotal } = checklist;
   const allSettled = requiredTotal > 0 && requiredSettled === requiredTotal;
 
+  /*
+   * THREE GROUPS: what's still needed from you, what's with your specialist,
+   * and what's done. Eight identical cards stopped saying anything once most
+   * were sent; grouped, the page answers "what's left?" at a glance.
+   *
+   * ONE FLAT LIST, headings included. An upload moves its item from Needed to
+   * With your specialist the moment it's recorded, while the rest of a batch
+   * may still be going up. As siblings in one keyed list React moves the card
+   * and keeps its upload queue; split into separate lists, the card would be
+   * remounted and the progress bars would vanish mid-upload.
+   */
+  const groupOf = (item: ChecklistItem): Group =>
+    needsApplicant(item.status)
+      ? "needed"
+      : item.status === "accepted" || item.status === "waived"
+        ? "done"
+        : "with_specialist";
+  const groups: Group[] = ["needed", "with_specialist", "done"];
+  const counts = Object.fromEntries(
+    groups.map((group) => [group, checklist.items.filter((item) => groupOf(item) === group).length]),
+  ) as Record<Group, number>;
+  const ordered = groups.flatMap((group) => checklist.items.filter((item) => groupOf(item) === group));
+
+  const rows: ReactNode[] = [];
+  let lastGroup: Group | null = null;
+  for (const item of ordered) {
+    const group = groupOf(item);
+    if (group !== lastGroup) {
+      rows.push(
+        <li key={`heading-${group}`} className={`pl-3 sm:pl-4 ${lastGroup ? "pt-4" : ""}`}>
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-ink-500">
+            {GROUP_LABEL[group]}
+            <span className="rounded-full bg-ink-900/[0.06] px-2 py-0.5 text-xs tabular-nums text-ink-600">
+              {counts[group]}
+            </span>
+          </h2>
+        </li>,
+      );
+      lastGroup = group;
+    }
+    rows.push(
+      <DocumentItem
+        key={item.requestId}
+        item={item}
+        group={group}
+        applicationId={applicationId}
+        signatureRequested={Boolean(application.signature_requested_at)}
+      />,
+    );
+  }
+
   return (
-    <Container>
-      <div className="mx-auto max-w-3xl">
-        <BackLink />
+    <div className="mx-auto max-w-5xl">
+      <PageHeader
+        title="Your documents"
+        description="Upload what's listed below. Photos of paper are fine as long as every corner is in the frame and the text is readable."
+      />
 
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-ink-900">
-          Your documents
-        </h1>
-        <p className="mt-1 font-mono text-sm text-ink-500">
-          {application.reference_code}
-          {application.financing_goal ? ` · ${application.financing_goal}` : ""}
-        </p>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <ul className="min-w-0 space-y-4">{rows}</ul>
 
-        <Card className="mt-6">
-          {/*
-            Three states, not two. "Nothing outstanding" and "everything has
-            been checked and accepted" feel the same to this page but are very
-            different to the person reading it: one means we are looking, the
-            other means we are done looking. Collapsing them left someone who
-            had just been accepted staring at the same sentence as someone
-            whose upload had not been opened yet.
-          */}
-          <p className="text-lg font-semibold text-ink-900">
-            {allSettled
-              ? "Everything's been accepted"
-              : outstanding === 0
-                ? "Nothing outstanding right now"
-                : outstanding === 1
-                  ? "One item still to send"
-                  : `${outstanding} items still to send`}
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-ink-600">
-            {allSettled
-              ? "Your specialist has checked everything we asked for. If anything else is needed, it will appear here."
-              : outstanding === 0
-                ? "Everything you've sent is with your specialist to look over. There's nothing for you to do right now."
-                : "Photos of paper are fine as long as every corner is in the frame and the text is readable."}
-          </p>
+        <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
+          <Panel className="sm:p-6">
+            {/*
+              Three states, not two. "Nothing outstanding" and "everything has
+              been checked and accepted" feel the same to this page but are very
+              different to the person reading it: one means we are looking, the
+              other means we are done looking.
+            */}
+            <p className="text-base font-semibold text-ink-900">
+              {allSettled
+                ? "Everything's been accepted"
+                : outstanding === 0
+                  ? "Nothing outstanding right now"
+                  : outstanding === 1
+                    ? "One item still to send"
+                    : `${outstanding} items still to send`}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-600">
+              {allSettled
+                ? "Your specialist has checked everything we asked for. If anything else is needed, it will appear here."
+                : outstanding === 0
+                  ? "Everything you've sent is with your specialist to look over. There's nothing for you to do right now."
+                  : "Each one moves to With your specialist as soon as it's sent."}
+            </p>
+            <DocumentsProgress total={requiredTotal} sent={requiredTotal - outstanding} done={requiredSettled} />
+          </Panel>
 
-          <div className="mt-5">
-            <ProgressBar
-              value={requiredSettled}
-              max={requiredTotal}
-              label="Required documents complete"
-            />
-          </div>
-        </Card>
-
-        <ul className="mt-6 space-y-4">
-          {checklist.items.map((item) => {
-            const open = needsApplicant(item.status);
-
-            return (
-              <Card as="li" key={item.requestId}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-base font-semibold text-ink-900">
-                      {item.label}
-                      {!item.isRequired && (
-                        <span className="ml-2 text-sm font-normal text-ink-500">
-                          optional
-                        </span>
-                      )}
-                    </h2>
-                    {(item.instructions ?? item.description) && (
-                      <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-ink-600">
-                        {item.instructions ?? item.description}
-                      </p>
-                    )}
-                  </div>
-                  <Badge tone={documentStatusTone(item.status)}>
-                    {DOCUMENT_STATUS_LABEL[item.status]}
-                  </Badge>
-                </div>
-
-                {item.dueDate && open && (
-                  <p className="mt-2 text-sm text-warning-700">
-                    Needed by {formatDate(item.dueDate)}
-                  </p>
-                )}
-
-                {item.documents.length > 0 && (
-                  <ul className="mt-4 space-y-2">
-                    {item.documents.map((document) => (
-                      <UploadedFile
-                        key={document.id}
-                        applicationId={applicationId}
-                        document={document}
-                      />
-                    ))}
-                  </ul>
-                )}
-
-                {/*
-                  The signed application is produced by signing, not by
-                  uploading. When it needs the applicant again — released and
-                  not yet signed, or signed and sent back — the door to open is
-                  the signing page, where the prefilled document, the reason it
-                  came back, and the signature pad all live. The upload control
-                  stays underneath as the paper route: someone who printed and
-                  signed by hand sends their scan through it.
-                */}
-                {item.key === "signed_application" &&
-                  application.signature_requested_at &&
-                  open && (
-                    <div className="mt-4 rounded-lg bg-ink-50 p-4">
-                      <Link
-                        href={`/dashboard/${applicationId}/sign`}
-                        className="text-sm font-semibold text-brand-700 hover:underline"
-                      >
-                        {item.documents.length > 0
-                          ? "Review and sign again →"
-                          : "Review and sign →"}
-                      </Link>
-                      <p className="mt-1 text-sm leading-relaxed text-ink-600">
-                        Your application is prefilled and ready — signing it
-                        takes a couple of minutes. Rather sign on paper? Ask
-                        your specialist for a copy to print, then upload the
-                        signed pages below.
-                      </p>
-                    </div>
-                  )}
-
-                {/* Still offered once something has been sent. A second copy is
-                    often exactly what is needed, and hiding the control after
-                    one upload means a mistake can only be fixed by phone. */}
-                {item.status !== "waived" && (
-                  <UploadControl
-                    applicationId={applicationId}
-                    requestId={item.requestId}
-                    documentTypeKey={item.key}
-                    label={item.documents.length > 0 ? "another file" : "file"}
-                  />
-                )}
-              </Card>
-            );
-          })}
-        </ul>
-
-        <p className="mt-8 text-sm text-ink-600">
-          Not sure about something on this list?{" "}
-          <Link
-            href="/contact"
-            className="font-semibold text-brand-700 hover:underline"
-          >
-            Talk with your specialist
-          </Link>
-        </p>
+          <Panel className="sm:p-6">
+            <h2 className="text-base font-semibold text-ink-900">Tips for clear uploads</h2>
+            <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-ink-600">
+              {[
+                "Send every page, including blank or signature pages.",
+                "PDFs straight from your bank or accountant are best.",
+                "Photos work too: flat surface, good light, all four corners.",
+                "Several files for one item is fine, e.g. one per month.",
+              ].map((tip) => (
+                <li key={tip} className="flex gap-2">
+                  <Check aria-hidden="true" className="mt-1 h-3.5 w-3.5 shrink-0 text-success-700" strokeWidth={2.5} />
+                  {tip}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 border-t border-ink-100 pt-4 text-sm text-ink-600">
+              Not sure about something on this list?{" "}
+              <Link href="/dashboard/support" className={textLink}>
+                Message your specialist
+              </Link>
+            </p>
+          </Panel>
+        </aside>
       </div>
-    </Container>
-  );
-}
-
-function BackLink() {
-  return (
-    <Link
-      href="/dashboard"
-      className="text-sm font-semibold text-brand-700 hover:underline"
-    >
-      ← Your applications
-    </Link>
+    </div>
   );
 }

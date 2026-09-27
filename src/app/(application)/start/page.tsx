@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Container, ProgressBar, SelectableCard } from "@/components/ui";
-import { FINANCING_GOALS, findGoal } from "@/lib/products/goals";
+import { OBJECTIVES, prequalHref, resolveGoal } from "@/lib/matching/objectives";
 import {
   PREQUAL_FLOW_LABEL,
   PREQUAL_FLOW_STEPS,
@@ -21,8 +21,13 @@ export const metadata: Metadata = {
  * asking for help" (spec §2), so the entry point is a plain-language goal, not
  * a product name.
  *
- * Arriving with ?goal= already set (from the homepage selector) skips straight
- * to the questions rather than asking the same thing twice.
+ * THE NINE OBJECTIVES from the qualification spec (§2), in Robert's words. No
+ * solution types (SBA, factoring, MCA...) as cards: the customer says what they
+ * want to do and the engine works out which products fit.
+ *
+ * Arriving with ?goal= already set (the homepage, a guide's CTA, or an older
+ * link that names a guide) skips straight to the questions rather than asking
+ * the same thing twice.
  */
 export default async function StartPage({
   searchParams,
@@ -30,10 +35,10 @@ export default async function StartPage({
   searchParams: Promise<{ goal?: string }>;
 }) {
   const params = await searchParams;
-  const preselected = findGoal(params.goal);
+  const preselected = resolveGoal(params.goal);
 
   if (preselected) {
-    redirect(`/start/prequal?goal=${preselected.slug}`);
+    redirect(prequalHref(preselected.objective.id, preselected.prefill));
   }
 
   return (
@@ -58,7 +63,7 @@ export default async function StartPage({
           />
         </div>
 
-        <div className="mt-10">
+        <div className="mt-10 [@media(max-height:900px)]:mt-7">
           <h1 className="animate-fade-in-up text-4xl font-bold tracking-tight text-ink-900 [animation-delay:90ms] sm:text-5xl">
             What are you looking to accomplish?
           </h1>
@@ -73,22 +78,16 @@ export default async function StartPage({
             a longer form than it is — and the honest step count is the
             whole point of this screen.
 
-            Three across. FINANCING_GOALS is now derived from the eleven
-            resource guides (see lib/products/goals.ts), which doesn't
-            divide evenly into any column count — three across leaves the
-            last row two tiles instead of three. Left uneven on purpose
-            rather than forced to fit a column count: the list is a
-            projection of the guides, and padding it with an invented goal
-            just to fill a row would be the tail wagging the dog.
+            Three across: nine objectives, three even rows.
           */}
           {/* auto-rows-fr so every row is the height of the tallest tile in
               the grid rather than the tallest in its own row — descriptions
               run one to two lines depending on the guide, and without this
               a two-line tile would make only its own row taller. */}
-          <ul className="mt-8 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {FINANCING_GOALS.map((goal, index) => (
+          <ul className="mt-8 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-3 [@media(max-height:900px)]:mt-6">
+            {OBJECTIVES.map((objective, index) => (
               <li
-                key={goal.slug}
+                key={objective.id}
                 className="animate-fade-in-up h-full"
                 // 40ms apart: nine tiles at the 90ms spacing used above would
                 // still be arriving most of a second after the heading, which
@@ -97,9 +96,9 @@ export default async function StartPage({
               >
                 <SelectableCard
                   compact
-                  href={`/start/prequal?goal=${goal.slug}`}
-                  title={goal.label}
-                  description={goal.description}
+                  href={prequalHref(objective.id)}
+                  title={objective.label}
+                  description={objective.description}
                 />
               </li>
             ))}

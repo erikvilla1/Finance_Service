@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { Button, Field, Input } from "@/components/ui";
+import { Field, Input } from "@/components/ui";
+import { primaryButton } from "@/components/portal/ui";
 import type { ExistingDebtRow } from "@/types/database";
 import { saveObligationsAction, type ObligationsState } from "./actions";
 
@@ -45,8 +47,16 @@ export function ObligationsForm({
   existing: ExistingDebtRow[];
   readOnly: boolean;
 }) {
+  const router = useRouter();
+
+  // Like the sections: a successful save moves on, here back to the
+  // application overview (this is the last part of it).
   const [state, formAction, pending] = useActionState<ObligationsState, FormData>(
-    saveObligationsAction,
+    async (previous, formData) => {
+      const result = await saveObligationsAction(previous, formData);
+      if (result.saved && !result.error) router.push(`/dashboard/${applicationId}/application`);
+      return result;
+    },
     {},
   );
 
@@ -70,7 +80,7 @@ export function ObligationsForm({
   }
 
   return (
-    <form action={formAction} className="mt-6 space-y-5">
+    <form action={formAction} className="space-y-5">
       <input type="hidden" name="application_id" value={applicationId} />
 
       {rows.map((row, index) => (
@@ -152,7 +162,7 @@ export function ObligationsForm({
         <button
           type="button"
           onClick={() => setRows((current) => [...current, newRow()])}
-          className="text-sm font-semibold text-brand-700 hover:underline"
+          className="text-sm font-semibold text-brand-900 underline-offset-4 hover:underline"
         >
           + Add another obligation
         </button>
@@ -167,17 +177,11 @@ export function ObligationsForm({
         </p>
       )}
 
-      {state.saved && !state.error && (
-        <p role="status" className="text-sm font-medium text-success-700">
-          Saved.
-        </p>
-      )}
-
       {!readOnly && (
-        <div className="flex items-center gap-3 border-t border-ink-100 pt-5">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save and continue"}
-          </Button>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-ink-100 pt-6">
+          <button type="submit" disabled={pending} className={primaryButton}>
+            {pending ? "Saving…" : "Save and finish"}
+          </button>
           <p className="text-sm text-ink-500">
             Leave a row blank if you have nothing to add.
           </p>

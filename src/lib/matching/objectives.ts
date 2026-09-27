@@ -103,3 +103,26 @@ export const GUIDE_PREFILL: Record<string, Record<string, string>> = {
   "fix-and-flip-financing": { re_subobjective: "fix_and_flip" },
   "ground-up-construction-financing": { re_subobjective: "ground_up" },
 };
+
+/**
+ * What a `?goal=` in a link means. Accepts an objective id ("equipment") or,
+ * for links written before the nine objectives existed and for the guides'
+ * own CTAs, a guide slug ("fix-and-flip-financing"), which resolves to its
+ * objective plus any answer the guide already implies.
+ */
+export function resolveGoal(
+  param: string | null | undefined,
+): { objective: Objective; prefill: Record<string, string> } | null {
+  if (!param) return null;
+  const direct = findObjective(param);
+  if (direct) return { objective: direct, prefill: {} };
+  const viaGuide = GUIDE_OBJECTIVE[param];
+  if (!viaGuide) return null;
+  return { objective: findObjective(viaGuide) as Objective, prefill: GUIDE_PREFILL[param] ?? {} };
+}
+
+/** The prequal URL for an objective, carrying any prefilled answers. */
+export function prequalHref(objective: ObjectiveId, prefill: Record<string, string> = {}): string {
+  const query = new URLSearchParams({ goal: objective, ...prefill });
+  return `/start/prequal?${query.toString()}`;
+}

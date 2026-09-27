@@ -34,9 +34,9 @@ export const AMOUNT_RANGES: FieldOption[] = [
   opt("50k_100k", "$50K–$100K"),
   opt("100k_250k", "$100K–$250K"),
   opt("250k_500k", "$250K–$500K"),
-  opt("500k_1m", "$500K–$1MM"),
-  opt("1m_5m", "$1MM–$5MM"),
-  opt("5m_plus", "$5MM+"),
+  opt("500k_1m", "$500K–$1M"),
+  opt("1m_5m", "$1M–$5M"),
+  opt("5m_plus", "$5M+"),
 ];
 
 export const TIME_IN_BUSINESS: FieldOption[] = [
@@ -698,6 +698,30 @@ export const BRANCHES: Record<ObjectiveId, FieldDef[]> = {
   startup,
   unsure,
 };
+
+/**
+ * What each objective's branch is about, for the questionnaire's progress
+ * bar. The universal profile is always "Your business".
+ */
+export const BRANCH_TITLE: Record<ObjectiveId, string> = {
+  working_capital: "Your cash flow",
+  equipment: "The equipment",
+  commercial_real_estate: "The property",
+  investment_real_estate: "The project",
+  business_acquisition: "The acquisition",
+  accounts_receivable: "Your receivables",
+  debt_refinance: "Your current debt",
+  startup: "You and your plans",
+  unsure: "What you need",
+};
+
+/** The questionnaire's two sections, as titles and the field ids in each. */
+export function sectionsFor(objective: ObjectiveId): { title: string; fieldIds: string[] }[] {
+  return [
+    { title: "Your business", fieldIds: UNIVERSAL_PROFILE.map((field) => field.id) },
+    { title: BRANCH_TITLE[objective], fieldIds: BRANCHES[objective].map((field) => field.id) },
+  ];
+}
 
 /**
  * The full question list for an objective: universal profile first, then the

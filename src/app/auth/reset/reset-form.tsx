@@ -26,7 +26,7 @@ export function ResetForm() {
   const assessment = assessPassword(password);
   const mismatch = confirm.length > 0 && confirm !== password;
 
-  const ready = assessment.meetsPolicy && !assessment.guessable && confirm === password;
+  const ready = assessment.meetsPolicy && confirm === password;
 
   return (
     <form action={formAction} className="space-y-5">

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui";
 import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-gradient";
+import { FlowVideo } from "@/components/application/flow-video";
 
 /** Same height and radius as the marketing header's capsules. */
 /**
@@ -37,6 +38,10 @@ export default function ApplicationLayout({
   return (
     <div className="relative flex min-h-dvh flex-col bg-ink-50">
       <GrainGradient className="fixed inset-0" {...LIGHT_GRADIENT} />
+      {/* The results page and account creation share one playing video;
+          here rather than in either page so it survives the move between
+          them. See FlowVideo. */}
+      <FlowVideo />
 
       {/*
         Floating capsules, the same shape language as the marketing header —
@@ -77,14 +82,33 @@ export default function ApplicationLayout({
               header or the two stop lining up, which is the one thing this
               header exists to guarantee.
             */}
-            <Image
-              src="/brand/fls-capital-dark.png"
-              alt=""
-              width={2254}
-              height={1070}
-              className="h-10 w-auto max-w-none shrink-0 transition-opacity duration-300 group-hover:opacity-60 sm:h-12"
-              priority
-            />
+            {/* Two marks stacked, like the marketing header over its hero:
+                the dark one on the cream flow, the light one over a page
+                that opens on dark footage (the results hero marks itself
+                data-dark-hero; see .app-logo-* in globals.css). A CSS
+                switch because this layout is a server component and doesn't
+                know which page is under it. */}
+            <span className="relative block shrink-0 transition-opacity duration-300 group-hover:opacity-60">
+              <Image
+                src="/brand/fls-capital-dark.png"
+                alt=""
+                width={2254}
+                height={1070}
+                className="app-logo-dark h-10 w-auto max-w-none sm:h-12"
+                priority
+              />
+              <Image
+                src="/brand/fls-capital-light.png"
+                alt=""
+                width={2254}
+                height={1070}
+                className="app-logo-light absolute inset-0 h-10 w-auto max-w-none sm:h-12"
+                // Eager, not lazy: it's hidden until a dark hero appears, and
+                // a lazy image that starts hidden can arrive late or not at
+                // all, leaving the header blank over the footage.
+                loading="eager"
+              />
+            </span>
           </Link>
           {/*
             NO SEPARATE EXIT CONTROL.
@@ -108,14 +132,20 @@ export default function ApplicationLayout({
         </div>
       </header>
 
-      {/* More room below than above: the last row of content was sitting
-          almost on the footer's border, so the gradient read as cut off
-          rather than as a background the page rests on. */}
-      <main id="main" className="relative flex-1 pb-20 pt-10 sm:pb-28 sm:pt-14">
+      {/* Bottom padding kept small: it used to be large to hold content off
+          the footer's white bar, which is gone, and the extra height pushed
+          one-screen pages like the goal picker into scrolling. The top
+          padding is load-bearing: the results and account pages cancel it
+          with a matching negative margin, so change them together. */}
+      <main id="main" className="relative flex-1 pb-8 pt-10 sm:pb-10 sm:pt-14">
         {children}
       </main>
 
-      <footer className="relative border-t border-ink-200 bg-white py-6">
+      {/* No bar: the disclosure sits on the page as small print. Pages with
+          a video background (the results page, account creation) hide this
+          footer so they can be exactly one screen tall; see .app-footer in
+          globals.css for where each covers the disclosure instead. */}
+      <footer className="app-footer relative py-6">
         <Container>
           <p className="text-xs leading-relaxed text-ink-500">
             Your information is submitted for review. Nothing on this site is a

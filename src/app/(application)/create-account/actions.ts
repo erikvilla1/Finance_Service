@@ -19,6 +19,13 @@ export type CreateAccountState = {
   error?: string;
   /** Set when the address is already registered, so the UI can offer sign-in. */
   emailInUse?: boolean;
+  /**
+   * What was typed, handed back with an error so the form can restore it.
+   * React resets a form after its action runs, which otherwise blanked the
+   * name and email the applicant had just entered. Never the passwords: those
+   * stay in the browser (the form keeps them itself).
+   */
+  values?: { fullName: string; email: string };
 };
 
 const UUID_PATTERN =
@@ -43,6 +50,21 @@ import {
 import { notifyStaff } from "@/lib/email/notifications";
 
 export async function createAccount(
+  prevState: CreateAccountState,
+  formData: FormData,
+): Promise<CreateAccountState> {
+  const result = await attemptCreateAccount(prevState, formData);
+  if (!result.error) return result;
+  return {
+    ...result,
+    values: {
+      fullName: String(formData.get("full_name") ?? "").slice(0, 120),
+      email: String(formData.get("email") ?? "").slice(0, 320),
+    },
+  };
+}
+
+async function attemptCreateAccount(
   _prevState: CreateAccountState,
   formData: FormData,
 ): Promise<CreateAccountState> {

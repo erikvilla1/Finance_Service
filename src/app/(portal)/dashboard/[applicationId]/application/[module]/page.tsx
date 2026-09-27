@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Card, Container, ProgressBar } from "@/components/ui";
+import { Check, Lock } from "lucide-react";
+import { PageHeader, Panel, textLink } from "@/components/portal/ui";
 import { createClient } from "@/lib/supabase/server";
 import { loadApplicationForm } from "@/lib/application-form/load";
 import { isFormModule } from "@/lib/application-form/mapping";
@@ -38,7 +39,7 @@ export default async function SectionPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, reference_code")
+    .select("id")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -53,41 +54,32 @@ export default async function SectionPage({
 
   const section = form.sections[index];
   const next = form.sections[index + 1];
+  // Saving moves on: to the next section, or from the last one back to the
+  // application overview, which shows anything still left (obligations too).
+  const nextHref = next
+    ? `/dashboard/${applicationId}/application/${next.module}`
+    : `/dashboard/${applicationId}/application`;
 
   return (
-    <Container>
-      <div className="mx-auto max-w-2xl">
-        <Link
-          href={`/dashboard/${applicationId}/application`}
-          className="text-sm font-semibold text-brand-700 hover:underline"
-        >
-          ← Your application
-        </Link>
+    <div className="mx-auto max-w-3xl">
+        <PageHeader
+          eyebrow={`Your application · Section ${index + 1} of ${form.sections.length}`}
+          title={section.title}
+          description={section.description}
+        />
 
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-ink-900">
-          {section.title}
-        </h1>
-        {section.description && (
-          <p className="mt-2 leading-relaxed text-ink-600">
-            {section.description}
-          </p>
-        )}
-
-        <div className="mt-6">
-          <ProgressBar
-            value={section.requiredAnswered}
-            max={section.requiredTotal}
-            label={`Section ${index + 1} of ${form.sections.length}`}
-          />
+        <div className="mt-8">
+          <SectionSteps applicationId={applicationId} sections={form.sections} current={index} />
         </div>
 
         {!form.editable && (
-          <div className="mt-6 rounded-lg bg-ink-100 p-4">
+          <div className="mt-6 flex items-start gap-3 rounded-2xl bg-white/70 p-4 ring-1 ring-inset ring-ink-200/70">
+            <Lock aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-ink-500" />
             <p className="text-sm leading-relaxed text-ink-700">
               Your application is with a funding source, so it can&apos;t be
-              changed here. This is what you told us — if anything needs
+              changed here. This is what you told us. If anything needs
               correcting,{" "}
-              <Link href="/contact" className="font-semibold text-brand-700 hover:underline">
+              <Link href="/dashboard/support" className={textLink}>
                 your specialist can help
               </Link>
               .
@@ -95,7 +87,17 @@ export default async function SectionPage({
           </div>
         )}
 
-        <Card className="mt-6">
+        {form.editable && section.requiredTotal > 0 && (
+          <p className="mt-6 pl-3 text-sm text-ink-500 sm:pl-4">
+            Questions marked <span className="font-semibold text-danger-600">*</span> are
+            required; the rest help but can be skipped.{" "}
+            <span className="text-ink-700">
+              {section.requiredAnswered} of {section.requiredTotal} required answered.
+            </span>
+          </p>
+        )}
+
+        <Panel className="mt-4">
           <SectionForm
             applicationId={applicationId}
             module={module}
@@ -106,21 +108,74 @@ export default async function SectionPage({
             rules={form.rules}
             baseValues={form.allValues}
             readOnly={!form.editable}
+            nextHref={nextHref}
+            isLast={!next}
           />
-        </Card>
+        </Panel>
+    </div>
+  );
+}
 
-        {next && (
-          <p className="mt-6 text-sm text-ink-600">
-            Next:{" "}
-            <Link
-              href={`/dashboard/${applicationId}/application/${next.module}`}
-              className="font-semibold text-brand-700 hover:underline"
-            >
-              {next.title}
-            </Link>
-          </p>
-        )}
-      </div>
-    </Container>
+/**
+ * Where this section sits in the application: one bar per section, named,
+ * each filled by that section's own progress.
+ *
+ * Replaces a single bar labelled "Section 1 of 3" that was actually filled by
+ * the required questions answered in THIS section, next to a bare "6 of 8":
+ * two different measures on one line, and it read as neither.
+ */
+function SectionSteps({
+  applicationId,
+  sections,
+  current,
+}: {
+  applicationId: string;
+  sections: {
+    module: string;
+    title: string;
+    requiredTotal: number;
+    requiredAnswered: number;
+    complete: boolean;
+  }[];
+  current: number;
+}) {
+  return (
+    <nav aria-label="Application sections" className="mt-6">
+      <p className="text-sm font-medium text-ink-600 sm:hidden">
+        Step {current + 1} of {sections.length}
+      </p>
+      <ol className="mt-2 flex gap-2 sm:mt-0">
+        {sections.map((s, i) => {
+          const here = i === current;
+          const fill = s.requiredTotal > 0 ? s.requiredAnswered / s.requiredTotal : 0;
+          return (
+            <li key={s.module} className="min-w-0 flex-1">
+              <Link
+                href={`/dashboard/${applicationId}/application/${s.module}`}
+                aria-current={here ? "step" : undefined}
+                className="group block"
+              >
+                <span className={`block h-1.5 overflow-hidden rounded-full ${here ? "bg-ink-300" : "bg-ink-200"}`}>
+                  <span
+                    className="block h-full rounded-full bg-brand-900 transition-[width] duration-500"
+                    style={{ width: `${Math.round(fill * 100)}%` }}
+                  />
+                </span>
+                <span
+                  className={`mt-2 hidden items-center gap-1 truncate text-xs sm:flex ${
+                    here ? "font-semibold text-ink-900" : "text-ink-500 group-hover:text-ink-800"
+                  }`}
+                >
+                  {s.complete && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-success-700" strokeWidth={2.5} />}
+                  <span className="truncate">
+                    {i + 1}. {s.title}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }

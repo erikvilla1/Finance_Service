@@ -170,6 +170,16 @@
     scroll-behavior: smooth;
   }
 
+  /* Tailwind v4's preflight dropped the pointer cursor from buttons (v3 set
+     it), so every real <button> showed the arrow while links showed the
+     hand: "See my financing options" read as not clickable. This is the
+     rule Tailwind's upgrade guide gives for restoring it. Disabled buttons
+     keep the not-allowed cursor from the Button component. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
   body {
     background-color: var(--color-white);
     color: var(--color-ink-800);
@@ -990,96 +1000,148 @@
     );
   }
 
-  /* ---------------------------------------------------------------------------
-     THE AVAILABLE CARDS DRIFT. THE UNAVAILABLE ONES DO NOT.
+  /* The application header's logo over a dark hero (the results page). The
+     layout renders both marks; a page that opens on dark footage carries
+     data-dark-hero, and this swaps them. The light mark's hidden default is
+     here rather than an opacity-0 utility: utilities sit in a later layer
+     and would beat the override below whatever its specificity. */
+  .app-logo-light {
+    opacity: 0;
+  }
+  body:has([data-dark-hero], [data-dark-bg]) .app-logo-dark {
+    opacity: 0;
+  }
+  body:has([data-dark-hero], [data-dark-bg]) .app-logo-light {
+    opacity: 1;
+  }
 
-     Only .result-card-eligible floats, which is doing work beyond decoration:
-     the options someone can actually have are the live things on the page and
-     the ones they cannot are inert. That reads before anyone has parsed a
-     heading.
-
-     TRANSFORM, NOT TRANSLATE — and this is the part that would otherwise break.
-     The hover lift is Tailwind's -translate-y-1, which sets the `translate`
-     property. If this float also animated `translate` it would win for as long
-     as it ran and the card would simply refuse to lift on hover. `transform`
-     and `translate` are separate properties that the engine composes, so the
-     drift and the lift stack instead of fighting.
-
-     A WAVE, NOT A CROWD. Every card shares one duration and one curve, and the
-     only thing that varies is where in the cycle each one starts — a fixed step
-     per card in reading order. Identical period plus constant phase offset is
-     what makes a travelling wave rather than a set of independent bobs: the
-     cards stay locked to each other forever, and the crest walks along the row
-     and wraps down into the next.
-
-     THE STEP IS IN READING ORDER, NOT BY COLUMN. Keying off nth-child(3n+1) and
-     friends would give a cleaner vertical wavefront, but only at the breakpoint
-     where the grid actually has three columns — it drops to two on tablet and
-     one on a phone, and the pattern would scramble. Stepping by position means
-     consecutive cards are always neighbours whatever the column count, so the
-     ripple survives every layout.
-
-     -0.35s AGAINST A 3s CYCLE puts adjacent cards about a ninth of a period
-     apart: close enough to read as one motion passing through them, far enough
-     that you can see it move. Widen the step and the cards start looking
-     independent again; narrow it and the whole grid flattens back into the
-     page-breathing effect this is avoiding.
-
-     PAUSED ON HOVER. A card that keeps bobbing while the cursor is holding it
-     feels slippery; stopping it makes the hover feel like the card was caught.
-     ------------------------------------------------------------------------ */
-  @keyframes card-float {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
+  /* TypeIn: each letter eases out of a soft blur. Opacity and filter only,
+     no transform, so the letters stay inline and keep the font's spacing. */
+  /* A light blur, not a heavy one: the cost of a blur grows with its
+     radius, and thirty letters blurring at once over playing video dropped
+     frames at 8px. will-change gives each letter its own layer for the
+     length of the reveal. */
+  @keyframes type-in-char {
+    from {
+      opacity: 0;
+      filter: blur(4px);
     }
-    50% {
-      transform: translate3d(0, -6px, 0);
+    to {
+      opacity: 1;
+      filter: blur(0);
     }
   }
-
-  .result-card-eligible {
-    animation: card-float 3s ease-in-out infinite;
-    animation-delay: 0s;
+  .type-in-char {
+    animation: type-in-char 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity, filter;
   }
 
-  /* The list is capped at eight cards, so eight steps covers it. Negative, so
-     every card is already at its place in the wave on the first painted frame
-     rather than the grid starting flat and the wave building up. */
-  .result-card-eligible:nth-child(2) {
-    animation-delay: -0.35s;
+  /* A plain fade, for overlays and scrims that shouldn't move. */
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
-  .result-card-eligible:nth-child(3) {
-    animation-delay: -0.7s;
-  }
-  .result-card-eligible:nth-child(4) {
-    animation-delay: -1.05s;
-  }
-  .result-card-eligible:nth-child(5) {
-    animation-delay: -1.4s;
-  }
-  .result-card-eligible:nth-child(6) {
-    animation-delay: -1.75s;
-  }
-  .result-card-eligible:nth-child(7) {
-    animation-delay: -2.1s;
-  }
-  .result-card-eligible:nth-child(8) {
-    animation-delay: -2.45s;
+  .animate-fade {
+    animation: fade 300ms ease-out both;
   }
 
-  .result-card-eligible:hover {
-    animation-play-state: paused;
+  /* A longer, shorter-travel entrance than fade-in-up, for pages that
+     arrive as one composed scene (account creation): the block eases in
+     rather than jumping up. Transform and opacity only, so it composites. */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
-
+  .animate-rise {
+    animation: rise 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
   @media (prefers-reduced-motion: reduce) {
-    /* The blanket rule at the top of the file collapses the DURATION, which on
-       a looping animation means a card vibrating at the frame rate rather than
-       one holding still. It has to be switched off by name. */
-    .result-card-eligible {
+    .type-in-char {
       animation: none;
     }
   }
+
+  /* The video pages' arrival fades: .scrim-lift fades a layer out,
+     .scrim-settle fades one in, both over three seconds. The results page
+     lifts its dark overlay to the footage as shot; account creation settles
+     the same overlay back in (MatchResults, VideoBackdrop). Fill modes hold
+     the start state before the delay and the end state after. */
+  @keyframes scrim-lift {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes scrim-settle {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .scrim-lift {
+    animation: scrim-lift 3000ms cubic-bezier(0.4, 0, 0.2, 1) 200ms both;
+  }
+  .scrim-settle {
+    animation: scrim-settle 3000ms cubic-bezier(0.4, 0, 0.2, 1) 200ms both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scrim-lift {
+      animation: none;
+      opacity: 0;
+    }
+    .scrim-settle {
+      animation: none;
+    }
+  }
+
+  /* A page that is one full-screen video (the results page) doesn't scroll.
+     Neither video page shows the flow's footer: it would sit under the
+     footage, below the fold. The results page carries its disclosure in its
+     own small print; account creation relies on the Terms its checkbox has
+     the applicant accept (§3 covers the same ground). */
+  html:has([data-dark-hero]),
+  body:has([data-dark-hero]) {
+    overflow: hidden;
+  }
+  body:has([data-dark-hero], [data-dark-bg]) .app-footer {
+    display: none;
+  }
+
+  /* FlowVideo is mounted on the results and account routes but shown only
+     when the page opts in, so an old-engine result (no dark page) never gets
+     footage behind it. */
+  .flow-video {
+    display: none;
+  }
+  body:has([data-dark-hero], [data-dark-bg]) .flow-video {
+    display: block;
+  }
+
+  /* Horizontal rows that scroll by swipe or by their own arrows. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* NO IDLE DRIFT. The available cards used to bob in a slow wave
+     (card-float); removed at Kai's request, it read as the page never
+     settling. Hover still lifts a card and brings up its wash. */
 
   @media (prefers-reduced-motion: reduce) {
     /* The blanket rule at the top of the file only shortens durations, which

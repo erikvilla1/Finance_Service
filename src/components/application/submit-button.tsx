@@ -25,9 +25,18 @@ import { Button } from "@/components/ui";
 export function SubmitButton({
   children,
   pendingLabel = "Checking your options…",
+  fullWidth = false,
+  variant,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
+  /**
+   * Near-black ("contrast") where the page itself is cream, so the button
+   * doesn't sink into the background; the default elsewhere.
+   */
+  variant?: "primary" | "contrast";
+  /** Full width at every size, for a centred form like account creation. */
+  fullWidth?: boolean;
 }) {
   const { pending } = useFormStatus();
 
@@ -55,7 +64,8 @@ export function SubmitButton({
     <Button
       type="submit"
       size="lg"
-      className="w-full sm:w-auto"
+      variant={variant}
+      className={fullWidth ? "w-full" : "w-full sm:w-auto"}
       disabled={pending}
       // The one action this whole screen exists to produce, and the only
       // shimmer in the flow. The spark hides itself while disabled — a button

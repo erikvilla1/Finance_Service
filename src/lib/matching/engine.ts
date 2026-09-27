@@ -325,7 +325,18 @@ export function match(
         (e) => e.objective === current && e.family === slot.family && e.program.customerVisible !== false,
       );
       if (own.length === 0) return;
-      const viable = own.filter((e) => e.state !== "no_current_match");
+      // A manual-only route has no rules, so it can never fail: counted for a
+      // complementary family it would put that family in front of every
+      // applicant, whatever they answered (an SBA card for a pre-revenue
+      // startup in active bankruptcy). It counts only toward the objective's
+      // own families; a complementary one needs an automated route that passed
+      // (spec §15: "No match" means failing every automated program). Staff
+      // still see every manual route in internalRoutes.
+      const viable = own.filter(
+        (e) =>
+          e.state !== "no_current_match" &&
+          (slot.primary || e.program.ruleConfidence !== "manual_only"),
+      );
       // A complementary family with nothing viable is simply not mentioned; a
       // primary one is listed as "may not fit" so the customer isn't left
       // wondering whether the obvious product was considered (spec §9).
@@ -351,7 +362,12 @@ export function match(
 
   const productMatches: ProductMatch[] = [...families.values()]
     .sort((a, b) => STATE_RANK[a.state] - STATE_RANK[b.state] || a.order - b.order)
-    .map(({ order: _order, ...rest }) => rest);
+    .map(({ productFamily, state, primary, estimatedRange }) => ({
+      productFamily,
+      state,
+      primary,
+      estimatedRange,
+    }));
 
   // --- Staff view: routes ------------------------------------------------------
   const internalRoutes: InternalRoute[] = [...evaluations]

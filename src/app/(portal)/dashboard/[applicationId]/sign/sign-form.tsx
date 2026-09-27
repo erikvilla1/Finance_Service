@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { SignaturePad } from "@ark-ui/react/signature-pad";
-import { Button, Field, Input } from "@/components/ui";
+import { Field, Input } from "@/components/ui";
+import { primaryButton } from "@/components/portal/ui";
 import type { ConsentTextVersion } from "@/lib/funding-application/consent-text";
 import { signAction, type SignState } from "./actions";
 
@@ -206,9 +207,9 @@ export function SignForm({
       )}
 
       <div className="border-t border-ink-100 pt-5">
-        <Button type="submit" size="lg" disabled={!ready || pending}>
+        <button type="submit" disabled={!ready || pending} className={`${primaryButton} h-12 px-6`}>
           {pending ? "Signing…" : "Sign and submit"}
-        </Button>
+        </button>
         {!ready && (
           <p className="mt-2 text-sm text-ink-500">
             Both agreements, your name and a signature are needed before you can

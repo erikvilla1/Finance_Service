@@ -215,6 +215,24 @@ describe("spec §15 acceptance tests", () => {
     assert.equal(result.internalRoutes[0].failedRules[0], "Credit 800+");
   });
 
+  it("no match, real library: a rule-less manual route doesn't surface a related family", () => {
+    // Pre-revenue, sub-500, active bankruptcy, no income. Every automated
+    // startup program fails; Celtic's manual-only 7(a) has no rules to fail.
+    const result = match("startup", {
+      requested_amount_range: "1m_5m",
+      time_in_business: "startup_pre_revenue",
+      owner_credit_range: "lt_500",
+      industry: "Other",
+      credit_events: ["bk_active"],
+      startup_use: ["operations"],
+      personal_income_type: "none",
+    });
+    assert.equal(result.overallState, "no_current_match");
+    assert.equal(result.nextAction, "request_manual_review");
+    assert.ok(!families(result).includes("sba_loan"), "SBA shown from a manual-only route");
+    assert.ok(route(result, "celtic_sba_7a"), "manual route still visible to staff");
+  });
+
   it("range integrity: no dollar estimate without a documented sizing formula", () => {
     const samples: [Parameters<typeof match>[0], Answers][] = [
       ["working_capital", { requested_amount_range: "50k_100k", time_in_business: "2_5y", owner_credit_range: "680_699", industry: "Retail", credit_events: ["none"], avg_monthly_revenue: 80_000, avg_monthly_deposits: 75_000, deposit_trend: "consistent", open_positions_count: "0", use_of_funds: "inventory" }],

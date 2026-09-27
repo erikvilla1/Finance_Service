@@ -1,148 +1,106 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  Badge,
-  ButtonLink,
-  Card,
-  Container,
-  EmptyState,
-} from "@/components/ui";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { ButtonLink } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import {
-  CUSTOMER_STAGES,
-  CUSTOMER_STAGE_LABELS,
-  customerStatus,
-} from "@/lib/customer-status";
-import { formatCurrency, formatDate } from "@/lib/crm";
+import { customerStatus } from "@/lib/customer-status";
+import { obligationsRequired } from "@/lib/application-form/obligations";
+import { formatDate } from "@/lib/crm";
 import { loadLeadSummaries } from "@/lib/leads";
-
-/**
- * One half of what we are waiting for, as a tile.
- *
- * Reads "Complete" rather than "5 of 5" when it is done. A ratio is what you
- * need while there is work left; once there isn't, the only thing worth saying
- * is that there isn't.
- */
-function ProgressTile({
-  href,
-  label,
-  done,
-  total,
-  awaitingReview = false,
-}: {
-  href: string;
-  label: string;
-  done: number;
-  total: number;
-  /** Everything has been sent, but a specialist has not signed it all off yet. */
-  awaitingReview?: boolean;
-}) {
-  const complete = total > 0 && done === total;
-  const started = done > 0;
-
-  const status = awaitingReview
-    ? "With your specialist"
-    : complete
-      ? "Complete"
-      : started
-        ? "In progress"
-        : "Not started";
-
-  return (
-    <Link
-      href={href}
-      className="block rounded-lg p-4 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50 hover:ring-brand-300"
-    >
-      <span className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-ink-900">{label}</span>
-        <span
-          className={
-            awaitingReview
-              ? "text-xs font-semibold text-brand-700"
-              : complete
-                ? "text-xs font-semibold text-success-700"
-                : started
-                  ? "text-xs font-semibold text-warning-700"
-                  : "text-xs font-semibold text-ink-500"
-          }
-        >
-          {status}
-        </span>
-      </span>
-
-      <span className="mt-2 block h-2 w-full overflow-hidden rounded-full bg-ink-200">
-        <span
-          className={
-            complete
-              ? "block h-full rounded-full bg-success-600"
-              : "block h-full rounded-full bg-brand-600"
-          }
-          style={{ width: total > 0 ? `${(done / total) * 100}%` : "0%" }}
-        />
-      </span>
-
-      <span className="mt-1.5 block text-xs tabular-nums text-ink-500">
-        {total === 0 ? "Nothing needed yet" : `${done} of ${total}`}
-      </span>
-    </Link>
-  );
-}
+import { loadChecklist } from "@/lib/documents/checklist";
+import { buildActivity, timeAgo } from "@/lib/activity";
+import {
+  AttentionBanner,
+  Checklist,
+  FileDetails,
+  Greeting,
+  NextStepCard,
+  RecentActivity,
+  StatusCard,
+  WhatsNext,
+  greetingLine,
+  nextStepFor,
+  readinessPercent,
+} from "@/components/portal/overview";
+import { FirstRunTour } from "@/components/portal/first-run-tour";
 
 export const metadata: Metadata = {
-  title: "Your applications",
+  title: "Your dashboard",
   robots: { index: false, follow: false },
 };
 
 /**
- * The applicant's view of their own file.
+ * The applicant's overview: where their file stands, the one thing to do
+ * next, and what's done.
  *
- * Everything renders through customerStatus(), which collapses the sixteen
- * internal stages to five. Nothing on this page reads the raw status directly —
- * that is the mechanism keeping internal state off a customer's screen
- * (spec §18), and it should stay that way.
+ * WHAT CHANGED. The card this replaces showed a five-segment bar labelled only
+ * at its two ends, a status badge, two progress tiles and up to three coloured
+ * boxes, so the answer to "what's happening and what do I do?" was spread over
+ * six elements that could disagree. Now:
  *
- * THE PROFILE FILTER BELOW IS NOT REDUNDANT, though it reads that way. The
- * policy behind it is `profile_id = auth.uid() or public.is_staff()`, so RLS
- * answers "may this person see this row", not "is this person the applicant".
- * The moment the first staff account existed, the unfiltered version of this
- * query started rendering every applicant's file inside the customer portal —
- * not a leak, since staff are entitled to that data, but the wrong data on the
- * wrong screen, and one refactor away from being shown to the wrong person.
+ *   1. STATUS. Four labelled steps with "you are here". The old fifth stage,
+ *      "we need a few things", wasn't a step every file passes through, so a
+ *      file that never needed anything showed it as done; it's now a flag on
+ *      the review step instead of a place on the line.
+ *   2. NEXT STEP. Exactly one, with one button, in priority order: sign (when
+ *      asked), finish the application, send documents, or nothing needed.
+ *   3. CHECKLIST. The same items as quiet rows with their progress.
  *
- * Staff are deliberately not redirected away from here. A specialist can also
- * be a customer, and /admin is where they go to see other people's files.
+ * Everything still renders through customerStatus(), so no internal stage or
+ * vocabulary reaches the screen (spec §18). The profile filter stays for the
+ * reason the old page gave: RLS answers "may see", not "is theirs".
  */
+
 export default async function DashboardPage() {
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  // The layout already redirected an unauthenticated visitor. This is belt and
-  // braces: without a user id the filter below would be silently dropped.
   if (!user) redirect("/sign-in?next=/dashboard");
 
-  const { data: applications } = await supabase
-    .from("applications")
-    .select(
-      "id, reference_code, status, financing_goal, requested_amount, created_at, profile_id, business_id, signature_requested_at",
-    )
-    .eq("profile_id", user.id)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const [{ data: profile }, { data: applications }] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+    supabase
+      .from("applications")
+      .select(
+        "id, status, financing_goal, requested_amount, created_at, profile_id, business_id, signature_requested_at, has_existing_mca",
+      )
+      .eq("profile_id", user.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const list = applications ?? [];
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0] ?? null;
 
-  // One pass for every card rather than a lookup per card. Carries the business
-  // name and both progress counts, which is everything a card needs.
+  if (list.length === 0) {
+    return (
+      <div className="mx-auto max-w-5xl">
+        <Greeting firstName={firstName} line="Let's find the right financing for your business." />
+        <div className="mt-8 rounded-3xl bg-white/80 p-8 text-center ring-1 ring-inset ring-ink-200/70 backdrop-blur sm:p-12">
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent-100 text-accent-800">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <h2 className="mt-5 text-xl font-bold tracking-tight text-ink-900">No applications yet</h2>
+          <p className="mx-auto mt-2 max-w-md leading-relaxed text-ink-600">
+            Answer a few questions and we&apos;ll show you which financing options may fit.
+            It takes a couple of minutes and doesn&apos;t affect your credit.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <ButtonLink href="/start" variant="contrast" size="lg">
+              See my financing options
+            </ButtonLink>
+          </div>
+        </div>
+        <FirstRunTour userId={user.id} firstName={firstName} />
+      </div>
+    );
+  }
+
   const summaries = await loadLeadSummaries(supabase, list);
 
-  // Which applications already carry a signed application, so the prompt to
-  // sign disappears the moment it is done rather than on the next status change.
-  // A copy the specialist sent back doesn't count — for that file the next
-  // thing to do is signing again, and the prompt has to come back with it.
+  // A copy the specialist sent back doesn't count as signed.
   const { data: signedDocuments } = await supabase
     .from("documents")
     .select("application_id")
@@ -150,227 +108,150 @@ export default async function DashboardPage() {
     .eq("document_type_key", "signed_application")
     .neq("status", "rejected")
     .is("deleted_at", null);
+  const signed = new Set((signedDocuments ?? []).map((d) => d.application_id));
 
-  const signedApplications = new Set(
-    (signedDocuments ?? []).map((document) => document.application_id),
+  // The existing-loans section is part of the application for anyone who said
+  // they have loans or advances, and it's counted apart from the questions:
+  // one row there finishes it.
+  const needsDebts = list.filter((application) => obligationsRequired(application)).map((a) => a.id);
+  const { data: debtRows } = needsDebts.length
+    ? await supabase.from("existing_debts").select("application_id").in("application_id", needsDebts)
+    : { data: [] };
+  const withDebts = new Set((debtRows ?? []).map((row) => row.application_id));
+  const obligationsOf = (application: (typeof list)[number]) => ({
+    required: obligationsRequired(application),
+    done: withDebts.has(application.id),
+  });
+
+  // What the applicant has done, so a finished draft reads as In review (see
+  // customerStatus): every question answered and every document sent.
+  const progressOf = (application: (typeof list)[number]) => {
+    const summary = summaries.get(application.id);
+    if (!summary) return undefined;
+    const obligations = obligationsOf(application);
+    return {
+      applicationDone:
+        summary.formRequired > 0 &&
+        summary.formAnswered >= summary.formRequired &&
+        (!obligations.required || obligations.done),
+      documentsSent: summary.docsOutstanding === 0,
+    };
+  };
+
+  const [current, ...others] = list;
+  const lead = summaries.get(current.id);
+  const obligations = obligationsOf(current);
+
+  // The current file's documents (for the activity feed and any "send another
+  // copy" banner) and when its form was last saved. Reads only.
+  const [checklist, { data: lastAnswer }, { data: business }] = await Promise.all([
+    loadChecklist(supabase, current.id),
+    supabase
+      .from("application_answers")
+      .select("updated_at")
+      .eq("application_id", current.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    current.business_id
+      ? supabase.from("businesses").select("updated_at").eq("id", current.business_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const formUpdatedAt =
+    [lastAnswer?.updated_at, business?.updated_at].filter((v): v is string => Boolean(v)).sort().pop() ?? null;
+  const activity = buildActivity({
+    startedAt: current.created_at,
+    applicationUpdatedAt: formUpdatedAt,
+    applicationComplete: Boolean(progressOf(current)?.applicationDone),
+    items: (checklist?.items ?? []).map((item) => ({ label: item.label, documents: item.documents })),
+  }).map((event) => ({ ...event, when: timeAgo(event.at) }));
+  const returned = (checklist?.items ?? [])
+    .filter((item) => item.status === "rejected")
+    .map((item) => ({
+      label: item.label,
+      note: item.documents.find((d) => d.status === "rejected")?.note ?? null,
+    }));
+  const view = customerStatus(current.status, progressOf(current));
+  const next = nextStepFor(
+    current,
+    lead,
+    view.actionNeeded,
+    signed.has(current.id),
+    obligations.required && !obligations.done,
   );
 
   return (
-    <Container>
-      <div className="mx-auto max-w-3xl">
-        <h1 className="text-3xl font-bold tracking-tight text-ink-900">
-          Your applications
-        </h1>
+    <div className="mx-auto max-w-5xl">
+      <Greeting firstName={firstName} line={greetingLine(view.stage, readinessPercent(lead, obligations))} />
 
-        {list.length === 0 ? (
-          <div className="mt-8">
-            <EmptyState
-              title="Nothing here yet"
-              description="When you start an application it will appear here, along with anything we need from you."
-              action={<ButtonLink href="/start">See my financing options</ButtonLink>}
-            />
-          </div>
-        ) : (
-          <ul className="mt-8 space-y-5">
-            {list.map((application) => {
-              const view = customerStatus(application.status);
-              const lead = summaries.get(application.id);
-              const outstanding = lead?.docsOutstanding ?? 0;
-              const settled = lead?.docsSettled ?? 0;
-              const signatureDone = signedApplications.has(application.id);
+      {returned.length > 0 && (
+        <div className="mt-8">
+          <AttentionBanner applicationId={current.id} items={returned} />
+        </div>
+      )}
 
+      <div className={`${returned.length > 0 ? "mt-6" : "mt-8"} grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]`}>
+        <div className="min-w-0 space-y-6">
+          <StatusCard stage={view.stage} label={view.label} description={view.description} actionNeeded={view.actionNeeded} />
+          <NextStepCard step={next} />
+          <Checklist
+            applicationId={current.id}
+            lead={lead}
+            signatureRequested={Boolean(current.signature_requested_at)}
+            signed={signed.has(current.id)}
+            obligations={obligations}
+          />
+        </div>
+
+        <aside className="space-y-6">
+          <FileDetails
+            applicationId={current.id}
+            businessName={lead?.businessName ?? null}
+            goal={current.financing_goal}
+            amount={current.requested_amount}
+            started={current.created_at}
+          />
+          <WhatsNext stage={view.stage} />
+          <RecentActivity events={activity} />
+        </aside>
+      </div>
+
+      {others.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500">
+            Other applications
+          </h2>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+            {others.map((application) => {
+              const other = customerStatus(application.status, progressOf(application));
               return (
-                <Card as="li" key={application.id}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      {/*
-                        The reference code is ours, not theirs. An applicant
-                        knows their own company; FLS-2026-000011 is a filing
-                        number that means something to a specialist and nothing
-                        to the person who typed the form. It still exists on the
-                        application and documents pages, where someone might be
-                        reading it out on a call.
-                      */}
-                      <h2 className="text-lg font-semibold text-ink-900">
-                        {lead?.businessName ?? (
-                          <Link
-                            href={`/dashboard/${application.id}/application/core_business`}
-                            className="text-accent-700 hover:underline"
-                          >
-                            Add your business name
-                          </Link>
-                        )}
-                      </h2>
-                      <p className="mt-1 text-sm text-ink-600">
-                        {application.financing_goal ?? "Financing application"} ·{" "}
-                        {formatCurrency(application.requested_amount)} · started{" "}
-                        {formatDate(application.created_at)}
-                      </p>
-                    </div>
-                    <Badge tone={view.actionNeeded ? "warning" : "brand"}>
-                      {view.label}
-                    </Badge>
-                  </div>
-
-                  {/* Progress track — five stages, not sixteen. */}
-                  <ol className="mt-6 flex items-center gap-1" aria-label="Progress">
-                    {CUSTOMER_STAGES.map((stage, index) => {
-                      const reached = index < view.step;
-                      const current = index === view.step - 1;
-                      return (
-                        <li key={stage} className="flex flex-1 items-center gap-1">
-                          <span
-                            aria-current={current ? "step" : undefined}
-                            className={
-                              reached
-                                ? "h-1.5 w-full rounded-full bg-brand-600"
-                                : "h-1.5 w-full rounded-full bg-ink-200"
-                            }
-                          />
-                        </li>
-                      );
-                    })}
-                  </ol>
-                  <div className="mt-2 flex justify-between text-xs text-ink-500">
-                    <span>{CUSTOMER_STAGE_LABELS[CUSTOMER_STAGES[0]]}</span>
-                    <span>
-                      {CUSTOMER_STAGE_LABELS[
-                        CUSTOMER_STAGES[CUSTOMER_STAGES.length - 1]
-                      ]}
+                <li key={application.id}>
+                  <Link
+                    href={`/dashboard/${application.id}/application`}
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-white/80 p-4 ring-1 ring-inset ring-ink-200/70 transition-colors hover:bg-white"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-ink-900">
+                        {summaries.get(application.id)?.businessName ??
+                          application.financing_goal ??
+                          "Financing application"}
+                      </span>
+                      <span className="block text-xs text-ink-500">
+                        {other.label} · started {formatDate(application.created_at)}
+                      </span>
                     </span>
-                  </div>
-
-                  <p className="mt-5 leading-relaxed text-ink-700">
-                    {view.description}
-                  </p>
-
-                  {/*
-                    The two halves of what we need, side by side and phrased the
-                    same way. Previously the card only mentioned documents, so
-                    someone who had finished those saw nothing about the
-                    half-empty application form and reasonably assumed they were
-                    done.
-                  */}
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <ProgressTile
-                      href={`/dashboard/${application.id}/application`}
-                      label="Your application"
-                      done={lead?.formAnswered ?? 0}
-                      total={lead?.formRequired ?? 0}
-                    />
-                    {/*
-                      Counts what they have SENT, not what a specialist has
-                      accepted. Someone who has uploaded all five and is waiting
-                      on review was being told "0 of 5 · Not started", which
-                      reads as their files having vanished.
-
-                      The distinction still exists — it is the status word, not
-                      the bar. "With your specialist" is not the same as
-                      "Complete", and neither is the applicant's problem.
-                    */}
-                    <ProgressTile
-                      href={`/dashboard/${application.id}/documents`}
-                      label="Your documents"
-                      done={(lead?.docsTotal ?? 0) - outstanding}
-                      total={lead?.docsTotal ?? 0}
-                      awaitingReview={
-                        outstanding === 0 && settled < (lead?.docsTotal ?? 0)
-                      }
-                    />
-                  </div>
-
-                  {/*
-                    Signing outranks everything else on this card. It is the one
-                    thing that stops a file leaving the building, it takes two
-                    minutes, and it only appears when a specialist has decided
-                    the application is ready — so when it shows up it is genuinely
-                    the next thing to do.
-                  */}
-                  {application.signature_requested_at && !signatureDone && (
-                    <div className="mt-5 rounded-lg bg-accent-50 p-4">
-                      <p className="text-sm font-semibold text-accent-700">
-                        Your application is ready to sign
-                      </p>
-                      <p className="mt-1 text-sm leading-relaxed text-ink-700">
-                        This is the last thing we need before your file can go to
-                        a funding source. It takes a couple of minutes.
-                      </p>
-                      <div className="mt-3">
-                        <ButtonLink href={`/dashboard/${application.id}/sign`} size="sm">
-                          Review and sign
-                        </ButtonLink>
-                      </div>
-                    </div>
-                  )}
-
-                  {/*
-                    Being finished is worth saying out loud. Previously this box
-                    simply disappeared once everything was accepted, so the only
-                    difference between "your documents were approved" and
-                    "nothing has happened yet" was the absence of a warning —
-                    which is not something anyone notices.
-                  */}
-                  {outstanding === 0 && settled > 0 && !view.actionNeeded && (
-                    <div className="mt-5 rounded-lg bg-success-50 p-4">
-                      <p className="text-sm font-semibold text-success-700">
-                        Your documents have been accepted
-                      </p>
-                      <p className="mt-1 text-sm leading-relaxed text-ink-700">
-                        Your specialist has everything they asked for. Nothing
-                        needed from you right now.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* The checklist and the pipeline stage can disagree — a
-                      specialist can request a document without moving the file,
-                      and a stage can advance while an item is still open. The
-                      checklist is the concrete one, so it wins the wording and
-                      the stage only widens when the box appears. */}
-                  {(outstanding > 0 || view.actionNeeded) && (
-                    <div className="mt-5 rounded-lg bg-warning-50 p-4">
-                      <p className="text-sm font-semibold text-warning-700">
-                        {outstanding === 0
-                          ? "Something needs your attention"
-                          : outstanding === 1
-                            ? "One document still to send"
-                            : `${outstanding} documents still to send`}
-                      </p>
-                      <p className="mt-1 text-sm leading-relaxed text-ink-700">
-                        {outstanding === 0
-                          ? "Your specialist will be in touch about what's needed."
-                          : "Sending these is usually what moves a file forward fastest."}
-                      </p>
-                      {outstanding > 0 && (
-                        <div className="mt-3">
-                          <ButtonLink
-                            href={`/dashboard/${application.id}/documents`}
-                            size="sm"
-                          >
-                            Send documents
-                          </ButtonLink>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="mt-5 border-t border-ink-100 pt-4">
-                    <p className="text-sm text-ink-600">
-                      Questions about this application?{" "}
-                      <Link
-                        href="/contact"
-                        className="font-semibold text-brand-700 hover:underline"
-                      >
-                        Talk with your specialist
-                      </Link>
-                    </p>
-                  </div>
-                </Card>
+                    <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0 text-ink-400" />
+                  </Link>
+                </li>
               );
             })}
           </ul>
-        )}
-      </div>
-    </Container>
+        </section>
+      )}
+
+      {/* The first-visit spotlight. It lives here, on the page it points at,
+          so everything it highlights is already on screen when it starts. */}
+      <FirstRunTour userId={user.id} firstName={firstName} />
+    </div>
   );
 }
