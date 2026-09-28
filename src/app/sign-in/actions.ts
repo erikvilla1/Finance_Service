@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { landingPathFor } from "@/lib/auth/landing";
 
 /**
  * Staff and customer sign-in.
@@ -27,7 +28,10 @@ export async function signIn(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
   if (error) {
     // Deliberately vague. Distinguishing "no such account" from "wrong
@@ -35,9 +39,19 @@ export async function signIn(
     return { error: "That email address and password don't match an account." };
   }
 
+  // Staff to the pipeline, customers to their file — see landingPathFor for
+  // why the decision lives there rather than inline. The user comes off the
+  // sign-in response rather than a second getUser(): the session was just
+  // minted, so asking the auth server again only re-fetches what is in hand.
+  const home = data.user
+    ? await landingPathFor(supabase, data.user.id)
+    : "/dashboard";
+
+  // An explicit `next` still wins — someone bounced off a deep link should
+  // land back on it rather than on whichever home their role implies.
   const destination = next.startsWith("/") && !next.startsWith("//")
     ? next
-    : "/dashboard";
+    : home;
 
   revalidatePath("/", "layout");
   redirect(destination);

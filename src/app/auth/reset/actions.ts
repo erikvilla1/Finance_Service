@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { assessPassword, PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
+import { landingPathFor } from "@/lib/auth/landing";
 
 /**
  * Setting a new password.
@@ -74,8 +75,12 @@ export async function updatePassword(
   }
 
   // The recovery session is a real session, so they are already signed in.
-  // Sending them to the dashboard rather than back to sign-in avoids asking for
-  // the password they typed thirty seconds ago.
+  // Sending them straight on rather than back to sign-in avoids asking for the
+  // password they typed thirty seconds ago — and it goes to the right side of
+  // the product: this used to hardcode /dashboard, so an admin who reset their
+  // password landed on the customer portal.
+  const home = await landingPathFor(supabase, user.id);
+
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect(home);
 }

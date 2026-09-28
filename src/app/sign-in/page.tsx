@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { landingPathFor } from "@/lib/auth/landing";
 import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-gradient";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { SignInForm } from "./sign-in-form";
@@ -61,13 +62,7 @@ export default async function SignInPage({
 
   // Already signed in — send staff to the pipeline, customers to their portal.
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    redirect(profile && profile.role !== "customer" ? "/admin" : "/dashboard");
+    redirect(await landingPathFor(supabase, user.id));
   }
 
   return (

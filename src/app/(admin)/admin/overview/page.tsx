@@ -1,426 +1,169 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import {
-  Activity,
-  ArrowRight,
-  CheckCircle2,
-  ClipboardList,
-  FileText,
-  MessageSquare,
-  Package,
-  Send,
-  Users,
-} from "lucide-react";
-import { Badge, Card, Container, EmptyState } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import {
-  GROUP_LABELS,
-  STATUS_GROUP,
-  STATUS_LABELS,
-  SUBMITTAL_STATUSES,
-  formatCurrency,
-  formatDateTime,
-  humanize,
-  statusTone,
-  type StatusGroup,
-} from "@/lib/crm";
-import {
-  NEEDS,
-  NEED_LABELS,
-  loadLeadSummaries,
-  matchesNeed,
-  type Need,
-} from "@/lib/leads";
-import { loadRecentActivity, type ActivityKind } from "@/lib/admin/activity";
-
-const NEED_ICONS: Record<Need, React.ComponentType<{ className?: string }>> = {
-  review: FileText,
-  applicant: Users,
-  docs_done: CheckCircle2,
-  app_unfinished: ClipboardList,
-  package: Send,
-};
+import { STATUS_GROUP, GROUP_LABELS, type StatusGroup } from "@/lib/crm";
+import { OpsConsole, type Bucket, type ConsoleData } from "@/components/admin/ops-console";
+import { quoteOfTheDay } from "@/lib/admin/quotes";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "Overview",
   robots: { index: false, follow: false },
 };
 
-/** Five days without a first contact. Kept out of render — see the call site. */
-const STALE_AFTER_DAYS = 5;
+/**
+ * The dashboard, rebuilt as an operations console.
+ *
+ * WHAT MOVED AND WHY. This page used to repeat the pipeline's work queues —
+ * the same "files to review / waiting on the applicant" counts Robert already
+ * has one click away. Two screens answering the same question means two
+ * screens to keep in agreement, and it made the dashboard a worse copy of the
+ * pipeline rather than a different tool. The queues now live only on the
+ * pipeline, which is where the work happens; this page answers the questions
+ * the pipeline cannot: how much came in, how much went out, and whether that
+ * is getting better or worse.
+ *
+ * EVERY NUMBER HERE IS COMPUTED, NONE ARE ESTIMATED. That constraint decided
+ * the layout more than any design reference did:
+ *
+ *   - "Amount funded" is the sum of lender_submissions.offered_amount on
+ *     submissions that actually funded — NOT requested_amount on applications
+ *     whose status is 'funded', which is what the old version summed. Those
+ *     are different numbers: what a business asked for and what a funder
+ *     actually wrote are rarely equal, and reporting the first as the second
+ *     overstates the book. This is the one figure Robert is most likely to
+ *     quote to somebody, so it has to be the real one.
+ *
+ *   - "Deals won" is status 'funded'. Not 'approved' — an approval that never
+ *     funds is not a deal, and counting it as one flatters the number.
+ *
+ *   - "Deals lost" is 'declined' plus 'withdrawn'. Withdrawn is a loss even
+ *     though nobody said no: the file left without funding either way.
+ *
+ * THE TIME SERIES USES TWO DIFFERENT DATES on purpose. Requested is bucketed
+ * by created_at (when the ask arrived) and funded by funded_at (when the money
+ * landed). Bucketing both by created_at would draw a chart where a deal that
+ * took ninety days to fund appears to have funded the month it came in.
+ */
 
-function selectStalled<
-  T extends { created_at: string; first_contact_at: string | null },
->(open: T[]): T[] {
-  const now = Date.now();
+type Row = {
+  status: string;
+  requested_amount: number | string | null;
+  created_at: string;
+  funded_at: string | null;
+};
 
-  return open
-    .filter((a) => {
-      if (a.first_contact_at) return false;
-      return (now - new Date(a.created_at).getTime()) / 86_400_000 > STALE_AFTER_DAYS;
-    })
-    .slice(0, 6);
+type SubmissionRow = {
+  status: string;
+  offered_amount: number | string | null;
+  responded_at: string | null;
+};
+
+const num = (v: number | string | null | undefined) => Number(v ?? 0) || 0;
+
+/** "2026-09" → "SEP", "2026-Q3" → "Q3", "2026" → "2026". */
+function bucketKey(d: Date, grain: "monthly" | "quarterly" | "annual") {
+  const y = d.getUTCFullYear();
+  if (grain === "annual") return { key: String(y), label: String(y) };
+  if (grain === "quarterly") {
+    const q = Math.floor(d.getUTCMonth() / 3) + 1;
+    return { key: `${y}-Q${q}`, label: `Q${q} ’${String(y).slice(2)}` };
+  }
+  const m = d.getUTCMonth();
+  const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  return { key: `${y}-${String(m + 1).padStart(2, "0")}`, label: MONTHS[m] };
 }
 
-/**
- * The whole operation on one screen.
- *
- * Platform spec §19 lists the dashboard metrics; this covers the ones the data
- * can honestly support today. Deliberately omitted: conversion and funding
- * rates, which need more than a handful of applications before they mean
- * anything, and cost-per-acquisition, which needs ad spend the platform cannot
- * see.
- *
- * Every count here is a link into the pipeline with the matching filter. A
- * dashboard that reports "5 waiting on the applicant" and leaves you to work out
- * which five is a dashboard you read once and then go and do the real work
- * somewhere else.
- */
-export default async function OverviewPage() {
-  const supabase = await createClient();
+/** How many buckets of each grain are worth showing. More than this and the
+ *  bars get too thin to compare, which is the only thing the chart is for. */
+const SPAN: Record<"monthly" | "quarterly" | "annual", number> = {
+  monthly: 12,
+  quarterly: 8,
+  annual: 4,
+};
 
-  const [{ data: applications }, activity] = await Promise.all([
-    supabase
-      .from("applications")
-      .select(
-        "id, reference_code, status, track, requested_amount, financing_goal, created_at, first_contact_at, funded_at, profile_id, business_id",
-      )
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(200),
-    loadRecentActivity(supabase, 10),
-  ]);
+function series(
+  rows: Row[],
+  submissions: SubmissionRow[],
+  grain: "monthly" | "quarterly" | "annual",
+): Bucket[] {
+  const acc = new Map<string, Bucket>();
 
-  const all = applications ?? [];
-  const summaries = await loadLeadSummaries(supabase, all);
+  const touch = (d: Date) => {
+    const { key, label } = bucketKey(d, grain);
+    if (!acc.has(key)) {
+      acc.set(key, { label, requested: 0, funded: 0, won: 0, lost: 0 });
+    }
+    return acc.get(key)!;
+  };
 
-  // ------------------------------------------------------------------ metrics
-  const submittals = all.filter((a) => SUBMITTAL_STATUSES.includes(a.status));
-  const funded = all.filter((a) => a.status === "funded");
-  const fundedValue = funded.reduce(
-    (sum, a) => sum + Number(a.requested_amount ?? 0),
-    0,
-  );
+  for (const r of rows) {
+    touch(new Date(r.created_at)).requested += num(r.requested_amount);
 
-  const open = all.filter(
-    (a) => !["funded", "closed", "withdrawn", "declined"].includes(a.status),
-  );
-  const stalled = selectStalled(open);
-
-  const groupCounts = new Map<StatusGroup, number>();
-  for (const row of all) {
-    const group = STATUS_GROUP[row.status];
-    groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
-  }
-
-  // Counted with the same matchers the pipeline uses, so the two screens cannot
-  // report different numbers for the same question.
-  const needCounts = new Map(NEEDS.map((need) => [need, 0]));
-  for (const summary of summaries.values()) {
-    for (const need of NEEDS) {
-      if (matchesNeed(summary, need)) {
-        needCounts.set(need, (needCounts.get(need) ?? 0) + 1);
-      }
+    if (r.status === "funded" && r.funded_at) {
+      touch(new Date(r.funded_at)).won += 1;
+    }
+    if (r.status === "declined" || r.status === "withdrawn") {
+      touch(new Date(r.created_at)).lost += 1;
     }
   }
 
-  // What people are actually asking for. This sat as "Top Products" in the
-  // layout this page was adapted from, which assumed a shop: a fixed catalogue
-  // with prices. Robert does not sell products, he places deals — so the useful
-  // version of that panel is which financing types the current leads want,
-  // weighted by what they are asking for.
-  const byTrack = new Map<string, { count: number; value: number }>();
-  for (const a of all) {
-    const key = a.track ?? "unassigned";
-    const current = byTrack.get(key) ?? { count: 0, value: 0 };
-    current.count += 1;
-    current.value += Number(a.requested_amount ?? 0);
-    byTrack.set(key, current);
+  // Funded dollars come from the lender side, keyed on when the funder
+  // responded — see the note at the top of this file.
+  for (const s of submissions) {
+    if (s.status === "funded" && s.responded_at) {
+      touch(new Date(s.responded_at)).funded += num(s.offered_amount);
+    }
   }
 
-  const tracks = [...byTrack.entries()].sort((a, b) => b[1].count - a[1].count);
-  const trackMax = Math.max(1, ...tracks.map(([, t]) => t.count));
-
-  return (
-    <Container>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-ink-900 dark:text-ink-100">
-            Dashboard
-          </h1>
-          <p className="mt-1 text-ink-600 dark:text-ink-400">
-            {all.length} {all.length === 1 ? "application" : "applications"} ·{" "}
-            {submittals.length} submitted to a funder
-            {funded.length > 0 && ` · ${formatCurrency(fundedValue)} funded`}
-          </p>
-        </div>
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-700 hover:underline dark:text-accent-400"
-        >
-          Open the pipeline <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-
-      {/* What is waiting on whom — the same five the pipeline leads with. */}
-      <ul className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {NEEDS.map((need) => (
-          <StatCard
-            key={need}
-            href={`/admin?needs=${need}`}
-            label={NEED_LABELS[need].label}
-            value={needCounts.get(need) ?? 0}
-            hint={NEED_LABELS[need].hint}
-            Icon={NEED_ICONS[need]}
-          />
-        ))}
-      </ul>
-
-      {/* Where things sit. */}
-      <ul className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {(Object.keys(GROUP_LABELS) as StatusGroup[]).map((group) => (
-          <li key={group}>
-            <Link
-              href={`/admin?group=${group}`}
-              className="block rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-accent-300 dark:bg-brand-900 dark:ring-brand-800 dark:hover:ring-accent-600"
-            >
-              <p className="text-sm text-ink-600 dark:text-ink-400">
-                {GROUP_LABELS[group]}
-              </p>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-ink-900 dark:text-ink-100">
-                {groupCounts.get(group) ?? 0}
-              </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        {/* --------------------------------------------------------- ACTIVITY */}
-        <div className="lg:col-span-2">
-          <Card>
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">
-                Recent activity
-              </h2>
-              <Link
-                href="/admin"
-                className="text-sm font-semibold text-accent-700 hover:underline dark:text-accent-400"
-              >
-                View all
-              </Link>
-            </div>
-
-            {activity.length === 0 ? (
-              <p className="text-sm text-ink-600 dark:text-ink-400">
-                Nothing has happened yet. New applications, status changes,
-                documents and notes all show up here.
-              </p>
-            ) : (
-              <ul className="space-y-1">
-                {activity.map((entry) => (
-                  <li key={entry.id}>
-                    <Link
-                      href={`/admin/applications/${entry.applicationId}`}
-                      className="flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-ink-50 dark:hover:bg-brand-800"
-                    >
-                      <span className={`rounded-lg p-2 ${activityTone(entry.kind)}`}>
-                        <ActivityIcon kind={entry.kind} />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        {/*
-                          Who it is leads, and what happened follows. A feed of
-                          "New application · FLS-2026-000025" tells a specialist
-                          nothing they can act on without opening it first.
-
-                          "No name given" is stated rather than left blank: an
-                          empty space reads as a rendering fault, and an
-                          anonymous prequal that never became an account is a
-                          real and expected thing to see here.
-                        */}
-                        <span className="block truncate text-sm font-medium text-ink-900 dark:text-ink-100">
-                          {entry.leadName ?? "No name given"}
-                        </span>
-                        <span className="block truncate text-xs text-ink-500 dark:text-ink-400">
-                          {entry.title}
-                          {entry.referenceCode ? ` · ${entry.referenceCode}` : ""}
-                          {entry.detail ? ` · ${entry.detail}` : ""}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-xs text-ink-400 dark:text-ink-500">
-                        {formatDateTime(entry.at)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-
-        {/* ----------------------------------------------- TRACKS AND STALLED */}
-        <div className="space-y-6">
-          <Card>
-            <h2 className="mb-1 text-lg font-semibold text-ink-900 dark:text-ink-100">
-              What they are asking for
-            </h2>
-            <p className="mb-4 text-sm text-ink-600 dark:text-ink-400">
-              Financing type across every lead
-            </p>
-
-            {tracks.length === 0 ? (
-              <p className="text-sm text-ink-600 dark:text-ink-400">
-                No applications yet.
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {tracks.map(([track, stats]) => (
-                  <li key={track}>
-                    <Link
-                      href={
-                        track === "unassigned" ? "/admin" : `/admin?track=${track}`
-                      }
-                      className="block"
-                    >
-                      <span className="flex items-center justify-between text-sm">
-                        <span className="text-ink-700 dark:text-ink-300">
-                          {track === "unassigned" ? "Not yet matched" : humanize(track)}
-                        </span>
-                        <span className="font-medium tabular-nums text-ink-900 dark:text-ink-100">
-                          {stats.count}
-                        </span>
-                      </span>
-                      <span className="mt-1.5 block h-2 w-full overflow-hidden rounded-full bg-ink-200 dark:bg-brand-800">
-                        <span
-                          className="block h-full rounded-full bg-accent-600"
-                          style={{ width: `${(stats.count / trackMax) * 100}%` }}
-                        />
-                      </span>
-                      <span className="mt-1 block text-xs text-ink-500 dark:text-ink-400">
-                        {formatCurrency(stats.value)} requested
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card>
-            <h2 className="mb-1 text-lg font-semibold text-ink-900 dark:text-ink-100">
-              Nobody has called these
-            </h2>
-            <p className="mb-4 text-sm text-ink-600 dark:text-ink-400">
-              Open more than {STALE_AFTER_DAYS} days with no first contact
-            </p>
-
-            {stalled.length === 0 ? (
-              <p className="text-sm text-ink-600 dark:text-ink-400">
-                Nothing is sitting untouched. Good.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {stalled.map((application) => (
-                  <li key={application.id}>
-                    <Link
-                      href={`/admin/applications/${application.id}`}
-                      className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-ink-50 dark:hover:bg-brand-800"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-ink-900 dark:text-ink-100">
-                          {summaries.get(application.id)?.businessName ??
-                            summaries.get(application.id)?.contactName ??
-                            application.reference_code}
-                        </span>
-                        <span className="block text-xs text-ink-500 dark:text-ink-400">
-                          {formatCurrency(application.requested_amount)}
-                        </span>
-                      </span>
-                      <Badge tone={statusTone(application.status)}>
-                        {STATUS_LABELS[application.status]}
-                      </Badge>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-      </div>
-
-      {all.length === 0 && (
-        <div className="mt-8">
-          <EmptyState
-            title="No applications yet"
-            description="Once someone completes the prequalification, they will appear here and in the pipeline."
-          />
-        </div>
-      )}
-    </Container>
-  );
+  return [...acc.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-SPAN[grain])
+    .map(([, v]) => v);
 }
 
-function StatCard({
-  href,
-  label,
-  value,
-  hint,
-  Icon,
-}: {
-  href: string;
-  label: string;
-  value: number;
-  hint: string;
-  Icon: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <li>
-      <Link
-        href={href}
-        className="block rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-accent-300 dark:bg-brand-900 dark:ring-brand-800 dark:hover:ring-accent-600"
-      >
-        <span className="mb-4 flex items-center justify-between">
-          <span className="rounded-lg bg-accent-50 p-2 dark:bg-accent-600/15">
-            <Icon className="h-5 w-5 text-accent-700 dark:text-accent-400" />
-          </span>
-        </span>
-        <span className="block text-sm font-medium text-ink-600 dark:text-ink-400">
-          {label}
-        </span>
-        <span className="mt-1 block text-3xl font-bold tabular-nums text-ink-900 dark:text-ink-100">
-          {value}
-        </span>
-        <span className="mt-1 block text-xs text-ink-500 dark:text-ink-400">
-          {hint}
-        </span>
-      </Link>
-    </li>
-  );
-}
+export default async function OverviewPage() {
+  const supabase = await createClient();
 
-function ActivityIcon({ kind }: { kind: ActivityKind }) {
-  const className = "h-4 w-4";
-  switch (kind) {
-    case "application":
-      return <Package className={className} />;
-    case "status":
-      return <Activity className={className} />;
-    case "document":
-      return <FileText className={className} />;
-    case "note":
-      return <MessageSquare className={className} />;
-  }
-}
+  const [{ data: applications }, { data: submissions }] = await Promise.all([
+    supabase
+      .from("applications")
+      .select("status, requested_amount, created_at, funded_at")
+      .is("deleted_at", null),
+    supabase
+      .from("lender_submissions")
+      .select("status, offered_amount, responded_at"),
+  ]);
 
-function activityTone(kind: ActivityKind): string {
-  switch (kind) {
-    case "application":
-      return "bg-accent-50 text-accent-700 dark:bg-accent-600/15 dark:text-accent-400";
-    case "status":
-      return "bg-brand-50 text-brand-700 dark:bg-brand-800 dark:text-ink-200";
-    case "document":
-      return "bg-success-50 text-success-700 dark:bg-success-600/20 dark:text-success-600";
-    default:
-      return "bg-ink-100 text-ink-700 dark:bg-brand-800 dark:text-ink-300";
-  }
+  const rows = (applications ?? []) as Row[];
+  const subs = (submissions ?? []) as SubmissionRow[];
+
+  const closedOut = ["funded", "closed", "withdrawn", "declined"];
+
+  const data: ConsoleData = {
+    quote: quoteOfTheDay(),
+    monthly: series(rows, subs, "monthly"),
+    quarterly: series(rows, subs, "quarterly"),
+    annual: series(rows, subs, "annual"),
+    totals: {
+      won: rows.filter((r) => r.status === "funded").length,
+      lost: rows.filter((r) => r.status === "declined" || r.status === "withdrawn").length,
+      amountFunded: subs
+        .filter((s) => s.status === "funded")
+        .reduce((sum, s) => sum + num(s.offered_amount), 0),
+      amountRequested: rows.reduce((sum, r) => sum + num(r.requested_amount), 0),
+      inPipeline: rows.filter((r) => !closedOut.includes(r.status)).length,
+      withLender: rows.filter((r) => r.status === "submitted_to_funder").length,
+      // 'countered' is the schema's existing name for an offer that is not the
+      // one asked for — which is what "conditionally approved" describes. No
+      // new column was needed; the state was already being recorded.
+      conditional: subs.filter((s) => s.status === "countered").length,
+    },
+    groups: (Object.keys(GROUP_LABELS) as StatusGroup[]).map((g) => ({
+      label: GROUP_LABELS[g],
+      count: rows.filter(
+        (r) => STATUS_GROUP[r.status as keyof typeof STATUS_GROUP] === g,
+      ).length,
+    })),
+  };
+
+  return <OpsConsole data={data} />;
 }

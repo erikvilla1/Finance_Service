@@ -70,6 +70,15 @@ export interface LeadSummary {
   formMissing: string[];
   /** Checklist items still sitting with the applicant. */
   docsOutstanding: number;
+  /**
+   * The names of those items, in checklist order.
+   *
+   * Same argument as formMissing above: "2 outstanding" tells a specialist to
+   * chase and nothing about WHAT to chase, and the rows were already loaded to
+   * produce the count. Carrying the labels is what lets the nudge email name
+   * the actual documents instead of making Robert look them up first.
+   */
+  docsMissing: string[];
   docsTotal: number;
   docsSettled: number;
   /** Files uploaded and waiting for someone here to look at them. */
@@ -115,7 +124,7 @@ export const NEED_LABELS: Record<Need, { label: string; hint: string }> = {
     hint: "Documents sent in and not yet looked at",
   },
   applicant: {
-    label: "Waiting on the applicant",
+    label: "Waiting on documents",
     hint: "Still owe us at least one document",
   },
   docs_done: {
@@ -200,6 +209,7 @@ export async function loadLeadSummaries(
     { data: answers },
     { data: debts },
     questions,
+    { data: docTypes },
   ] = await Promise.all([
     profileIds.length
       ? supabase.from("profiles").select("id, full_name, email").in("id", profileIds)
@@ -221,7 +231,7 @@ export async function loadLeadSummaries(
       .eq("is_primary", true),
     supabase
       .from("document_requests")
-      .select("application_id, status, is_required")
+      .select("application_id, status, is_required, document_type_key")
       .in("application_id", ids)
       .eq("is_required", true),
     supabase
@@ -235,7 +245,18 @@ export async function loadLeadSummaries(
     // the required set is the same for every lead and can be loaded once. When
     // the track modules land this becomes a per-track lookup.
     loadQuestions([...FORM_MODULES], null),
+    // Fetched separately rather than embedded on document_requests. The
+    // foreign key exists in the schema, but the generated Supabase types do
+    // not carry that relationship, so the embed does not typecheck — and an
+    // embed that only compiles because it was asserted is one that fails at
+    // runtime. This is also what documents-card.tsx does. The table is a
+    // handful of rows, so reading all of it costs less than a join would.
+    supabase.from("document_type_definitions").select("key, label"),
   ]);
+
+  const docLabelByKey = new Map(
+    (docTypes ?? []).map((d) => [d.key, d.label]),
+  );
 
   const requiredQuestions = questions.filter((question) => question.isRequired);
 
@@ -332,6 +353,15 @@ export async function loadLeadSummaries(
       packageMissing: report.missing.map((field) => field.formLabel),
       docsTotal: appRequests.length,
       docsOutstanding: appRequests.filter((r) => needsApplicant(r.status)).length,
+      // Falls back to the key when a definition row is missing, so a
+      // misconfigured document type shows as something identifiable rather
+      // than vanishing from the chase list.
+      docsMissing: appRequests
+        .filter((r) => needsApplicant(r.status))
+        // Falls back to the key when a definition row is missing, so a
+        // misconfigured document type shows as something identifiable rather
+        // than dropping silently out of the chase list.
+        .map((r) => docLabelByKey.get(r.document_type_key) ?? r.document_type_key),
       docsSettled: appRequests.filter(
         (r) => r.status === "accepted" || r.status === "waived",
       ).length,

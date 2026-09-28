@@ -94,8 +94,8 @@ export async function DocumentsCard({
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-ink-900">Documents</h2>
-          <p className="mt-1 text-sm text-ink-600">
+          <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">Documents</h2>
+          <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">
             {checklist
               ? `${checklist.requiredSettled} of ${checklist.requiredTotal} required documents settled`
               : "No checklist for this application"}
@@ -121,7 +121,7 @@ export async function DocumentsCard({
       )}
 
       {items.length === 0 ? (
-        <p className="mt-4 text-sm text-ink-600">
+        <p className="mt-4 text-sm text-ink-600 dark:text-ink-300">
           Nothing has been asked for yet. The checklist is seeded when the
           applicant claims their application — until then, add items below.
         </p>
@@ -131,21 +131,21 @@ export async function DocumentsCard({
             <li key={item.requestId} className="py-4 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-ink-900">
+                  <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">
                     {item.label}
                     {!item.isRequired && (
-                      <span className="ml-2 text-xs font-normal text-ink-500">
+                      <span className="ml-2 text-xs font-normal text-ink-500 dark:text-ink-400">
                         optional
                       </span>
                     )}
                   </p>
                   {item.instructions && (
-                    <p className="mt-1 max-w-prose text-sm text-ink-600">
+                    <p className="mt-1 max-w-prose text-sm text-ink-600 dark:text-ink-300">
                       {item.instructions}
                     </p>
                   )}
                   {item.dueDate && (
-                    <p className="mt-1 text-xs text-ink-500">
+                    <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
                       Due {formatDate(item.dueDate)}
                     </p>
                   )}
@@ -160,14 +160,14 @@ export async function DocumentsCard({
                   {item.documents.map((document) => (
                     <li
                       key={document.id}
-                      className="rounded-lg bg-ink-50 px-3 py-2.5"
+                      className="rounded-lg bg-ink-50 dark:bg-white/[0.04] px-3 py-2.5"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-ink-800">
+                          <p className="truncate text-sm font-medium text-ink-800 dark:text-ink-200">
                             {document.fileName}
                           </p>
-                          <p className="text-xs text-ink-500">
+                          <p className="text-xs text-ink-500 dark:text-ink-400">
                             {formatBytes(document.sizeBytes)} ·{" "}
                             {formatDateTime(document.uploadedAt)}
                           </p>
@@ -228,7 +228,7 @@ export async function DocumentsCard({
                       </div>
 
                       {document.note && (
-                        <p className="mt-2 text-xs text-ink-600">
+                        <p className="mt-2 text-xs text-ink-600 dark:text-ink-300">
                           Sent back: {document.note}
                         </p>
                       )}
@@ -240,7 +240,7 @@ export async function DocumentsCard({
                       */}
                       {document.status !== "rejected" && (
                         <details className="mt-2">
-                          <summary className="cursor-pointer text-sm font-medium text-ink-600 hover:text-danger-700">
+                          <summary className="cursor-pointer text-sm font-medium text-ink-600 dark:text-ink-300 hover:text-danger-700">
                             Send back
                           </summary>
                           <form action={rejectDocument} className="mt-2 space-y-2">
@@ -279,7 +279,7 @@ export async function DocumentsCard({
                   <input type="hidden" name="requestId" value={item.requestId} />
                   <button
                     type="submit"
-                    className="text-sm font-medium text-ink-600 hover:text-brand-700"
+                    className="text-sm font-medium text-ink-600 dark:text-ink-300 hover:text-brand-700"
                   >
                     Put back on the list
                   </button>
@@ -295,7 +295,7 @@ export async function DocumentsCard({
                     <input type="hidden" name="requestId" value={item.requestId} />
                     <button
                       type="submit"
-                      className="text-sm font-medium text-ink-600 hover:text-brand-700"
+                      className="text-sm font-medium text-ink-600 dark:text-ink-300 hover:text-brand-700"
                     >
                       Not needed for this deal
                     </button>
@@ -313,13 +313,13 @@ export async function DocumentsCard({
         and because this is the screen a specialist is on when they decide the
         file is ready.
       */}
-      <div className="mt-5 border-t border-ink-100 pt-4 dark:border-brand-800">
+      <div className="mt-5 border-t border-ink-100 dark:border-white/10 pt-4 dark:border-brand-800">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">
               Funding application signature
             </p>
-            <p className="mt-0.5 text-sm text-ink-600 dark:text-ink-400">
+            <p className="mt-0.5 text-sm text-ink-600 dark:text-ink-300 dark:text-ink-400">
               {signedDocument
                 ? `Signed ${formatDateTime(signedDocument.created_at)}`
                 : signatureRequestedAt
@@ -367,7 +367,7 @@ export async function DocumentsCard({
       </div>
 
       {available.length > 0 && (
-        <details className="mt-5 border-t border-ink-100 pt-4">
+        <details className="mt-5 border-t border-ink-100 dark:border-white/10 pt-4">
           <summary className="cursor-pointer text-sm font-semibold text-brand-700">
             Ask for something else
           </summary>

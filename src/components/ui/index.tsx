@@ -158,7 +158,9 @@ const buttonBase =
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: "bg-accent-500 text-brand-900 hover:bg-accent-600",
   secondary:
-    "bg-white text-brand-800 ring-1 ring-inset ring-ink-300 hover:bg-ink-50",
+    "bg-white text-brand-800 ring-1 ring-inset ring-ink-300 hover:bg-ink-50 " +
+    // Same scoping as controlClasses above: admin-only in practice.
+    "dark:bg-white/[0.06] dark:text-ink-100 dark:ring-white/10 dark:hover:bg-white/[0.1]",
   ghost: "text-brand-700 hover:bg-brand-50",
   inverted: "bg-white text-brand-800 hover:bg-brand-50",
   /**
@@ -944,7 +946,12 @@ const controlClasses =
   "block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-ink-900 " +
   "ring-1 ring-inset ring-ink-300 placeholder:text-ink-400 " +
   "focus:ring-2 focus:ring-inset focus:ring-brand-500 sm:text-[0.95rem] " +
-  "aria-invalid:ring-danger-600";
+  "aria-invalid:ring-danger-600 " +
+  // Inert outside the admin shell — the `dark` class is scoped to that
+  // wrapper (see the note on Card), so customer-facing forms are untouched.
+  // Inside it, a solid white field was the loudest thing on a dark page.
+  "dark:bg-white/[0.04] dark:text-ink-100 dark:ring-white/10 " +
+  "dark:placeholder:text-ink-500 dark:focus:ring-accent-400";
 
 export function Input({
   className,

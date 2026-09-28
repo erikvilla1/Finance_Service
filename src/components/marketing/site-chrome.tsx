@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type MouseEvent } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSelectedLayoutSegment } from "next/navigation";
 import { ArrowUp } from "lucide-react";
 import { ButtonLink, Container } from "@/components/ui";
 import { useHeaderReveal, useScrolledPast } from "@/components/marketing/use-reduced-motion";
@@ -201,7 +201,27 @@ function useOverHero(enabled: boolean) {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const onHome = pathname === "/";
+  /**
+   * ON HOME, ASKED OF THE ROUTER RATHER THAN OF THE URL STRING.
+   *
+   * This was `pathname === "/"`, and it was true in dev and in a local
+   * production build while being FALSE in the deployed one — the prerendered
+   * HTML on flscapitaladvisors.com carried the off-home header (pb-6 sm:pb-9,
+   * backdrop bar at opacity 1, dark mark) over the hero video, which is the
+   * "header loads wrong" report. Byte-comparing the two builds' markup showed
+   * identical structure and only the onHome-derived values differing, so the
+   * source was fine and the string comparison was the fragile part.
+   *
+   * useSelectedLayoutSegment is the API for this question. Rendered from the
+   * (marketing) layout, it returns null for the index route and the child
+   * segment's name for every other page — an identity the router already
+   * knows, rather than a string that has to resolve to exactly "/" wherever
+   * the page happens to be rendered.
+   *
+   * pathname is still used below for the guide-page check, which needs the
+   * slug and already guards against null.
+   */
+  const onHome = useSelectedLayoutSegment() === null;
   const activeSection = useActiveSection(onHome);
   // Direction-aware: hides on scroll-down, reveals on scroll-up, from any
   // scroll position. See the comment on useHeaderReveal for why this

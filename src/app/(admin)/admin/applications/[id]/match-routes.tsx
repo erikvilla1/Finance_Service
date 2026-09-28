@@ -79,15 +79,15 @@ export function MatchRoutes({
   return (
     <div className="mt-4 space-y-5">
       {stored.overallState && (
-        <p className="text-sm text-ink-600">
+        <p className="text-sm text-ink-600 dark:text-ink-300">
           Overall{" "}
-          <span className="font-medium text-ink-900">
+          <span className="font-medium text-ink-900 dark:text-ink-100">
             {MATCH_STATE_STAFF_LABEL[stored.overallState]}
           </span>
           {inferred && (
             <>
               {" · evaluated as "}
-              <span className="font-medium text-ink-900">{inferred}</span>
+              <span className="font-medium text-ink-900 dark:text-ink-100">{inferred}</span>
             </>
           )}
         </p>
@@ -95,18 +95,18 @@ export function MatchRoutes({
 
       {matches.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
             Shown to the customer
           </h3>
           <ul className="mt-2 space-y-2">
             {matches.map((match) => (
               <li
                 key={match.productFamily}
-                className="flex items-center justify-between gap-3 rounded-lg bg-ink-50 px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-lg bg-ink-50 dark:bg-white/[0.04] px-3 py-2"
               >
-                <span className="text-sm text-ink-900">
+                <span className="text-sm text-ink-900 dark:text-ink-100">
                   {FAMILY_COPY[match.productFamily]?.label ?? match.productFamily}
-                  {!match.primary && <span className="text-ink-500"> · related</span>}
+                  {!match.primary && <span className="text-ink-500 dark:text-ink-400"> · related</span>}
                 </span>
                 <Badge tone={STATE_TONE[match.state]}>
                   {MATCH_STATE_STAFF_LABEL[match.state]}
@@ -119,14 +119,14 @@ export function MatchRoutes({
 
       {metrics.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
             Calculated
           </h3>
           <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
             {metrics.map(([key, value]) => (
               <div key={key} className="flex gap-2">
-                <dt className="text-ink-500">{METRIC_LABEL[key] ?? key}</dt>
-                <dd className="font-mono text-ink-900">
+                <dt className="text-ink-500 dark:text-ink-400">{METRIC_LABEL[key] ?? key}</dt>
+                <dd className="font-mono text-ink-900 dark:text-ink-100">
                   {key === "dscr" ? `${value.toFixed(2)}x` : pct(value)}
                 </dd>
               </div>
@@ -137,10 +137,10 @@ export function MatchRoutes({
 
       {missing.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
             Still needed
           </h3>
-          <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-ink-700">
+          <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-ink-700 dark:text-ink-200">
             {missing.map((item) => (
               <li key={item}>{item}</li>
             ))}
@@ -150,7 +150,7 @@ export function MatchRoutes({
 
       {viable.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
             Lender routes, best first
           </h3>
           <ol className="mt-2 space-y-2">
@@ -162,7 +162,7 @@ export function MatchRoutes({
       )}
 
       {excluded.length > 0 && (
-        <details className="border-t border-ink-100 pt-4">
+        <details className="border-t border-ink-100 dark:border-white/10 pt-4">
           <summary className="cursor-pointer text-sm font-medium text-brand-700">
             Excluded — {excluded.length} route{excluded.length === 1 ? "" : "s"}
           </summary>
@@ -182,26 +182,26 @@ function RouteRow({ route }: { route: InternalRoute }) {
   const notes = [
     ...route.failedRules.map((text) => ({ tone: "text-danger-700", text: `✕ ${text}` })),
     ...route.softFlags.map((text) => ({ tone: "text-warning-700", text: `! ${text}` })),
-    ...route.pendingRules.map((text) => ({ tone: "text-ink-500", text: `… Pending guide: ${text}` })),
-    ...route.missingInputs.map((text) => ({ tone: "text-ink-500", text: `? Missing: ${text}` })),
+    ...route.pendingRules.map((text) => ({ tone: "text-ink-500 dark:text-ink-400", text: `… Pending guide: ${text}` })),
+    ...route.missingInputs.map((text) => ({ tone: "text-ink-500 dark:text-ink-400", text: `? Missing: ${text}` })),
   ];
 
   return (
-    <li className="rounded-lg border border-ink-100 px-3 py-2.5">
+    <li className="rounded-lg border border-ink-100 dark:border-white/10 px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0 text-sm">
-          <span className="font-mono text-xs text-ink-400">#{route.routeRank}</span>{" "}
-          <span className="font-medium text-ink-900">
+          <span className="font-mono text-xs text-ink-400 dark:text-ink-500">#{route.routeRank}</span>{" "}
+          <span className="font-medium text-ink-900 dark:text-ink-100">
             {LENDER_NAME.get(route.lenderId) ?? route.lenderId}
           </span>
-          <span className="text-ink-600">
+          <span className="text-ink-600 dark:text-ink-300">
             {" — "}
             {program?.displayNameInternal ?? route.programId}
           </span>
         </div>
         <Badge tone={STATE_TONE[route.state]}>{MATCH_STATE_STAFF_LABEL[route.state]}</Badge>
       </div>
-      <p className="mt-1 text-xs text-ink-500">
+      <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
         {FAMILY_COPY[route.productFamily]?.label ?? route.productFamily}
         {" · "}
         {CONFIDENCE_LABEL[route.confidence] ?? route.confidence}

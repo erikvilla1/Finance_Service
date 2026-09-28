@@ -50,8 +50,8 @@ export async function SubmissionsCard({
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-ink-900">Lenders</h2>
-          <p className="mt-1 text-sm text-ink-600">
+          <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">Lenders</h2>
+          <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">
             {submissions.length === 0
               ? "Not sent to anyone yet"
               : `${submissions.length} submission${submissions.length === 1 ? "" : "s"}, ${open.length} still open`}
@@ -66,10 +66,10 @@ export async function SubmissionsCard({
             <li key={submission.id} className="py-4 first:pt-0">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-ink-900">
+                  <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">
                     {submission.lender.name}
                   </p>
-                  <p className="mt-0.5 text-xs text-ink-500">
+                  <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-400">
                     {submission.submitted_at
                       ? `Sent ${formatDateTime(submission.submitted_at)}`
                       : "Not sent yet"}
@@ -84,14 +84,14 @@ export async function SubmissionsCard({
               </div>
 
               {submission.decline_reason && (
-                <p className="mt-2 rounded-lg bg-ink-50 p-3 text-sm leading-relaxed text-ink-700">
+                <p className="mt-2 rounded-lg bg-ink-50 dark:bg-white/[0.04] p-3 text-sm leading-relaxed text-ink-700 dark:text-ink-200">
                   <span className="font-medium">Why: </span>
                   {submission.decline_reason}
                 </p>
               )}
 
               {(submission.offered_amount || submission.offered_terms) && (
-                <p className="mt-2 text-sm text-ink-700">
+                <p className="mt-2 text-sm text-ink-700 dark:text-ink-200">
                   {submission.offered_amount
                     ? formatCurrency(submission.offered_amount)
                     : ""}
@@ -155,9 +155,9 @@ export async function SubmissionsCard({
       )}
 
       {/* ------------------------------------------------------- send it out */}
-      <div className="mt-5 border-t border-ink-100 pt-4">
+      <div className="mt-5 border-t border-ink-100 dark:border-white/10 pt-4">
         {lenders.length === 0 ? (
-          <p className="text-sm text-ink-600">
+          <p className="text-sm text-ink-600 dark:text-ink-300">
             No lenders yet.{" "}
             <Link href="/admin/lenders" className="font-semibold text-brand-700 hover:underline">
               Add the first one
@@ -194,14 +194,14 @@ export async function SubmissionsCard({
                 <Button type="submit" size="sm">
                   Record as sent
                 </Button>
-                <label className="flex items-center gap-2 text-sm text-ink-600">
+                <label className="flex items-center gap-2 text-sm text-ink-600 dark:text-ink-300">
                   <input type="checkbox" name="markSent" value="false" />
                   Preparing it, not sent yet
                 </label>
               </div>
             </form>
 
-            <p className="mt-3 text-xs leading-relaxed text-ink-500">
+            <p className="mt-3 text-xs leading-relaxed text-ink-500 dark:text-ink-400">
               Lenders that fit this file&apos;s track and amount are listed first.
               Sending outside a lender&apos;s stated range is still an option —
               the list orders, it doesn&apos;t decide.

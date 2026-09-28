@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Button, Container, EmptyState, Input } from "@/components/ui";
+import {
+  GLASS,
+  GLASS_HOVER,
+  HEADING,
+  StatTile,
+  StatusChip,
+} from "@/components/admin/console-ui";
 import { createClient } from "@/lib/supabase/server";
 import type { ApplicationStatus, ProductTrack } from "@/types/database";
 import {
@@ -126,12 +133,22 @@ export default async function PipelinePage({
     .is("deleted_at", null);
 
   const groupCounts = new Map<StatusGroup, number>();
+  const statusCounts = new Map<string, number>();
   let submittals = 0;
   for (const row of all ?? []) {
     const group = STATUS_GROUP[row.status];
     groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
+    statusCounts.set(row.status, (statusCounts.get(row.status) ?? 0) + 1);
     if (SUBMITTAL_STATUSES.includes(row.status)) submittals++;
   }
+
+  // Counted separately because it is not an application status: a countered
+  // offer is a state of the LENDER SUBMISSION — "they came back, but not with
+  // what we asked for" — and it is the queue Robert works by hand.
+  const { count: counteredCount } = await supabase
+    .from("lender_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "countered");
 
   // Who these people are, and what each file is still missing. One pass for the
   // whole page rather than a lookup per row.
@@ -168,6 +185,62 @@ export default async function PipelinePage({
   const filtered = Boolean(status || track || search || group || needs);
 
   /** Preserves the filters already applied when building a card's link. */
+  /**
+   * The board Robert reads, in the order a file moves through it.
+   *
+   * Two of these are single statuses rather than groups on purpose — see the
+   * note above the grid that renders them.
+   */
+  const STAGE_TILES: {
+    label: string;
+    count: number;
+    hint?: string;
+    group?: StatusGroup;
+    status?: string;
+    accent?: string;
+    linkable?: boolean;
+  }[] = [
+    { label: "New", count: groupCounts.get("new") ?? 0, group: "new" },
+    {
+      label: "In contact",
+      count: groupCounts.get("working") ?? 0,
+      group: "working",
+    },
+    {
+      label: "Packaging",
+      count:
+        (statusCounts.get("under_review") ?? 0) +
+        (statusCounts.get("potential_match") ?? 0),
+      hint: "Being assembled, not yet sent",
+      group: "packaging",
+    },
+    {
+      label: "With a lender",
+      count: statusCounts.get("submitted_to_funder") ?? 0,
+      hint: "Submitted, awaiting their answer",
+      status: "submitted_to_funder",
+    },
+    {
+      label: "Conditionally approved",
+      count: counteredCount ?? 0,
+      hint: "Countered — accept or decline",
+      accent: "#fab219",
+      linkable: false,
+    },
+    {
+      label: "Approved",
+      count: statusCounts.get("approved") ?? 0,
+      status: "approved",
+      accent: "#0ca30c",
+    },
+    {
+      label: "Declined",
+      count: statusCounts.get("declined") ?? 0,
+      status: "declined",
+      accent: "#d03b3b",
+    },
+  ];
+
   const linkWith = (next: Record<string, string | undefined>) => {
     const query = new URLSearchParams();
     const merged = { status, track, q: search, group, needs, ...next };
@@ -184,21 +257,14 @@ export default async function PipelinePage({
     <Container>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-ink-900">
+          <h1 className="text-3xl font-bold tracking-tight text-ink-900 dark:text-ink-100">
             Pipeline
           </h1>
-          <p className="mt-1 text-ink-600">
+          <p className="mt-1 text-ink-600 dark:text-ink-300">
             {all?.length ?? 0} total · {submittals} submitted to a funder
           </p>
         </div>
-        {filtered && (
-          <Link
-            href="/admin"
-            className="text-sm font-medium text-brand-700 hover:underline"
-          >
-            Clear filters
-          </Link>
-        )}
+
       </div>
 
       {/*
@@ -230,79 +296,105 @@ export default async function PipelinePage({
         tells you where a file is, this tells you what to do about it, and only
         one of those is a morning's work.
       */}
-      <ul className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {/*
+        TWO AXES, LABELLED AS TWO AXES.
+
+        These twelve counters answered two unrelated questions while looking
+        identical: what a file NEEDS from Robert, and WHERE it sits in the
+        process. Clicking one silently changed which axis the list below was
+        filtered on, with nothing on screen to say so — and the largest, most
+        prominent number on the page was "New 42", which is the least
+        actionable figure there.
+
+        The work queue now gets a heading and keeps the full-size tiles. The
+        status counts get a heading of their own and shrink to chips (see
+        StatusChip): same data, same filtering, a fifth of the weight. Robert
+        can still read the shape of the book at a glance without it competing
+        with the queue he actually works.
+      */}
+      <div className="mt-8 flex h-5 items-center justify-between">
+        <h2 className={HEADING}>What needs you</h2>
+        {filtered && (
+          <Link
+            href="/admin"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent-700 hover:underline dark:text-accent-300"
+          >
+            Clear filters
+          </Link>
+        )}
+      </div>
+
+      <ul className="mt-2 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {NEEDS.map((need) => {
           const active = needs === need;
           const { label, hint } = NEED_LABELS[need];
 
           return (
-            <li key={need}>
-              <Link
-                // Clicking the active card clears it, so the same card is both
-                // the way in and the way out.
+            <li key={need} className="h-full">
+              {/* Clicking the active tile clears it, so the same tile is both
+                  the way in and the way out. StatTile carries the console's
+                  vocabulary — see components/admin/console-ui.tsx. */}
+              <StatTile
                 href={linkWith({ needs: active ? undefined : need })}
-                aria-pressed={active}
-                className={
-                  active
-                    ? "block h-full rounded-card bg-brand-700 p-6 text-white shadow-card ring-1 ring-brand-700 dark:bg-accent-700 dark:ring-accent-700"
-                    : "block h-full rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-brand-300 dark:bg-brand-900 dark:ring-brand-800 dark:hover:ring-accent-600"
-                }
-              >
-                <p
-                  className={
-                    active
-                      ? "text-sm text-brand-100"
-                      : "text-sm text-ink-600 dark:text-ink-400"
-                  }
-                >
-                  {label}
-                </p>
-                <p className="mt-1 text-3xl font-bold tabular-nums">
-                  {needCounts.get(need) ?? 0}
-                </p>
-                <p
-                  className={
-                    active
-                      ? "mt-1 text-xs text-brand-100"
-                      : "mt-1 text-xs text-ink-500 dark:text-ink-400"
-                  }
-                >
-                  {hint}
-                </p>
-              </Link>
+                active={active}
+                label={label}
+                value={needCounts.get(need) ?? 0}
+                hint={hint}
+              />
             </li>
           );
         })}
       </ul>
 
-      {/* Stage counts */}
-      <ul className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {(Object.keys(GROUP_LABELS) as StatusGroup[]).map((stageGroup) => {
-          const active = group === stageGroup;
+      {/*
+        Stage counts, rebuilt around the questions actually asked of them.
+
+        These were the five STATUS_GROUP buckets, and two of them hid the thing
+        Robert wanted to see:
+
+          - "Packaging" held under_review, potential_match AND
+            submitted_to_funder together, so "how many are sitting with a
+            lender right now" — the number that decides whether today is a
+            chasing day or a selling day — could not be read off the board.
+
+          - "Decided" held approved AND declined. Relabelling it "Approved"
+            was the original request; doing that would have filed every
+            declined deal under a heading saying the opposite. Splitting the
+            two is what that request actually wanted.
+
+        "Conditionally approved" is the odd one out and does not link: it
+        counts lender SUBMISSIONS in the `countered` state, not applications,
+        and there is no application-status filter that would reproduce it. See
+        the note on StatTile's href.
+      */}
+      <h2 className={`mt-8 ${HEADING}`}>Where files sit</h2>
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {STAGE_TILES.map((tile) => {
+          const active = tile.group
+            ? group === tile.group
+            : tile.status
+              ? status === tile.status
+              : false;
+
           return (
-            <li key={stageGroup}>
-              <Link
-                href={linkWith({
-                  group: active ? undefined : stageGroup,
-                  // A stage and a single status are two ways of saying the same
-                  // thing, and holding both produces an empty list whenever they
-                  // disagree.
-                  status: undefined,
-                })}
-                aria-pressed={active}
-                className={
-                  active
-                    ? "block rounded-card bg-brand-700 p-6 text-white shadow-card ring-1 ring-brand-700"
-                    : "block rounded-card bg-white p-6 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-brand-300"
+            <li key={tile.label}>
+              <StatusChip
+                label={tile.label}
+                value={tile.count}
+                accent={tile.accent}
+                active={active}
+                href={
+                  tile.linkable === false
+                    ? undefined
+                    : linkWith({
+                        // A stage and a single status are two ways of saying
+                        // the same thing, and holding both produces an empty
+                        // list whenever they disagree.
+                        group: tile.group && !active ? tile.group : undefined,
+                        status: tile.status && !active ? tile.status : undefined,
+                      })
                 }
-              >
-                <p className={active ? "text-sm text-brand-100" : "text-sm text-ink-600"}>
-                  {GROUP_LABELS[stageGroup]}
-                </p>
-                <p className="mt-1 text-3xl font-bold tabular-nums">
-                  {groupCounts.get(stageGroup) ?? 0}
-                </p>
-              </Link>
+              />
             </li>
           );
         })}
@@ -322,7 +414,7 @@ export default async function PipelinePage({
             className={
               status === s
                 ? "rounded-full bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white"
-                : "rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 ring-1 ring-ink-200 hover:ring-brand-300"
+                : `rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-700 dark:text-ink-300 ${GLASS} ${GLASS_HOVER}`
             }
           >
             {STATUS_LABELS[s]}
@@ -358,11 +450,11 @@ export default async function PipelinePage({
               <li key={application.id}>
                 <Link
                   href={`/admin/applications/${application.id}`}
-                  className="block rounded-card bg-white p-5 shadow-card ring-1 ring-ink-200/70 transition-all hover:shadow-card-hover hover:ring-brand-300"
+                  className={`block p-5 ${GLASS} ${GLASS_HOVER}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-mono text-sm text-ink-500">
+                      <p className="font-mono text-sm text-ink-500 dark:text-ink-400">
                         {application.reference_code}
                       </p>
 
@@ -373,13 +465,13 @@ export default async function PipelinePage({
                         number. The business name sits alongside because it is
                         how a lender will refer to the same file.
                       */}
-                      <h2 className="mt-1 text-base font-semibold text-ink-900">
+                      <h2 className="mt-1 text-base font-semibold text-ink-900 dark:text-ink-100">
                         {lead?.businessName ??
                           lead?.contactName ??
                           "Name not given yet"}
                       </h2>
 
-                      <p className="mt-0.5 text-sm text-ink-600">
+                      <p className="mt-0.5 text-sm text-ink-600 dark:text-ink-300">
                         {[
                           lead?.businessName && lead?.contactName
                             ? lead.contactName
@@ -390,7 +482,7 @@ export default async function PipelinePage({
                           .join(" · ") || "No contact details yet"}
                       </p>
 
-                      <p className="mt-1.5 text-sm text-ink-600">
+                      <p className="mt-1.5 text-sm text-ink-600 dark:text-ink-300">
                         {application.financing_goal ?? "Financing application"}
                         {" · "}
                         {formatCurrency(application.requested_amount)}
@@ -401,23 +493,23 @@ export default async function PipelinePage({
                       <Badge tone={statusTone(application.status)}>
                         {STATUS_LABELS[application.status]}
                       </Badge>
-                      <span className="text-xs text-ink-500">
+                      <span className="text-xs text-ink-500 dark:text-ink-400">
                         {formatDateTime(application.created_at)}
                       </span>
                     </div>
                   </div>
 
-                  <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-ink-100 pt-3 text-xs text-ink-600">
+                  <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-ink-100 dark:border-white/10 pt-3 text-xs text-ink-600 dark:text-ink-300">
                     <div className="flex gap-1.5">
-                      <dt className="text-ink-400">Revenue</dt>
+                      <dt className="text-ink-400 dark:text-ink-500">Revenue</dt>
                       <dd>{humanize(application.revenue_band)}</dd>
                     </div>
                     <div className="flex gap-1.5">
-                      <dt className="text-ink-400">Credit</dt>
+                      <dt className="text-ink-400 dark:text-ink-500">Credit</dt>
                       <dd>{humanize(application.credit_band)}</dd>
                     </div>
                     <div className="flex gap-1.5">
-                      <dt className="text-ink-400">In business</dt>
+                      <dt className="text-ink-400 dark:text-ink-500">In business</dt>
                       <dd>{humanize(application.time_in_business)}</dd>
                     </div>
 
@@ -431,14 +523,14 @@ export default async function PipelinePage({
                     */}
                     {lead && lead.formRequired > 0 && (
                       <div className="flex gap-1.5">
-                        <dt className="text-ink-400">Form</dt>
+                        <dt className="text-ink-400 dark:text-ink-500">Form</dt>
                         <dd
                           className={
                             lead.formAnswered === lead.formRequired
-                              ? "font-semibold text-success-700"
+                              ? "font-semibold text-success-700 dark:text-success-600"
                               : lead.formAnswered === 0
-                                ? "text-ink-500"
-                                : "font-semibold text-warning-700"
+                                ? "text-ink-500 dark:text-ink-400"
+                                : "font-semibold text-warning-700 dark:text-warning-600"
                           }
                         >
                           {lead.formAnswered === 0
@@ -450,7 +542,7 @@ export default async function PipelinePage({
 
                     {lead && lead.packageTotal > 0 && (
                       <div className="flex gap-1.5">
-                        <dt className="text-ink-400">Package</dt>
+                        <dt className="text-ink-400 dark:text-ink-500">Package</dt>
                         <dd
                           className={
                             lead.packageReady
@@ -465,7 +557,7 @@ export default async function PipelinePage({
 
                     {lead && lead.docsTotal > 0 && (
                       <div className="flex gap-1.5">
-                        <dt className="text-ink-400">Documents</dt>
+                        <dt className="text-ink-400 dark:text-ink-500">Documents</dt>
                         <dd
                           className={
                             lead.docsSettled === lead.docsTotal

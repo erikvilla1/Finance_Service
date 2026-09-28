@@ -51,10 +51,29 @@ export const STATUS_GROUP: Record<ApplicationStatus, StatusGroup> = {
 export const GROUP_LABELS: Record<StatusGroup, string> = {
   new: "New",
   working: "In contact",
-  packaging: "Packaging",
-  decided: "Decided",
+  packaging: "With a lender",
+  decided: "Approved or declined",
   closed: "Closed",
 };
+
+/**
+ * "Decided" WAS NOT RENAMED TO "APPROVED", DELIBERATELY.
+ *
+ * The request was to relabel it, on the understanding that it meant approved.
+ * It does not: the group holds `approved` AND `declined` (see STATUS_GROUP
+ * above). Calling it "Approved" would have filed every declined deal under a
+ * heading that says the opposite of what happened — the one kind of labelling
+ * error that is worse than a vague label, because it reads as correct.
+ *
+ * "Approved or declined" keeps the grouping honest. If the two genuinely need
+ * to be separate counters on the pipeline, that is a change to STATUS_GROUP —
+ * splitting `decided` into `won` and `lost` — not a change to this string, and
+ * it should be made on purpose rather than as a side effect of a rename.
+ *
+ * `packaging` became "With a lender" for the same reason the dashboard now
+ * reports it that way: `submitted_to_funder` lives in this group, and
+ * "Packaging" describes only the part of it that has not been sent yet.
+ */
 
 export const STATUS_ORDER: ApplicationStatus[] = [
   "draft",

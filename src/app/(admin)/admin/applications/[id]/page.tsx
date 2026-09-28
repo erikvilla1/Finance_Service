@@ -12,6 +12,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import { NudgeLink } from "@/components/admin/nudge-link";
 import type { ProductMatch } from "@/lib/qualification/types";
 import {
   BUSINESS_TIMEZONE,
@@ -136,23 +137,23 @@ export default async function ApplicationDetailPage({
       */}
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-sm text-ink-500">
+          <p className="font-mono text-sm text-ink-500 dark:text-ink-400">
             {application.reference_code}
             {lead?.contactName && lead?.businessName
               ? ` · ${lead.contactName}`
               : ""}
           </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink-900">
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink-900 dark:text-ink-100">
             {lead?.businessName ?? lead?.contactName ?? "Name not given yet"}
           </h1>
-          <p className="mt-1 text-ink-600">
+          <p className="mt-1 text-ink-600 dark:text-ink-300">
             {application.financing_goal ?? "Financing application"}
             {` · ${formatCurrency(application.requested_amount)}`}
             {application.track ? ` · ${humanize(application.track)} track` : ""}
             {` · created ${formatDate(application.created_at)}`}
           </p>
           {lead?.contactEmail && (
-            <p className="mt-1 text-sm text-ink-600">
+            <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">
               <a
                 href={`mailto:${lead.contactEmail}`}
                 className="hover:text-brand-700 hover:underline"
@@ -160,6 +161,15 @@ export default async function ApplicationDetailPage({
                 {lead.contactEmail}
               </a>
             </p>
+          )}
+          {/* Renders itself away when there is nothing outstanding, so it only
+              appears on the files it is actually for. */}
+          {lead && (
+            <NudgeLink
+              summary={lead}
+              reference={application.reference_code}
+              className="mt-3"
+            />
           )}
         </div>
         <Badge tone={statusTone(application.status)}>
@@ -179,10 +189,10 @@ export default async function ApplicationDetailPage({
           <Card>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-ink-900">
+                <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">
                   Lender package
                 </h2>
-                <p className="mt-1 text-sm text-ink-600">
+                <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">
                   {completeness.requiredPresent} of {completeness.requiredTotal}{" "}
                   required fields complete
                 </p>
@@ -201,18 +211,18 @@ export default async function ApplicationDetailPage({
             </div>
 
             {completeness.missingBySection.length > 0 && (
-              <div className="mt-5 space-y-3 border-t border-ink-100 pt-4">
+              <div className="mt-5 space-y-3 border-t border-ink-100 dark:border-white/10 pt-4">
                 {completeness.missingBySection.map((group) => (
                   <div key={group.section}>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
                       {group.label}
                     </h3>
                     <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                       {group.fields.map((field) => (
-                        <li key={field.key} className="text-sm text-ink-800">
+                        <li key={field.key} className="text-sm text-ink-800 dark:text-ink-200">
                           {field.formLabel}
                           {field.conditional && (
-                            <span className="ml-1 text-xs text-ink-400">
+                            <span className="ml-1 text-xs text-ink-400 dark:text-ink-500">
                               (needed for this file)
                             </span>
                           )}
@@ -225,7 +235,7 @@ export default async function ApplicationDetailPage({
             )}
 
             {completeness.collectedAtSigning.length > 0 && (
-              <p className="mt-5 rounded-lg bg-ink-50 p-3 text-sm leading-relaxed text-ink-600">
+              <p className="mt-5 rounded-lg bg-ink-50 dark:bg-white/[0.04] p-3 text-sm leading-relaxed text-ink-600 dark:text-ink-300">
                 Collected at signing, not stored here:{" "}
                 {completeness.collectedAtSigning
                   .map((f) => f.formLabel)
@@ -293,7 +303,7 @@ export default async function ApplicationDetailPage({
           />
 
           <Card>
-            <h2 className="text-base font-semibold text-ink-900">
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">
               What they told us
             </h2>
             <dl className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
@@ -306,28 +316,28 @@ export default async function ApplicationDetailPage({
                 ["Urgency", humanize(application.urgency)],
               ].map(([label, value]) => (
                 <div key={label}>
-                  <dt className="text-xs uppercase tracking-wide text-ink-400">
+                  <dt className="text-xs uppercase tracking-wide text-ink-400 dark:text-ink-500">
                     {label}
                   </dt>
-                  <dd className="mt-0.5 text-sm text-ink-900">{value}</dd>
+                  <dd className="mt-0.5 text-sm text-ink-900 dark:text-ink-100">{value}</dd>
                 </div>
               ))}
             </dl>
 
             {(answers?.length ?? 0) > 0 && (
-              <details className="mt-5 border-t border-ink-100 pt-4">
+              <details className="mt-5 border-t border-ink-100 dark:border-white/10 pt-4">
                 <summary className="cursor-pointer text-sm font-medium text-brand-700">
                   All {answers?.length} stored answers
                 </summary>
                 <dl className="mt-3 space-y-2">
                   {(answers ?? []).map((answer) => (
                     <div key={answer.question_key} className="flex gap-3 text-sm">
-                      <dt className="w-56 shrink-0 font-mono text-xs text-ink-500">
+                      <dt className="w-56 shrink-0 font-mono text-xs text-ink-500 dark:text-ink-400">
                         {answer.question_key}
                       </dt>
-                      <dd className="text-ink-800">
+                      <dd className="text-ink-800 dark:text-ink-200">
                         {answer.is_pii ? (
-                          <span className="text-ink-400">[redacted]</span>
+                          <span className="text-ink-400 dark:text-ink-500">[redacted]</span>
                         ) : (
                           String(answer.value ?? "—")
                         )}
@@ -340,18 +350,18 @@ export default async function ApplicationDetailPage({
           </Card>
 
           <Card>
-            <h2 className="text-base font-semibold text-ink-900">
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">
               Qualification result
             </h2>
             {!result ? (
-              <p className="mt-2 text-sm text-ink-600">
+              <p className="mt-2 text-sm text-ink-600 dark:text-ink-300">
                 No result recorded for this application.
               </p>
             ) : (
               <>
-                <p className="mt-2 text-sm text-ink-600">
+                <p className="mt-2 text-sm text-ink-600 dark:text-ink-300">
                   Outcome{" "}
-                  <span className="font-medium text-ink-900">
+                  <span className="font-medium text-ink-900 dark:text-ink-100">
                     {humanize(result.outcome)}
                   </span>
                   {" · engine "}
@@ -378,9 +388,9 @@ export default async function ApplicationDetailPage({
                     {matches.map((match) => (
                       <li
                         key={match.productSlug}
-                        className="flex items-center justify-between gap-3 rounded-lg bg-ink-50 px-3 py-2"
+                        className="flex items-center justify-between gap-3 rounded-lg bg-ink-50 dark:bg-white/[0.04] px-3 py-2"
                       >
-                        <span className="text-sm text-ink-900">
+                        <span className="text-sm text-ink-900 dark:text-ink-100">
                           {match.productName}
                         </span>
                         <Badge
@@ -405,7 +415,7 @@ export default async function ApplicationDetailPage({
                   in practice rather than only in principle.
                 */}
                 {!isV3 && rulesEvaluated.length > 0 && (
-                  <details className="mt-5 border-t border-ink-100 pt-4">
+                  <details className="mt-5 border-t border-ink-100 dark:border-white/10 pt-4">
                     <summary className="cursor-pointer text-sm font-medium text-brand-700">
                       Why — {rulesEvaluated.length} rule
                       {rulesEvaluated.length === 1 ? "" : "s"} evaluated
@@ -422,8 +432,8 @@ export default async function ApplicationDetailPage({
                           >
                             {rule.matched ? "matched" : "no match"}
                           </span>{" "}
-                          <span className="text-ink-800">{rule.description}</span>
-                          <p className="mt-0.5 font-mono text-xs text-ink-500">
+                          <span className="text-ink-800 dark:text-ink-200">{rule.description}</span>
+                          <p className="mt-0.5 font-mono text-xs text-ink-500 dark:text-ink-400">
                             {rule.detail}
                           </p>
                         </li>
@@ -436,8 +446,8 @@ export default async function ApplicationDetailPage({
           </Card>
 
           <Card>
-            <h2 className="text-base font-semibold text-ink-900">Notes</h2>
-            <p className="mt-1 text-sm text-ink-500">
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">Notes</h2>
+            <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
               Internal only. Never shown to the applicant.
             </p>
 
@@ -460,15 +470,15 @@ export default async function ApplicationDetailPage({
 
             <div className="mt-6">
               {(notes?.length ?? 0) === 0 ? (
-                <p className="text-sm text-ink-500">No notes yet.</p>
+                <p className="text-sm text-ink-500 dark:text-ink-400">No notes yet.</p>
               ) : (
                 <ul className="space-y-4">
                   {(notes ?? []).map((note) => (
-                    <li key={note.id} className="border-t border-ink-100 pt-4">
-                      <p className="whitespace-pre-wrap text-sm text-ink-800">
+                    <li key={note.id} className="border-t border-ink-100 dark:border-white/10 pt-4">
+                      <p className="whitespace-pre-wrap text-sm text-ink-800 dark:text-ink-200">
                         {note.body}
                       </p>
-                      <p className="mt-1.5 text-xs text-ink-500">
+                      <p className="mt-1.5 text-xs text-ink-500 dark:text-ink-400">
                         {formatDateTime(note.created_at)}
                       </p>
                     </li>
@@ -482,7 +492,7 @@ export default async function ApplicationDetailPage({
         {/* ------------------------------------------------------ SIDEBAR */}
         <div className="space-y-6">
           <Card>
-            <h2 className="text-base font-semibold text-ink-900">Move the deal</h2>
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">Move the deal</h2>
             <form action={updateStatus} className="mt-4 space-y-3">
               <input type="hidden" name="applicationId" value={application.id} />
               <label htmlFor="status" className="sr-only">
@@ -514,13 +524,13 @@ export default async function ApplicationDetailPage({
             a 9am call from Los Angeles is 6am in New York.
           */}
           <Card>
-            <h2 className="text-base font-semibold text-ink-900">
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">
               Calling window
             </h2>
             {application.applicant_timezone ? (
               <>
-                <p className="mt-3 text-sm text-ink-500">Their local time now</p>
-                <p className="text-2xl font-bold tabular-nums text-ink-900">
+                <p className="mt-3 text-sm text-ink-500 dark:text-ink-400">Their local time now</p>
+                <p className="text-2xl font-bold tabular-nums text-ink-900 dark:text-ink-100">
                   {applicantLocalNow(application.applicant_timezone)}
                 </p>
                 {(() => {
@@ -534,31 +544,31 @@ export default async function ApplicationDetailPage({
                     </div>
                   );
                 })()}
-                <p className="mt-3 font-mono text-xs text-ink-500">
+                <p className="mt-3 font-mono text-xs text-ink-500 dark:text-ink-400">
                   {application.applicant_timezone}
                 </p>
               </>
             ) : (
-              <p className="mt-2 text-sm text-ink-600">
+              <p className="mt-2 text-sm text-ink-600 dark:text-ink-300">
                 No timezone captured for this applicant.
               </p>
             )}
           </Card>
 
           <Card>
-            <h2 className="text-base font-semibold text-ink-900">Lead source</h2>
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">Lead source</h2>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between gap-3">
-                <dt className="text-ink-500">Source</dt>
-                <dd className="text-ink-900">{application.source ?? "—"}</dd>
+                <dt className="text-ink-500 dark:text-ink-400">Source</dt>
+                <dd className="text-ink-900 dark:text-ink-100">{application.source ?? "—"}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink-500">Channel</dt>
-                <dd className="text-ink-900">{application.channel ?? "—"}</dd>
+                <dt className="text-ink-500 dark:text-ink-400">Channel</dt>
+                <dd className="text-ink-900 dark:text-ink-100">{application.channel ?? "—"}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink-500">Submitted</dt>
-                <dd className="text-right text-ink-900">
+                <dt className="text-ink-500 dark:text-ink-400">Submitted</dt>
+                <dd className="text-right text-ink-900 dark:text-ink-100">
                   {formatDateTime(application.created_at)}
                   {(() => {
                     const local = formatApplicantLocalTime(
@@ -570,7 +580,7 @@ export default async function ApplicationDetailPage({
                       return null;
                     }
                     return (
-                      <span className="block text-xs text-ink-500">
+                      <span className="block text-xs text-ink-500 dark:text-ink-400">
                         {local} their time
                       </span>
                     );
@@ -578,8 +588,8 @@ export default async function ApplicationDetailPage({
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink-500">First contact</dt>
-                <dd className="text-ink-900">
+                <dt className="text-ink-500 dark:text-ink-400">First contact</dt>
+                <dd className="text-ink-900 dark:text-ink-100">
                   {formatDateTime(application.first_contact_at)}
                 </dd>
               </div>
@@ -587,22 +597,22 @@ export default async function ApplicationDetailPage({
           </Card>
 
           <Card>
-            <h2 className="text-base font-semibold text-ink-900">History</h2>
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">History</h2>
             {(history?.length ?? 0) === 0 ? (
-              <p className="mt-2 text-sm text-ink-500">
+              <p className="mt-2 text-sm text-ink-500 dark:text-ink-400">
                 No status changes recorded yet.
               </p>
             ) : (
               <ol className="mt-3 space-y-3">
                 {(history ?? []).map((entry) => (
                   <li key={entry.id} className="text-sm">
-                    <p className="text-ink-900">
+                    <p className="text-ink-900 dark:text-ink-100">
                       {entry.from_status
                         ? `${STATUS_LABELS[entry.from_status]} → `
                         : ""}
                       {STATUS_LABELS[entry.to_status]}
                     </p>
-                    <p className="text-xs text-ink-500">
+                    <p className="text-xs text-ink-500 dark:text-ink-400">
                       {formatDateTime(entry.created_at)}
                     </p>
                   </li>

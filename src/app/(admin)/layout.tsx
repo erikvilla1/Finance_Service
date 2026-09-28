@@ -45,7 +45,10 @@ export default async function AdminLayout({
       // Open unless explicitly collapsed: a first-time visitor should see the
       // labels rather than a column of unexplained icons.
       defaultOpen={jar.get("fls_admin_sidebar")?.value !== "closed"}
-      defaultDark={jar.get("fls_admin_theme")?.value === "dark"}
+      // No theme prop: the admin area is dark, full stop. See the note at the
+      // top of admin-shell for why the toggle was removed rather than
+      // re-defaulted. A stale `fls_admin_theme` cookie in someone's browser is
+      // simply ignored now.
       userLabel={profile.full_name ?? profile.email ?? "Signed in"}
       role={profile.role}
       signOut={signOut}

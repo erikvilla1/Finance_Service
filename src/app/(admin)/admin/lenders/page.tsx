@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Badge, Button, Card, Container, EmptyState, Input, Textarea } from "@/components/ui";
+import { Badge, Button, Container, EmptyState, Input, Textarea } from "@/components/ui";
+import { CornerBrackets, HEADING, PANEL } from "@/components/admin/console-ui";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, humanize } from "@/lib/crm";
 import type { LenderRow } from "@/types/database";
@@ -43,7 +44,7 @@ export default async function LendersPage() {
           <h1 className="text-3xl font-bold tracking-tight text-ink-900 dark:text-ink-100">
             Lenders
           </h1>
-          <p className="mt-1 text-ink-600 dark:text-ink-400">
+          <p className="mt-1 text-ink-600 dark:text-ink-300 dark:text-ink-400">
             {lenders.length === 0
               ? "No funding sources recorded yet"
               : `${lenders.length} funding source${lenders.length === 1 ? "" : "s"}`}
@@ -60,13 +61,14 @@ export default async function LendersPage() {
             />
           ) : (
             lenders.map((lender) => (
-              <Card key={lender.id}>
+              <div key={lender.id} className={`${PANEL} p-6`}>
+                <CornerBrackets />
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">
+                    <h2 className={HEADING}>
                       {lender.name}
                     </h2>
-                    <p className="mt-0.5 text-sm text-ink-600 dark:text-ink-400">
+                    <p className="mt-0.5 text-sm text-ink-600 dark:text-ink-300 dark:text-ink-400">
                       {[
                         lender.contact_name,
                         lender.contact_email,
@@ -79,9 +81,9 @@ export default async function LendersPage() {
                   {!lender.is_active && <Badge tone="neutral">Inactive</Badge>}
                 </div>
 
-                <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-600 dark:text-ink-400">
+                <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-600 dark:text-ink-300 dark:text-ink-400">
                   <div className="flex gap-1.5">
-                    <dt className="text-ink-400">Tracks</dt>
+                    <dt className="text-ink-400 dark:text-ink-500">Tracks</dt>
                     <dd>
                       {lender.tracks.length > 0
                         ? lender.tracks.map(humanize).join(", ")
@@ -90,7 +92,7 @@ export default async function LendersPage() {
                   </div>
                   {(lender.amount_min || lender.amount_max) && (
                     <div className="flex gap-1.5">
-                      <dt className="text-ink-400">Range</dt>
+                      <dt className="text-ink-400 dark:text-ink-500">Range</dt>
                       <dd>
                         {formatCurrency(lender.amount_min)} –{" "}
                         {formatCurrency(lender.amount_max)}
@@ -99,7 +101,7 @@ export default async function LendersPage() {
                   )}
                   {lender.min_fico && (
                     <div className="flex gap-1.5">
-                      <dt className="text-ink-400">Min FICO</dt>
+                      <dt className="text-ink-400 dark:text-ink-500">Min FICO</dt>
                       <dd>{lender.min_fico}</dd>
                     </div>
                   )}
@@ -111,21 +113,22 @@ export default async function LendersPage() {
                   rate sheet; this is what Robert knows.
                 */}
                 {lender.notes && (
-                  <p className="mt-3 rounded-lg bg-ink-50 p-3 text-sm leading-relaxed text-ink-700 dark:bg-brand-800 dark:text-ink-300">
+                  <p className="mt-3 rounded-lg bg-ink-50 dark:bg-white/[0.04] p-3 text-sm leading-relaxed text-ink-700 dark:text-ink-200 dark:bg-brand-800 dark:text-ink-300">
                     {lender.notes}
                   </p>
                 )}
-              </Card>
+              </div>
             ))
           )}
         </div>
 
         <div>
-          <Card>
-            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">
+          <div className={`${PANEL} p-6`}>
+            <CornerBrackets />
+            <h2 className={HEADING}>
               Add a lender
             </h2>
-            <p className="mt-1 text-sm text-ink-600 dark:text-ink-400">
+            <p className="mt-1 text-sm text-ink-600 dark:text-ink-300 dark:text-ink-400">
               Name is all that&apos;s required. The rest can come later — an
               incomplete lender you can send to beats a complete one you
               haven&apos;t added.
@@ -147,7 +150,7 @@ export default async function LendersPage() {
               />
               <Button type="submit">Add lender</Button>
             </form>
-          </Card>
+          </div>
         </div>
       </div>
     </Container>
