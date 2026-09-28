@@ -415,7 +415,18 @@ export function SiteHeader() {
               alt=""
               width={2254}
               height={1070}
-              className={`absolute inset-0 h-10 w-auto max-w-none transition-opacity duration-300 sm:h-12 ${overHero ? "opacity-100" : "opacity-0"}`}
+              /* drop-shadow, because this mark sits where the hero is
+                 LIGHTEST. The overlay runs from-brand-900 at the bottom to
+                 brand-900/35 at the top, so the strongest wash is under the
+                 headline and the weakest is exactly where the logo goes — a
+                 white mark over a bright frame of the footage (glass towers,
+                 sky) washes out to nearly nothing. "Sign in" beside it already
+                 carries drop-shadow-sm for the same reason; the mark was the
+                 one thing in that row without it.
+
+                 A shadow rather than a scrim: a plate behind the logo would
+                 undo the point of having it sit directly on the footage. */
+              className={`absolute inset-0 h-10 w-auto max-w-none drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)] transition-opacity duration-300 sm:h-12 ${overHero ? "opacity-100" : "opacity-0"}`}
               priority
             />
           </span>

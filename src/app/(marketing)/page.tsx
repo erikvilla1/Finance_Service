@@ -226,6 +226,25 @@ export default function HomePage() {
         {/* Gradient, not a flat wash: heavy where the type sits, light at the
             top so the footage is still legible as footage. */}
         <div className="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/75 to-brand-900/35" />
+        {/*
+          A SECOND, SHORT SCRIM ACROSS THE TOP — for the header, not the hero.
+
+          The gradient above runs dark at the bottom (under the headline) to
+          brand-900/35 at the top, which is the right shape for the type but
+          leaves the weakest wash exactly where the header sits. Over a bright
+          frame of the footage — the glass towers, or sky — the white mark and
+          "Sign in" wash out to almost nothing, which is the "logo barely
+          visible" report.
+
+          Short and soft on purpose: 11rem fading to transparent, so it does
+          its work behind the header row and is gone before it reaches the
+          headline. Strengthening the main gradient instead would have dimmed
+          the whole shot to fix a strip of it.
+        */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-brand-900/60 via-brand-900/25 to-transparent"
+        />
         {/* Not <Container>: that caps at max-w-6xl and centres, which pulls the
             headline toward the middle of a card that is already inset. Padding
             straight off the card edge keeps the type where the reference sets
