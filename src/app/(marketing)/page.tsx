@@ -122,7 +122,7 @@ const ROBERT_LINKEDIN = "https://www.linkedin.com/in/robert-saucedo-1b144b340/";
 const PROCESS_STEPS = [
   {
     title: "Tell us what you need",
-    body: "Click “Get Your Free Quote” and start with your goal in plain language. You don't need to know which loan product fits — that's our job.",
+    body: "Click “See Your Financing Options” and start with your goal in plain language. You don't need to know which loan product fits — that's our job.",
   },
   {
     title: "Tell us about your business",
@@ -311,7 +311,7 @@ export default function HomePage() {
           <div className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
             <div className="animate-fade-in-up flex flex-wrap gap-3 [animation-delay:300ms]">
               <ButtonLink href="/start" size="lg" sweep>
-                Get Your Free Quote
+                See Your Financing Options
               </ButtonLink>
               <ButtonLink
                 href="#how-it-works"

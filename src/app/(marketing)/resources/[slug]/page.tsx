@@ -24,7 +24,7 @@ import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-grad
  * structure is laid out.
  *
  * A PAGE TO LEARN FROM, WITH TWO WAYS OUT. Someone reading a guide either
- * wants this kind of financing, so "Get Your Free Quote" skips the goal
+ * wants this kind of financing, so "See Your Financing Options" skips the goal
  * picker and opens the prequal already set to this category (step 2), or
  * wants to look around more, so "Back to Home". Those are the only two
  * actions, at the top and again at the bottom. There is no PDF download (the
@@ -97,7 +97,7 @@ export default async function ResourceGuidePage({
             </p>
             <div className="mt-8">
               <ButtonLink href={quoteHref} size="lg" sweep>
-                Get Your Free Quote
+                See Your Financing Options
               </ButtonLink>
             </div>
           </div>
@@ -245,7 +245,7 @@ export default async function ResourceGuidePage({
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
               <ButtonLink href={quoteHref} size="lg" sweep>
-                Get Your Free Quote
+                See Your Financing Options
               </ButtonLink>
               <Link
                 href="/"
