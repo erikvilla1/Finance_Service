@@ -284,7 +284,15 @@ export default function HomePage() {
                   </span>
                 </span>
               </h1>
-              <p className="animate-fade-in-up mt-6 max-w-2xl text-lg leading-relaxed text-brand-100 [animation-delay:150ms] sm:text-xl">
+              {/* text-base below sm, not text-lg. At 18px this ran to seven
+                  lines on a 375px screen and pushed the stat card, both CTAs
+                  and the scroll cue down far enough that the hero stood 53px
+                  taller than the viewport — so the cue, which exists to say
+                  "there is more below", was itself below the fold. 16px is
+                  still a normal body size and takes 23px off the block (it is
+                  still seven lines, they are just shorter).
+                  sm: and up are unchanged; the hero fits there already. */}
+              <p className="animate-fade-in-up mt-5 max-w-2xl text-base leading-relaxed text-brand-100 [animation-delay:150ms] sm:mt-6 sm:text-xl">
                 Create an account to track your file from first question to
                 funding. Your dashboard shows real-time status on your
                 application and documents, flags exactly what&apos;s needed
@@ -337,7 +345,7 @@ export default function HomePage() {
               items-center rather than items-end: the cue is a line of text and
               the buttons are 56px tall, so aligning their boxes would sit the
               text on the floor rather than level with the labels. */}
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-x-8 gap-y-6 sm:mt-10">
             <div className="animate-fade-in-up flex flex-wrap gap-3 [animation-delay:300ms]">
               <ButtonLink href="/start" size="lg" sweep>
                 See Your Financing Options
@@ -352,9 +360,19 @@ export default function HomePage() {
               </ButtonLink>
             </div>
 
+            {/* HIDDEN BELOW sm, because on a phone it is a second link to the
+                same place as the "How It Works" button sitting beside it, and
+                it was the row that pushed the hero past the viewport. Keeping
+                it cost 44px (its own height plus the row's wrap gap) to repeat
+                an anchor the reader already has, and a touch reader does not
+                need to be told that a page scrolls.
+
+                It stays from sm up, where the hero has room and the cue sits on
+                the same baseline as the buttons rather than wrapping below
+                them. */}
             <a
               href="#how-it-works"
-              className="animate-fade-in-up flex items-center gap-2 text-sm text-brand-100/70 transition-colors [animation-delay:750ms] hover:text-white lg:translate-y-4"
+              className="animate-fade-in-up hidden items-center gap-2 text-sm text-brand-100/70 transition-colors [animation-delay:750ms] hover:text-white sm:flex lg:translate-y-4"
             >
               Scroll to explore
               <ChevronDown aria-hidden="true" className="h-4 w-4 animate-bounce" />
