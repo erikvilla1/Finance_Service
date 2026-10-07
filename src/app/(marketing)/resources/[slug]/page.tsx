@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight } from "lucide-react";
+import { ResourceGuideCard } from "@/components/marketing/resource-guide-card";
+import { relatedGuides } from "@/lib/resource-guides/related";
 import Link from "next/link";
 import {
   ButtonLink,
@@ -23,13 +25,22 @@ import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-grad
  * eleven masters share a structure, so this route is the only place that
  * structure is laid out.
  *
- * A PAGE TO LEARN FROM, WITH TWO WAYS OUT. Someone reading a guide either
+ * A PAGE TO LEARN FROM, WITH THREE WAYS OUT. Someone reading a guide either
  * wants this kind of financing, so "See Your Financing Options" skips the goal
- * picker and opens the prequal already set to this category (step 2), or
- * wants to look around more, so "Back to Home". Those are the only two
- * actions, at the top and again at the bottom. There is no PDF download (the
- * guide is read here, on the page) and no separate "talk to a specialist"
- * route competing with the quote.
+ * picker and opens the prequal already set to this category (step 2), or wants
+ * to look around more, so "Back to Home", or wants a different category, so
+ * "Related Financing Guides" at the foot.
+ *
+ * The third was added on the client's Sept 29 review and is a deliberate
+ * loosening of what this comment used to say ("those are the only two
+ * actions"). The reasoning behind that restriction still holds and is worth
+ * keeping: there is still no PDF download (the guide is read here, on the
+ * page) and still no separate "talk to a specialist" route competing with the
+ * quote. What changed is that a reader on the wrong guide previously had only
+ * "Back to Home" and had to find the Resources list again by themselves,
+ * which is a dead end dressed as a way out. Related guides are lateral
+ * content navigation, not a second conversion path, so they do not compete
+ * with the CTA — and they sit BELOW it for that reason.
  */
 
 const DISCLAIMER =
@@ -67,6 +78,11 @@ export default async function ResourceGuidePage({
     ? prequalHref(objective, GUIDE_PREFILL[guide.slug])
     : "/start";
 
+  // Pairs from the client's Sept 29 review, symmetric by construction — see
+  // lib/resource-guides/related.ts. Empty for a guide with no pair, which the
+  // section below renders as nothing rather than a bare heading.
+  const related = relatedGuides(guide.slug);
+
   return (
     <>
       {/*
@@ -82,13 +98,47 @@ export default async function ResourceGuidePage({
       <div>
         <Container>
           <div className="py-12 sm:py-16">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700"
-            >
-              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-              Back to Home
-            </Link>
+            {/*
+              BREADCRUMBS, REPLACING THE TOP "Back to Home" (client's Sept 29
+              review). They fit the same line and say more: where this page
+              sits, and a route back to the guide list, which a single Home
+              link did not offer.
+
+              "Resources" POINTS AT /#resources, NOT /resources. There is no
+              resources index route — the guides are a section on the home page
+              (ResourceGuideScroller), so that anchor is the list. A /resources
+              link would 404.
+
+              The guide's own title is the last crumb and is not a link. It
+              carries aria-current="page" so assistive tech announces it as the
+              current location instead of reading a third link to nowhere.
+              Separators live inside their crumb and are aria-hidden, so the
+              list reads as three items rather than five.
+
+              The bottom "Back to Home" is untouched — see the note at the top
+              of this file on the ways out.
+            */}
+            <nav aria-label="Breadcrumb">
+              <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-semibold">
+                <li>
+                  <Link href="/" className="text-brand-600 hover:text-brand-700">
+                    Home
+                  </Link>
+                </li>
+                <li className="flex items-center gap-x-1.5">
+                  <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-ink-400" strokeWidth={2.5} />
+                  <Link href="/#resources" className="text-brand-600 hover:text-brand-700">
+                    Resources
+                  </Link>
+                </li>
+                <li className="flex items-center gap-x-1.5">
+                  <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-ink-400" strokeWidth={2.5} />
+                  <span aria-current="page" className="text-ink-600">
+                    {guide.title}
+                  </span>
+                </li>
+              </ol>
+            </nav>
             <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-ink-900 sm:text-5xl">
               {guide.title}
             </h1>
@@ -258,6 +308,49 @@ export default async function ResourceGuidePage({
           </div>
         </Container>
       </Section>
+
+      {/*
+        RELATED FINANCING GUIDES (client's Sept 29 review).
+
+        BELOW the CTA, not above it. A reader who has finished the guide and is
+        ready to act should meet the quote button first; these are for the
+        reader who is on the wrong guide, and for them anywhere on the page is
+        findable. Putting them above the CTA would have put eleven lateral
+        links between the content and the one action the page exists for.
+
+        Reuses ResourceGuideCard — the same card the home page's Resources
+        scroller uses, so a guide looks the same wherever it is offered and one
+        styling pass still reaches every instance.
+
+        TWO COLUMNS AT MOST, inside the max-w-3xl the rest of the page's
+        content uses. The card has a 320px min-height, and at three columns in
+        this width it became a tall thin sliver. Guides with three relations
+        wrap 2 + 1, which is why there is no grid-cols-3 here.
+
+        Rendered conditionally: related.test.ts asserts all eleven guides
+        currently have at least one pair, so this should never be empty today,
+        but a twelfth guide added without a pair should drop the section rather
+        than print a heading over nothing.
+      */}
+      {related.length > 0 && (
+        <Section tone="none">
+          <Container>
+            <div className="max-w-3xl">
+              <SectionHeading
+                eyebrow="Keep reading"
+                title="Related financing guides"
+              />
+              <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+                {related.map((item) => (
+                  <li key={item.slug} className="flex">
+                    <ResourceGuideCard guide={item} className="w-full" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Container>
+        </Section>
+      )}
 
       <Container>
         <p className="border-t border-ink-200 py-10 text-xs leading-relaxed text-ink-500">
