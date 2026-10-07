@@ -21,9 +21,9 @@ This repository contains **two** authoritative documents. They cover different d
 | What fields does an application collect? | **This file (§6)** |
 | What documents does a deal require? | **This file (§5.2)** |
 | Who is the client, what are the business economics, why are we building this? | **This file (§1–4, §11)** |
-| What is the system architecture, database schema, and file structure? | `Financial_Lending_Specialists_Platform_README.md` |
-| What is the build order and what ships in MVP? | `Financial_Lending_Specialists_Platform_README.md` |
-| What are the coding rules, security requirements, and copy constraints? | `Financial_Lending_Specialists_Platform_README.md` |
+| What is the system architecture, database schema, and file structure? | `docs/PLATFORM_SPEC.md` |
+| What is the build order and what ships in MVP? | `docs/PLATFORM_SPEC.md` |
+| What are the coding rules, security requirements, and copy constraints? | `docs/PLATFORM_SPEC.md` |
 
 Where the two genuinely conflict, see **§14 — Open Conflicts**. Do not silently pick one; those are decisions the team still owes.
 

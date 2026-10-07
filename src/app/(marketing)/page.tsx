@@ -316,27 +316,31 @@ export default function HomePage() {
                 Sized by CountUp's own reserved width, so the box does not grow
                 and snap back as the decimal appears and disappears. */}
             <div className="animate-fade-in-up shrink-0 self-start rounded-2xl border border-white/15 bg-brand-900/55 p-6 backdrop-blur-md [animation-delay:600ms] sm:p-7 lg:self-end">
-              <p className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-                <CountUp from={1} to={20} prefix="$" suffix="M+" shineWhenSettled />
+              {/* CAPTION ABOVE THE NUMBER, WHICH IS NOT THE USUAL WAY ROUND FOR
+                  A STAT CARD. The reason is worth recording, because reverting
+                  it to the conventional order reintroduces a real problem.
+
+                  "Available in loans" until the client's Sept 29 review. The
+                  change away from it is a claim correction rather than a copy
+                  tweak: "available in loans" says FLS holds money to lend. It
+                  does not — it is a broker and makes no credit decisions, which
+                  is the distinction the rest of the site is built around.
+
+                  The client asked for the caption to read "Financing solutions
+                  up to $20M+". Taken literally, with the caption under the
+                  animated number as it was, the card rendered "$20M+" directly
+                  above "Financing solutions up to $20M+" — the same figure
+                  twice in one small box, which reads as a bug. Putting the
+                  caption first uses the client's exact words, states the figure
+                  once, and still fixes the claim, so it does what the request
+                  was for rather than what it literally said. Flagged in
+                  QUESTIONS.md; if the copy owner wants the literal version back
+                  it is a two-line swap. */}
+              <p className="max-w-[13rem] text-sm leading-snug text-brand-100/80">
+                Financing solutions up to
               </p>
-              {/* "Available in loans" until the client's Sept 29 review, and the
-                  change is a claim correction rather than a copy tweak: "available
-                  in loans" says FLS holds money to lend. It does not — it is a
-                  broker and makes no credit decisions, which is the distinction
-                  the rest of the site is built around.
-
-                  NOTE FOR THE COPY OWNER: this now states the figure twice, once
-                  as the animated number above and once here. That is the client's
-                  exact requested wording, kept literally rather than paraphrased
-                  because the figure itself is still awaiting sign-off (see the
-                  warning above) and this is not the moment to invent a third
-                  version. Two tidier options are listed in QUESTIONS.md.
-
-                  max-w widened from 10rem: the old label was two short words and
-                  the new one is five, which wrapped to four cramped lines in the
-                  old box. */}
-              <p className="mt-2 max-w-[13rem] text-sm leading-snug text-brand-100/80">
-                Financing solutions up to $20M+
+              <p className="mt-1 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+                <CountUp from={1} to={20} prefix="$" suffix="M+" shineWhenSettled />
               </p>
             </div>
           </div>
