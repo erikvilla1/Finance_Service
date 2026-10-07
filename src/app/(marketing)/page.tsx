@@ -126,7 +126,20 @@ const PROCESS_STEPS = [
   },
   {
     title: "Tell us about your business",
-    body: "Eight quick questions about revenue, time in business, and credit. No documents, and nothing here affects your credit.",
+    /* NO NUMBER IN THIS SENTENCE, DELIBERATELY. It said "Eight quick
+       questions" and that was simply wrong: migration 0016 took the prequal
+       from six questions to fifteen (see lib/questions/prequal-layout.ts),
+       so the copy had been stale for several migrations without anyone
+       noticing.
+
+       It cannot be corrected to "fifteen" either. Questions live in the
+       database so Robert can change the form without a deploy (spec §9),
+       which means any count hard-coded in marketing copy is one admin edit
+       away from being a lie — and a wrong number on the page that sets
+       expectations for the form is worse than no number. The client asked
+       for this wording in the Sept 29 review; it is also the only version
+       that stays true. */
+    body: "A few quick questions about your business and financing needs. No documents, and nothing here affects your credit.",
   },
   {
     title: "See what may be available",
@@ -298,8 +311,24 @@ export default function HomePage() {
               <p className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
                 <CountUp from={1} to={20} prefix="$" suffix="M+" shineWhenSettled />
               </p>
-              <p className="mt-2 max-w-[10rem] text-sm leading-snug text-brand-100/80">
-                Available in loans
+              {/* "Available in loans" until the client's Sept 29 review, and the
+                  change is a claim correction rather than a copy tweak: "available
+                  in loans" says FLS holds money to lend. It does not — it is a
+                  broker and makes no credit decisions, which is the distinction
+                  the rest of the site is built around.
+
+                  NOTE FOR THE COPY OWNER: this now states the figure twice, once
+                  as the animated number above and once here. That is the client's
+                  exact requested wording, kept literally rather than paraphrased
+                  because the figure itself is still awaiting sign-off (see the
+                  warning above) and this is not the moment to invent a third
+                  version. Two tidier options are listed in QUESTIONS.md.
+
+                  max-w widened from 10rem: the old label was two short words and
+                  the new one is five, which wrapped to four cramped lines in the
+                  old box. */}
+              <p className="mt-2 max-w-[13rem] text-sm leading-snug text-brand-100/80">
+                Financing solutions up to $20M+
               </p>
             </div>
           </div>

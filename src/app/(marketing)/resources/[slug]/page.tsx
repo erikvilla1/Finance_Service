@@ -235,7 +235,7 @@ export default async function ResourceGuidePage({
         <Container>
           <div className="max-w-3xl rounded-[1.75rem] bg-white/85 p-8 shadow-card ring-1 ring-inset ring-ink-200/70 backdrop-blur-sm sm:p-10">
             <h2 className="text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
-              Find the right {guide.title.toLowerCase()} path
+              Find the right {guide.titleInSentence ?? guide.title.toLowerCase()} path
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-ink-600">
               FLS Capital Advisors works across multiple financing sources
