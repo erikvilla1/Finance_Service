@@ -364,8 +364,31 @@ export function StatusCard({
                   />
                 )}
               </div>
+              {/* WRAPS BELOW sm, TRUNCATES ABOVE IT.
+
+                  The track is four equal columns. On a 375px phone that is
+                  (375 - 32 main px-4 - 48 panel p-6 - 24 gaps) / 4 = 68px per
+                  column, and "Your application" renders at 94px in text-xs —
+                  so `truncate` alone showed the first step as "Your applic...".
+                  The other three labels (51/57/55px) fit.
+
+                  Wrapping rather than grid-cols-2 below sm: the connector line
+                  between steps is a flex-1 rule drawn after every step but the
+                  last, so a two-column layout would draw it pointing off the
+                  end of each row. Wrapping keeps the single-row track and the
+                  connectors correct, and costs one line of height.
+
+                  Shortening the label to "Application" (66px) would also fit,
+                  but that is customer-facing copy on a surface nobody has
+                  reviewed on a phone, so it is not mine to change.
+
+                  NOT VERIFIED IN A BROWSER: /dashboard is auth-gated and no
+                  agent has credentials. The widths above are measured — the
+                  column from the layout's own padding, the label by rendering
+                  the string at text-xs in the real font — but nobody has
+                  actually looked at this on a phone. Worth an eyeball. */}
               <p
-                className={`mt-2 truncate text-xs sm:text-sm ${
+                className={`mt-2 text-xs sm:truncate sm:text-sm ${
                   current ? "font-semibold text-ink-900" : done ? "text-ink-700" : "text-ink-400"
                 }`}
               >
