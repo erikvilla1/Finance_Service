@@ -323,15 +323,132 @@ its argv — kill by scanning `/proc` and skipping `$$`/`$PPID` instead.
 
 ---
 
+## What is left (as of 2026-10-07)
+
+Superseded by the 2026-10-08 section below; kept for the record.
+
+1. Decide on the public-repo exposures (`QUESTIONS.md` §1). Time-sensitive.
+2. Supply the bracketed business facts, or decide they stay bracketed.
+3. Deploy. Nothing here is live.
+
+---
+
+# Session log — 2026-10-08
+
+Same branch, continued. Twelve commits on top of `0f47266`, all pushed.
+**Pushed, not deployed.** Nothing in this log is live.
+
+## How to look at it
+
+```
+cd ~/Desktop/Finance_Service
+git pull origin claude/fls-frontend-qualification-review-8l331c
+npm install
+npm run build && npm run start
+```
+
+Then `localhost:3000`. Remember localhost writes to the production database:
+look, do not submit.
+
+**What to check, shortest list:**
+
+1. `/resources/sba-financing` — the guide pages are documents now, not
+   landing pages.
+2. `/start` → Access Working Capital → walk to "Your cash flow": deposits is
+   a **count** ("How many deposits does the business receive in a typical
+   month?"), revenue is the only dollar figure. Finance Equipment asks
+   revenue instead of deposits.
+3. Home → How It Works deck, scenes 3, 4, 6, 7: the results and account
+   screens have the footage behind them; the two email overlays are the new
+   template (wordmark, dark button, no reference code).
+4. Every "commitment to lend" on the site reads "commitment to fund" now
+   (footer of the flow, results small print, Terms §3, Disclosures).
+5. Dashboard → Application → About you (needs an account): put 60 in
+   "Percentage of ownership" and the Other owners block appears; a line
+   is added each time what is listed still falls short; the running total
+   says what is left; the section's check waits for 100%. Save and
+   continue returns to the application overview.
+6. Dashboard → Application: "Existing obligations" is listed as Optional
+   and is not counted in the questions left.
+7. Admin file: "Assign to me" is gone; the chase draft has no reference
+   line; the lender package zip has no `00 Package manifest.txt`.
+
+## What was done, against the three sources
+
+### Notion "Notes for FLS Website (09.27)"
+
+| Item | State |
+| --- | --- |
+| Deposits should be a count, not a dollar value | **Done.** `monthly_deposit_count` (number) replaces `avg_monthly_deposits` (currency) in the working-capital branch; `facts.deposit_count` carries it. Every rule a lender words as "$N a month deposited" reads `monthly_revenue` (ARF 17K ×2, Global MCA 15K, the "annual sales or monthly deposits" helper). Equipment asks `avg_monthly_revenue` instead of deposits, so 360's deposit-to-cost ratio reads revenue. 37/37 tests, one added for this. |
+| Switch everything that says lend to fund | **Done** in all customer-facing copy, Terms and Disclosures included (you reaffirmed). "Lender" as a noun for the third party is unchanged; see `QUESTIONS.md` §12. |
+| Have email be help@flscapitaladvisors.com | **Done.** Default reply-to in `send.ts`; the contact address on Privacy, Terms and Disclosures; the signature line on every applicant email. |
+| FAQ "How long does a review take?" more professional | **Done.** `dashboard/support`. |
+| Business start date cannot be in the future | **Done.** The picker is capped at today; the server already rejected it. |
+| DBA, preferred contact phone, rent/own optional | **Done** in code (migration 0035, readiness check in `fields.ts`). The question flags live in the database; see `QUESTIONS.md` §11 for the one command. |
+| Save and continue → application dashboard | **Done.** |
+| Finance section left as is | Untouched. |
+| Ownership: auto lines until it adds to 100% | **Done.** `co-owners.ts`, `co-owners-block.tsx`, rows stored as non-primary `application_owners`, which the lender form and PDF already read as the second owner. Migration 0036 lets an applicant remove a line. |
+| Click-to-sign unlocked when all three sections are green; SSN on the signed document | **Half.** The full SSN is already typed by the signer on the executed document and never stored — that was true before this session. Who unlocks signing is a product decision I did not make: today the specialist requests it after reviewing the file. `QUESTIONS.md` §15. |
+| Business Debt Schedule optional; triggered by the prequal answer | **Done.** Offered when the prequal recorded an existing balance or an advance, or the financials section says yes; never counted, never blocks. "Filled out thru email" — `QUESTIONS.md` §14. |
+| Admin: "0 conditionally approved or countered" — what it means | Answered in `QUESTIONS.md` §16. |
+| Admin: difference between "What needs you" and "Where files sit" | Answered in `QUESTIONS.md` §16. |
+| Lender package: get rid of .txt | **Done.** The manifest is gone; what it said is on the admin page before the download. `QUESTIONS.md` §16. |
+| Reference numbering internal; name files by business | **Done** (chase subject, admin header earlier; every applicant email and the chase body this session). |
+| "Assign to me" — Robert is the only broker | **Removed.** |
+| Chase documents email header and description | **Done** (earlier commit; reference line removed this session). |
+| Ensure overview is updated properly | Not actionable as written; nothing in the admin overview was found wrong. |
+| admin@flscapitaladvisors.com for email access | **Done** as the default staff-alert address. |
+
+### Front-end punch list (docx, 09-29)
+
+1–6 and 11 were done in the 10-07 session (see above). 7 — acronyms are
+preserved: guide headings use `titleInSentence` from the data file, never a
+lowercased title, so "Find the right SBA financing path" keeps its case.
+8 — see the engine note below. 9 and 10 are FLS launch-control items (verify
+tracking against the policy; counsel reviews the legal pages) and are not
+mine to close; §12 adds the "fund" change to counsel's list.
+
+### Qualification engine deep dive (docx)
+
+Item 1 (working capital): revenue magnitude is a required routing input,
+deposit trend is collected and read by no rule (soft by construction), and
+positions affect routing only where a lender's own rule says so (ARF's two
+advances). **Done.** Items 2–9, the per-product question and rule rework
+for the other eight branches, are **not done** and were not in your list;
+they are the next body of engine work. Nothing in this session makes them
+harder: the facts layer and the per-program rules are where they land.
+
+## Verification
+
+`npm run typecheck`, `npm run lint`, `npm test`, `npm run build` before every
+commit. Final state: typecheck clean, lint 0 errors and the same 2 known
+warnings, **37/37 tests**, build compiles. Every screen that changed was
+rendered from the production build and looked at: the guide page at 1440 and
+390, the deposit-count step in the live wizard, the Other owners block at
+1280 and 390 (static, after typing shares that fall short, and after the
+primary share goes to 100), all three email templates at 560, the results
+and account scenes, and deck scenes 3 and 7 in the home page.
+
+The ownership block and the emails were rendered through throwaway harness
+routes that fed the real components fixture data; the routes were deleted
+before committing. The owner save path (`syncCoOwners`) is exercised by
+typecheck and by reading, not by a browser: there is no test account, and a
+save would write to production.
+
+**Could not do:** read the production `application_questions` flags to
+confirm what Robert saw as required. The session's permission classifier
+refused the read. Migration 0035 makes the intent true regardless.
+
 ## What is left
 
-1. **Decide on the public-repo exposures** (`QUESTIONS.md` §1). Time-sensitive.
-2. **Send the two docx files**, which unblocks the founder bio and all the
-   per-product engine work.
-3. **Answer the product questions**: the duplicate `/how-it-works` page, whether
-   How It Works gets a purpose-built mobile treatment, and whether the $20M
-   card reordering is what you wanted.
-4. **Look at two things I could not see**: the portal status track on a phone,
-   and the hero logo on a real device.
-5. **Supply the bracketed business facts**, or decide they stay bracketed.
-6. **Deploy.** Nothing here is live.
+1. **Apply migrations 0035 and 0036** (`QUESTIONS.md` §11). Until then:
+   the three fields are optional in the readiness check but carry whatever
+   flag the database has; removing an added owner line leaves the row
+   behind (no duplicates, just a stale row).
+2. **Decide who unlocks signing** (`QUESTIONS.md` §15).
+3. **Counsel re-reads the legal pages** with "fund" in them (§12).
+4. **Verify the sending domain in Resend** and set `EMAIL_FROM`
+   (`docs/AUTH_AND_EMAIL.md`).
+5. **Engine items 2–9** from the deep-dive docx — the per-product rework.
+6. The 10-07 items still open: public-repo exposures, bracketed business
+   facts, deploy.

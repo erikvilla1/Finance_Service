@@ -269,3 +269,88 @@ detail. For a repo you are showing to employers, it reads as someone's desk
 rather than a project. I left it where it is because you put it there
 deliberately for agent sessions — moving it to `docs/internal/` is a one-liner
 if you'd rather.
+
+---
+
+# Added 2026-10-08
+
+## 11. Two migrations need applying to production
+
+I could not touch the database from here (the session's permission layer
+refused even a read of `application_questions`), so two migrations are in
+the branch and not applied:
+
+- `0035_optional_application_fields.sql` — sets DBA, preferred contact phone
+  and rent/own to not required. The seeds already say so; this makes it
+  true whatever the live row says.
+- `0036_co_owner_rows.sql` — a delete policy so an applicant can remove an
+  added owner line (non-primary rows only, inside the normal edit window).
+
+Until 0036 is applied, removing a line in the form updates and inserts
+correctly but leaves surplus rows in place rather than deleting them.
+Apply with whatever you use for the previous 34 (`supabase db push`, or the
+SQL editor).
+
+## 12. "Lend" → "fund" went into the Terms and the Disclosures
+
+You said switch everywhere, so Terms §2 now reads "We do not fund loans"
+and §3 "not a commitment to fund"; Disclosures and every disclaimer line
+match. "Lender" as the word for the third party stayed — "lender review",
+"lender underwriting" — because those describe someone else, and the note
+was about the verb. The front-end docx item 10 already has counsel reading
+the legal pages before launch; add this change to what they read.
+
+## 13. 360's deposit-to-cost ratio now reads monthly revenue
+
+Robert's deposits-as-a-count decision removed the dollar deposits figure
+the equipment branch used for 360's "organic monthly deposits ÷ equipment
+cost" rules (40% / 85%). The branch now asks average monthly revenue and
+the ratio reads that. For the businesses this serves it is the same number
+within noise, and the rule text says so, but it is Robert's lender rule and
+he should confirm he is happy with revenue standing in for deposits there.
+
+## 14. "Debt schedule … filled out thru email" — I did not build an email for it
+
+The Notion line is "Business Debt Schedule is optional — if they do put in
+application that they have debt, have it trigger based on the prequal
+question and filled out thru email." I made it optional and triggered by
+the prequal (an existing balance or an advance among the debt types) or by
+the financials section. I did not read "thru email" confidently: it could
+mean the schedule is collected on the signed document, or that a reminder
+email asks for it. Neither is built. Tell me which and it is a small change.
+
+## 15. Who unlocks signing — a product decision, not a bug
+
+Notion: "Only when all 3 sections of the application are filled out (all
+green checks): unlock a click-to-sign button where it sends email to them
+where they sign and SSN." Today the **specialist** requests the signature
+from the admin file once the readiness check passes, which sends the email
+and unlocks the signing page; the applicant then types the full SSN on the
+document, which is drawn into the PDF and never stored (that part is done
+and was before this session).
+
+Changing it so the applicant unlocks signing the moment their checks go
+green means the file is signed **before** Robert has looked at it, and a
+correction after that means signing again. That is why it was built the
+other way round. If Robert wants it his way regardless, it is one condition
+on the dashboard and one server action; say so and I will do it. I did not
+want to flip the review order on a note.
+
+## 16. Three admin things Robert asked about
+
+**"0 conditionally approved or countered."** It counts lender submissions
+whose status is `countered`: a lender came back with an offer that is not
+the one asked for (a different amount, term or structure). They need Robert
+to accept or decline on the file before they move. Zero means no lender has
+countered anything.
+
+**"What needs you" vs "Where files sit."** The first list is the queue —
+files with something waiting on Robert (a document to review, a signature
+to request, an offer to answer). The second is the whole pipeline by stage,
+whether or not any of it needs him today. One is a to-do list; the other is
+a map.
+
+**The `.txt` in the lender package.** It was a manifest — what was enclosed,
+what was missing, what is collected at signing — put there so a funder
+could see a debt schedule was waived rather than lost. It is gone. The same
+facts are on the admin page the download comes from.
