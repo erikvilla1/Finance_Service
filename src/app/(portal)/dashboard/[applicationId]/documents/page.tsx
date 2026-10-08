@@ -145,7 +145,22 @@ export default async function DocumentsPage({
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <ul className="min-w-0 space-y-4">{rows}</ul>
 
-        <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
+        {/* lg:mt-9 LINES THE FIRST SIDEBAR CARD UP WITH THE FIRST DOCUMENT CARD,
+            not with the top of the column.
+
+            The list's first child is a group heading ("WITH YOUR SPECIALIST 7"),
+            so the first document card starts one heading plus one gap below the
+            column top while the sidebar started flush with it — the two cards
+            sat 36px out of line. 36px is that heading's own height (20px: the
+            h2's line box, which the count badge exactly fills without exceeding)
+            plus the list's space-y-4 (16px). mt-9 is 2.25rem.
+
+            lg ONLY. Below lg the sidebar stacks under the list rather than
+            beside it, where the same offset is just a stray gap.
+
+            If the heading's type scale changes, re-measure — this number is
+            derived from it, not chosen. */}
+        <aside className="space-y-6 lg:mt-9 lg:sticky lg:top-8 lg:self-start">
           <Panel className="sm:p-6">
             {/*
               Three states, not two. "Nothing outstanding" and "everything has
