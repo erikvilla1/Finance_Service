@@ -122,21 +122,57 @@ export async function saveObligations(
  * existing advance or loan. Asking a business with no debt to list its debts is
  * a section they cannot complete and will not understand.
  */
+/** The prequal answers that say the business already carries financing. */
+const PREQUAL_DEBT_KEYS = [
+  "open_positions_count",
+  "debt_position_count",
+  "debt_types",
+  "current_financing_balance",
+  "debt_total_balance",
+];
+
 /**
  * Whether the schedule is offered.
  *
- * OFFERED, NOT REQUIRED. The client review (Notion 09.27) made the debt
- * schedule optional: it never blocks a file, a green check or the package.
- * It is still put in front of — and only — someone who has said the
- * business carries existing financing, in the prequal (an outstanding
- * balance, an advance among the debt types) or in the financials section
- * ("Open MCA or loan accounts?"), because that is the applicant a funding
- * source will ask about it, and listing it up front saves the round trip.
+ * OFFERED, NOT REQUIRED, AND ONLY BY THE PREQUAL. The client review (Notion
+ * 09.27) made the debt schedule optional, and the 10-08 review narrowed
+ * when it appears at all: only when the prequal said the business has
+ * existing financing — open positions, a balance to refinance, an advance
+ * among the debt types. The financials section's own "existing advances or
+ * loans?" does not bring it up; the client wants the schedule to follow
+ * what was said at the start, not to surface mid-form.
+ *
+ * Read from the prequal's raw answers rather than the application columns,
+ * because the financials section writes the same columns and would
+ * otherwise trigger it. Runs on the caller's client, so RLS scopes it.
  */
-export function obligationsApply(application: {
-  has_existing_mca?: unknown;
-  existing_debt_balance?: unknown;
-}): boolean {
-  const balance = Number(application.existing_debt_balance);
-  return application.has_existing_mca === true || (Number.isFinite(balance) && balance > 0);
+export async function obligationsApply(applicationId: string): Promise<boolean> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("application_answers")
+    .select("question_key, value")
+    .eq("application_id", applicationId)
+    .in("question_key", PREQUAL_DEBT_KEYS);
+
+  for (const row of data ?? []) {
+    const value = row.value as unknown;
+    switch (row.question_key) {
+      case "open_positions_count":
+      case "debt_position_count":
+        if (typeof value === "string" && value !== "" && value !== "0") return true;
+        break;
+      case "debt_types":
+        if (Array.isArray(value) && value.some((type) => type && type !== "none")) return true;
+        break;
+      case "current_financing_balance":
+      case "debt_total_balance": {
+        const amount = Number(value);
+        if (Number.isFinite(amount) && amount > 0) return true;
+        break;
+      }
+    }
+  }
+
+  return false;
 }

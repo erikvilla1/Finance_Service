@@ -420,8 +420,11 @@ export function NextStepCard({ step }: { step: NextStep }) {
           : "bg-white/85 ring-1 ring-inset ring-ink-200/70 backdrop-blur"
       }`}
     >
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
+      <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        {/* flex-1 with a zero basis so the copy takes what the button leaves
+            and the row does not wrap the button under it; the only thing
+            that wraps is a full-width error line from SignNowButton. */}
+        <div className="flex min-w-0 items-start gap-4 sm:flex-1 sm:basis-0">
           <span
             className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${
               action ? "bg-white/10 text-white ring-1 ring-inset ring-white/15" : "bg-success-50 text-success-700"
@@ -442,7 +445,7 @@ export function NextStepCard({ step }: { step: NextStep }) {
           </div>
         </div>
         {step.action && (
-          <SignNowButton applicationId={step.action.applicationId} label={step.action.label} onDark />
+          <SignNowButton applicationId={step.action.applicationId} label={step.action.label} onDark inRow />
         )}
         {step.cta && (
           <Link

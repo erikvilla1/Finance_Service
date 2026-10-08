@@ -13,11 +13,18 @@ export function SignNowButton({
   applicationId,
   label = "Sign now",
   onDark = false,
+  inRow = false,
   className = "",
 }: {
   applicationId: string;
   label?: string;
   onDark?: boolean;
+  /**
+   * Inside a wrapping flex row (the next-step card): the form dissolves
+   * into its parent so the button sits in the row and the error, if any,
+   * takes a full line beneath it instead of squeezing the copy beside it.
+   */
+  inRow?: boolean;
   className?: string;
 }) {
   const [state, formAction, pending] = useActionState<SignNowState, FormData>(
@@ -26,7 +33,7 @@ export function SignNowButton({
   );
 
   return (
-    <form action={formAction} className={`shrink-0 ${className}`}>
+    <form action={formAction} className={inRow ? "contents" : `shrink-0 ${className}`}>
       <input type="hidden" name="applicationId" value={applicationId} />
       <button
         type="submit"
@@ -52,7 +59,7 @@ export function SignNowButton({
       {state.error && (
         <p
           role="alert"
-          className={`mt-3 text-sm leading-relaxed ${onDark ? "text-accent-200" : "text-danger-700"}`}
+          className={`text-sm leading-relaxed ${inRow ? "sm:basis-full sm:pl-[3.75rem]" : "mt-3"} ${onDark ? "text-accent-200" : "text-danger-700"}`}
         >
           {state.error}
         </p>

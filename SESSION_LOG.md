@@ -486,6 +486,19 @@ fallback everywhere else.
   a maximised window at 150% scaling. Verified with reduced motion
   emulated at 1263×620, 1366×650 and 1440×900.
 
+- **Application form, second review (10-08, later).** Migration 0037,
+  applied to production: state of incorporation, start date, bankruptcy
+  year and discharge (when a bankruptcy is reported), and the owner's date
+  of birth and home address are required; landlord details ask only for
+  "rent"; a "Desired loan amount" question joins the financials section,
+  routed to `applications.requested_amount`, because the lender form
+  needed it and nothing asked it — which is what the "Still blank:
+  Desired Loan Amount" message on Sign now was saying. Co-owners need an
+  email and mobile number. The existing-obligations section is offered
+  only when the prequal reported existing financing, read from the prequal's
+  own answers so the financials section cannot bring it up. The sign-now
+  card keeps its layout when it shows an error.
+
 ## What is left
 
 1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,

@@ -81,9 +81,7 @@ export async function requestOwnSignature(
 
     if (!report.readyToSend) {
       const missing = report.missing.map((field) => field.formLabel).join(", ");
-      return {
-        error: `A few things are still blank on the application itself: ${missing}. Fill those in and the button will work.`,
-      };
+      return { error: `Still blank on the application: ${missing}.` };
     }
 
     const service = createServiceRoleClient();

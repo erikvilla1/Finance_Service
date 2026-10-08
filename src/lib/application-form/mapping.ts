@@ -64,6 +64,10 @@ export const QUESTION_TARGETS: Record<string, FormTarget> = {
   business_landlord_phone: { table: "business", column: "landlord_phone" },
 
   // -------------------------------------------------------- financial_snapshot
+  // The lender form's "Desired Loan Amount". The prequal fills it for the
+  // branches that ask a figure; working capital asks a range, so this is
+  // where that applicant types the number (migration 0037).
+  fin_requested_amount: { table: "application", column: "requested_amount" },
   fin_gross_annual_sales: { table: "application", column: "gross_annual_sales" },
   fin_avg_monthly_card_volume: { table: "application", column: "avg_monthly_card_volume" },
   fin_credit_card_processor: { table: "application", column: "credit_card_processor" },
