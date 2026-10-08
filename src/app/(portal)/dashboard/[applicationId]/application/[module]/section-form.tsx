@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CircleAlert, LoaderCircle } from "lucide-react";
 import { Field, Input, Select, Textarea } from "@/components/ui";
+import { AmountInput } from "@/components/application/amount-input";
 import { primaryButton } from "@/components/portal/ui";
 import type { Question } from "@/lib/questions";
 import { hiddenQuestionKeys } from "@/lib/questions/rules";
@@ -466,16 +467,29 @@ function renderControl(
       return <Textarea {...shared} />;
 
     case "currency":
-      // Deliberately not type="number". Someone typing "1,200,000" into a
-      // number input gets silently emptied by the browser; the save path strips
-      // the punctuation instead.
+      // The same grouping input as the prequal: commas appear as the number
+      // is typed, a stored 500000 reads back as 500,000, and the dollar sign
+      // sits in the field rather than in the placeholder. Not type="number",
+      // which cannot show a comma at all. The save path strips the
+      // punctuation (validate.ts).
       return (
-        <Input
-          {...shared}
-          type="text"
-          inputMode="decimal"
-          placeholder={question.placeholder ?? "$0"}
-        />
+        <div className="relative">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-ink-500"
+          >
+            $
+          </span>
+          <AmountInput
+            id={id}
+            name={question.key}
+            disabled={disabled}
+            value={value}
+            onValueChange={onChange}
+            placeholder={question.placeholder ?? "0"}
+            className="pl-7"
+          />
+        </div>
       );
 
     case "percent":

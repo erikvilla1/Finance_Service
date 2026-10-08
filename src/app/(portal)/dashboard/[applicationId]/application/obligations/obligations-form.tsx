@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Field, Input } from "@/components/ui";
+import { AmountInput } from "@/components/application/amount-input";
 import { primaryButton } from "@/components/portal/ui";
 import type { ExistingDebtRow } from "@/types/database";
 import { saveObligationsAction, type ObligationsState } from "./actions";
@@ -130,29 +131,37 @@ export function ObligationsForm({
             </Field>
 
             <Field label="Current balance" htmlFor={`balance-${row.id}`}>
-              <Input
-                id={`balance-${row.id}`}
-                name={`balance.${index}`}
-                value={row.balance}
-                disabled={readOnly}
-                inputMode="decimal"
-                placeholder="$0"
-                onChange={(e) => update(row.id, { balance: e.target.value })}
-              />
+              <div className="relative">
+                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-ink-500">
+                  $
+                </span>
+                <AmountInput
+                  id={`balance-${row.id}`}
+                  name={`balance.${index}`}
+                  value={row.balance}
+                  disabled={readOnly}
+                  placeholder="0"
+                  className="pl-7"
+                  onValueChange={(next) => update(row.id, { balance: next })}
+                />
+              </div>
             </Field>
 
             <Field label="Monthly payment" htmlFor={`payment-${row.id}`}>
-              <Input
-                id={`payment-${row.id}`}
-                name={`monthly_payment.${index}`}
-                value={row.monthlyPayment}
-                disabled={readOnly}
-                inputMode="decimal"
-                placeholder="$0"
-                onChange={(e) =>
-                  update(row.id, { monthlyPayment: e.target.value })
-                }
-              />
+              <div className="relative">
+                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-ink-500">
+                  $
+                </span>
+                <AmountInput
+                  id={`payment-${row.id}`}
+                  name={`monthly_payment.${index}`}
+                  value={row.monthlyPayment}
+                  disabled={readOnly}
+                  placeholder="0"
+                  className="pl-7"
+                  onValueChange={(next) => update(row.id, { monthlyPayment: next })}
+                />
+              </div>
             </Field>
           </div>
         </div>
