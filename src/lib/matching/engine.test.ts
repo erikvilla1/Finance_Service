@@ -32,7 +32,7 @@ describe("spec §15 acceptance tests", () => {
       seller_type: "dealer",
       equipment_year: 2018,
       equipment_state: "TX",
-      equipment_monthly_deposits: 95_000,
+      avg_monthly_revenue: 95_000,
     };
     const result = match("equipment", answers);
 
@@ -235,8 +235,8 @@ describe("spec §15 acceptance tests", () => {
 
   it("range integrity: no dollar estimate without a documented sizing formula", () => {
     const samples: [Parameters<typeof match>[0], Answers][] = [
-      ["working_capital", { requested_amount_range: "50k_100k", time_in_business: "2_5y", owner_credit_range: "680_699", industry: "Retail", credit_events: ["none"], avg_monthly_revenue: 80_000, avg_monthly_deposits: 75_000, deposit_trend: "consistent", open_positions_count: "0", use_of_funds: "inventory" }],
-      ["equipment", { requested_amount_range: "25k_50k", time_in_business: "5y_plus", owner_credit_range: "740_plus", industry: "Construction", credit_events: ["none"], equipment_cost: 40_000, equipment_category: "construction", equipment_condition: "new", equipment_state: "TX", equipment_monthly_deposits: 60_000 }],
+      ["working_capital", { requested_amount_range: "50k_100k", time_in_business: "2_5y", owner_credit_range: "680_699", industry: "Retail", credit_events: ["none"], avg_monthly_revenue: 80_000, monthly_deposit_count: 18, deposit_trend: "consistent", open_positions_count: "0", use_of_funds: "inventory" }],
+      ["equipment", { requested_amount_range: "25k_50k", time_in_business: "5y_plus", owner_credit_range: "740_plus", industry: "Construction", credit_events: ["none"], equipment_cost: 40_000, equipment_category: "construction", equipment_condition: "new", equipment_state: "TX", avg_monthly_revenue: 60_000 }],
     ];
     for (const [objective, answers] of samples) {
       for (const m of match(objective, answers).productMatches) {
@@ -252,7 +252,7 @@ describe("spec §15 acceptance tests", () => {
         sizing: { description: "test", compute: () => ({ min: 10_000, max: 40_000 }) },
       },
     ];
-    const answers: Answers = { requested_amount_range: "25k_50k", time_in_business: "2_5y", owner_credit_range: "600_619", industry: "Retail", credit_events: ["none"], equipment_cost: 40_000, equipment_state: "TX", equipment_monthly_deposits: 40_000 };
+    const answers: Answers = { requested_amount_range: "25k_50k", time_in_business: "2_5y", owner_credit_range: "600_619", industry: "Retail", credit_events: ["none"], equipment_cost: 40_000, equipment_state: "TX", avg_monthly_revenue: 40_000 };
     assert.equal(match("equipment", answers, withSizing("provisional")).productMatches[0].estimatedRange, null);
     assert.deepEqual(match("equipment", answers, withSizing("documented")).productMatches[0].estimatedRange, { min: 10_000, max: 40_000 });
   });
@@ -260,7 +260,7 @@ describe("spec §15 acceptance tests", () => {
 
 describe("customer view never names a lender", () => {
   it("product matches carry families only", () => {
-    const result = match("working_capital", { requested_amount_range: "50k_100k", time_in_business: "2_5y", owner_credit_range: "680_699", industry: "Retail", credit_events: ["none"], avg_monthly_revenue: 80_000, avg_monthly_deposits: 75_000, deposit_trend: "consistent", open_positions_count: "0", use_of_funds: "payroll" });
+    const result = match("working_capital", { requested_amount_range: "50k_100k", time_in_business: "2_5y", owner_credit_range: "680_699", industry: "Retail", credit_events: ["none"], avg_monthly_revenue: 80_000, monthly_deposit_count: 18, deposit_trend: "consistent", open_positions_count: "0", use_of_funds: "payroll" });
     for (const m of result.productMatches) {
       assert.deepEqual(Object.keys(m).sort(), ["estimatedRange", "primary", "productFamily", "state"]);
     }
@@ -286,6 +286,19 @@ describe("conditions and facts", () => {
     const facts = buildFacts("working_capital", { open_positions_count: "0", avg_monthly_revenue: "$80,000" });
     assert.equal(facts.open_positions_count, "0");
     assert.equal(facts.avg_monthly_revenue, 80_000);
+  });
+
+  it("deposits are a count; revenue is the one dollar figure every cash-flow rule reads", () => {
+    const wc = buildFacts("working_capital", { avg_monthly_revenue: "80,000", monthly_deposit_count: "18" });
+    assert.equal(wc.monthly_revenue, 80_000);
+    assert.equal(wc.deposit_count, 18);
+    assert.equal("monthly_deposits" in wc, false);
+
+    // The equipment branch asks revenue under the same id, and 360's
+    // deposit-to-cost ratio reads it: $40K a month against a $90K machine.
+    const eq = buildFacts("equipment", { equipment_cost: 90_000, avg_monthly_revenue: 40_000 });
+    assert.equal(eq.monthly_revenue, 40_000);
+    assert.ok(Math.abs((eq.deposit_to_cost as number) - 40_000 / 90_000) < 1e-9);
   });
 
   it("DSCR is never estimated", () => {

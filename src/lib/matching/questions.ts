@@ -157,7 +157,20 @@ const YES_NO_UNSURE = [...YES_NO, opt("not_sure", "Not sure")];
 
 const workingCapital: FieldDef[] = [
   { id: "avg_monthly_revenue", label: "Average monthly business revenue", type: "currency", required: true },
-  { id: "avg_monthly_deposits", label: "Average monthly business deposits", type: "currency", required: true },
+  // A COUNT, NOT A DOLLAR FIGURE. Revenue above is the magnitude every
+  // cash-flow credit box sizes against; a second dollar figure for deposits
+  // was the same number asked twice. What underwriting actually reads off the
+  // bank statements, beyond the total, is how many deposits make it up — a
+  // business paid in twenty transfers a month looks different from one paid
+  // in a single lump — so that is the question (Robert, Notion review).
+  {
+    id: "monthly_deposit_count",
+    label: "How many deposits does the business receive in a typical month?",
+    help: "The number of separate deposits into the business bank account, not the dollar amount.",
+    type: "number",
+    placeholder: "e.g. 20",
+    required: true,
+  },
   {
     id: "deposit_trend",
     label: "How have your deposits been trending?",
@@ -251,7 +264,10 @@ const equipment: FieldDef[] = [
   },
   { id: "equipment_state", label: "Which state is the business (and equipment) in?", type: "state", required: true },
   { id: "equipment_down_payment", label: "Down payment available, if any", type: "currency", required: false },
-  { id: "equipment_monthly_deposits", label: "Average monthly business deposits", type: "currency", required: true },
+  // Same id as the working-capital branch on purpose: one answer key feeds
+  // facts.monthly_revenue and the applications.avg_monthly_revenue column
+  // whichever branch asked it. 360 reads its deposit-to-cost ratio off this.
+  { id: "avg_monthly_revenue", label: "Average monthly business revenue", type: "currency", required: true },
 ];
 
 const commercialRealEstate: FieldDef[] = [

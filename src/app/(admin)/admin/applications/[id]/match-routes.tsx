@@ -53,7 +53,7 @@ const METRIC_LABEL: Record<keyof CalculatedMetrics, string> = {
   ltc: "LTC",
   arvLeverage: "Loan / ARV",
   dscr: "DSCR",
-  depositToCost: "Deposits / equipment cost",
+  depositToCost: "Monthly revenue / equipment cost",
 };
 
 const pct = (value: number) => `${Math.round(value * 1000) / 10}%`;

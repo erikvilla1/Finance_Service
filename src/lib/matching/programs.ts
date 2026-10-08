@@ -74,13 +74,15 @@ const notInStates = (states: string[]): Rule => ({
   test: { fact: "state", op: "not_in", value: states },
 });
 
+// Worded by the lender as "annual sales OR a month deposited"; both read the
+// one revenue figure the prequal collects (facts.ts, Cash flow).
 const salesOrDeposits = (annual: number, monthly: number): Rule => ({
   id: "sales_or_deposits",
   description: `${money(annual)} annual sales or ${money(monthly)} a month deposited`,
   test: {
     any: [
       { fact: "annual_revenue", op: "gte", value: annual },
-      { fact: "monthly_deposits", op: "gte", value: monthly },
+      { fact: "monthly_revenue", op: "gte", value: monthly },
     ],
   },
 });
@@ -397,7 +399,7 @@ export const PROGRAMS: Program[] = [
       NO_ACTIVE_BK,
       {
         id: "deposits_40pct_of_cost",
-        description: "Organic monthly deposits at least 40% of the equipment cost",
+        description: "Organic monthly deposits (monthly revenue) at least 40% of the equipment cost",
         test: { fact: "deposit_to_cost", op: "gte", value: 0.4 },
       },
     ],
@@ -429,7 +431,7 @@ export const PROGRAMS: Program[] = [
     softRules: [
       {
         id: "deposits_85pct_of_cost",
-        description: "Monthly business deposits roughly 85–100% of the equipment cost (underwriting guideline)",
+        description: "Monthly deposits (monthly revenue) roughly 85–100% of the equipment cost (underwriting guideline)",
         test: { fact: "deposit_to_cost", op: "gte", value: 0.85 },
       },
       {
@@ -482,7 +484,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: "deposits_85pct_of_request",
-        description: "Organic monthly deposits at least 85% of the requested amount",
+        description: "Organic monthly deposits (monthly revenue) at least 85% of the requested amount",
         test: { fact: "deposit_to_cost", op: "gte", value: 0.85 },
       },
     ],
@@ -1560,7 +1562,7 @@ export const PROGRAMS: Program[] = [
       {
         id: "monthly_sales_17k",
         description: "$17K+ monthly sales",
-        test: { any: [{ fact: "monthly_revenue", op: "gte", value: 17_000 }, { fact: "monthly_deposits", op: "gte", value: 17_000 }] },
+        test: { fact: "monthly_revenue", op: "gte", value: 17_000 },
       },
       {
         id: "max_2_advances",
@@ -1590,7 +1592,7 @@ export const PROGRAMS: Program[] = [
       {
         id: "monthly_sales_17k",
         description: "$17K+ monthly sales",
-        test: { any: [{ fact: "monthly_revenue", op: "gte", value: 17_000 }, { fact: "monthly_deposits", op: "gte", value: 17_000 }] },
+        test: { fact: "monthly_revenue", op: "gte", value: 17_000 },
       },
     ],
     softRules: [],
@@ -1611,7 +1613,7 @@ export const PROGRAMS: Program[] = [
     amountMax: 500_000,
     hardRules: [
       minTib(3),
-      { id: "deposits_15k", description: "$15K+ average monthly deposits", test: { fact: "monthly_deposits", op: "gte", value: 15_000 } },
+      { id: "deposits_15k", description: "$15K+ a month deposited (read as monthly revenue)", test: { fact: "monthly_revenue", op: "gte", value: 15_000 } },
       {
         id: "no_advance_defaults",
         description: "No defaults on previous advances",

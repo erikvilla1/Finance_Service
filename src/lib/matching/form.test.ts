@@ -34,13 +34,13 @@ describe("readAnswers", () => {
       ["equipment_year", "2021"],
       ["equipment_state", "TX"],
       ["equipment_down_payment", ""],
-      ["equipment_monthly_deposits", "25,000"],
+      ["avg_monthly_revenue", "25,000"],
     ]);
 
     const answers = readAnswers(questionsFor("equipment"), posted);
 
     assert.equal(answers.equipment_cost, 90_000);
-    assert.equal(answers.equipment_monthly_deposits, 25_000);
+    assert.equal(answers.avg_monthly_revenue, 25_000);
     assert.deepEqual(answers.credit_events, ["none"]);
     assert.equal(answers.equipment_state, "TX");
     assert.equal("equipment_down_payment" in answers, false);

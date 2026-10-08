@@ -248,7 +248,7 @@ const FIELD_LABELS = new Map(
 );
 
 const DERIVED_LABELS: Record<string, string> = {
-  deposit_to_cost: "Equipment cost and monthly business deposits",
+  deposit_to_cost: "Equipment cost and average monthly revenue",
   re_purchase: "Purchase price",
   owns_titled_vehicle: "Whether the business owns a titled vehicle free and clear",
   ownership_diversity: "Ownership details (for diverse-owned business programs)",
