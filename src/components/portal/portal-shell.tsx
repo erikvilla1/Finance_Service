@@ -5,10 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Check,
   CircleHelp,
   FileText,
   FolderUp,
   LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
   PenLine,
@@ -49,12 +51,22 @@ interface NavItem {
   prefix?: boolean;
   /** A small dot: something here is waiting on them. */
   attention?: boolean;
+  /**
+   * A sub-item, drawn indented under the item before it with a tree line —
+   * Sign under Application, because the signature is the application's.
+   */
+  sub?: boolean;
+  /** Shown but not reachable yet, greyed with a lock. */
+  locked?: boolean;
+  /** Finished: a check instead of the icon. */
+  done?: boolean;
 }
 
 export function PortalShell({
   user,
   applicationId,
   signatureRequested,
+  signed = false,
   documentsAttention = false,
   children,
 }: {
@@ -62,6 +74,8 @@ export function PortalShell({
   /** The most recent application, for the Application / Documents links. */
   applicationId: string | null;
   signatureRequested: boolean;
+  /** A signed application is on file (and has not been returned). */
+  signed?: boolean;
   /** Something in Documents was sent back and needs another copy. */
   documentsAttention?: boolean;
   children: ReactNode;
@@ -85,6 +99,20 @@ export function PortalShell({
             icon: FileText,
             prefix: true,
           },
+          // Always listed, under Application, because the signature belongs
+          // to it: locked and greyed until the application is released for
+          // signature (Sign now, or the specialist), live with a dot while
+          // it waits, and checked once signed (client review, 10-08).
+          {
+            href: `/dashboard/${applicationId}/sign`,
+            label: "Sign",
+            icon: PenLine,
+            prefix: true,
+            sub: true,
+            locked: !signatureRequested && !signed,
+            done: signed,
+            attention: signatureRequested && !signed,
+          },
           {
             href: `/dashboard/${applicationId}/documents`,
             label: "Documents",
@@ -92,17 +120,6 @@ export function PortalShell({
             prefix: true,
             attention: documentsAttention,
           },
-          ...(signatureRequested
-            ? [
-                {
-                  href: `/dashboard/${applicationId}/sign`,
-                  label: "Sign",
-                  icon: PenLine,
-                  prefix: true,
-                  attention: true,
-                },
-              ]
-            : []),
         ]
       : []),
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
@@ -146,9 +163,34 @@ export function PortalShell({
         <ul data-tour="nav" className="space-y-1">
           {nav.map((item) => {
             const active = isActive(item);
-            const Icon = item.icon;
+            const Icon = item.done ? Check : item.locked ? Lock : item.icon;
+            // The tree line: a sub-item hangs off the item above it.
+            const wrap = item.sub ? "relative ml-[1.45rem] pl-3" : undefined;
+            const branch = item.sub && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-1 bottom-1/2 left-0 w-3 rounded-bl-lg border-b border-l border-ink-300"
+              />
+            );
+            if (item.locked) {
+              return (
+                <li key={item.href} className={wrap}>
+                  {branch}
+                  <span
+                    aria-disabled="true"
+                    title="Unlocks once every section of your application is complete"
+                    className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-400"
+                  >
+                    <Icon aria-hidden="true" className="h-[1.125rem] w-[1.125rem] shrink-0 text-ink-300" strokeWidth={1.9} />
+                    <span className="flex-1">{item.label}</span>
+                    <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-ink-400">Locked</span>
+                  </span>
+                </li>
+              );
+            }
             return (
-              <li key={item.href}>
+              <li key={item.href} className={wrap}>
+                {branch}
                 <Link
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
@@ -161,8 +203,10 @@ export function PortalShell({
                 >
                   <Icon
                     aria-hidden="true"
-                    className={`h-[1.125rem] w-[1.125rem] shrink-0 ${active ? "text-white" : "text-ink-500 group-hover:text-ink-800"}`}
-                    strokeWidth={1.9}
+                    className={`h-[1.125rem] w-[1.125rem] shrink-0 ${
+                      active ? "text-white" : item.done ? "text-success-700" : "text-ink-500 group-hover:text-ink-800"
+                    }`}
+                    strokeWidth={item.done ? 2.5 : 1.9}
                   />
                   <span className="flex-1">{item.label}</span>
                   {item.attention && (

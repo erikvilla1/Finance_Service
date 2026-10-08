@@ -51,13 +51,30 @@ function caretAfterFormat(formatted: string, significant: number): number {
   return formatted.length;
 }
 
+/** The grouped form of whatever was typed or stored: "500000" → "500,000". */
+export const formatAmount = format;
+
+/**
+ * Two ways to hold it. Uncontrolled (`defaultValue`), as the prequal uses it,
+ * where the input owns its text. Controlled (`value` + `onValueChange`), as
+ * the application form and the debt schedule use it, where the form owns a
+ * draft of every field so a rejected save cannot empty them (see the note on
+ * controlled fields in section-form.tsx). Either way the text shown is the
+ * grouped form, and what goes up is the grouped text — the save paths strip
+ * the commas (validate.ts, obligations/actions.ts).
+ */
 export function AmountInput({
   defaultValue,
+  value: controlled,
+  onValueChange,
   ...props
 }: Omit<ComponentPropsWithoutRef<"input">, "type" | "value" | "onChange"> & {
   defaultValue?: string;
+  value?: string;
+  onValueChange?: (formatted: string) => void;
 }) {
-  const [value, setValue] = useState(() => format(String(defaultValue ?? "")));
+  const [own, setOwn] = useState(() => format(String(defaultValue ?? "")));
+  const value = controlled === undefined ? own : format(controlled);
 
   return (
     <Input
@@ -72,7 +89,8 @@ export function AmountInput({
         const significant = significantBefore(input.value, caret);
         const formatted = format(input.value);
 
-        setValue(formatted);
+        if (controlled === undefined) setOwn(formatted);
+        onValueChange?.(formatted);
 
         // Re-anchoring the caret is not cosmetic: inserting a comma shifts every
         // character to its right, and without this, editing the middle of a

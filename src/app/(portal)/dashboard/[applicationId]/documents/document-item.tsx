@@ -102,8 +102,7 @@ export function DocumentItem({
           </Link>
           <p className="mt-2 text-sm leading-relaxed text-ink-600">
             Your application is prefilled and ready. Signing it takes a couple of
-            minutes. Rather sign on paper? Ask your specialist for a copy to
-            print, then upload the signed pages below.
+            minutes.
           </p>
         </div>
       )}
