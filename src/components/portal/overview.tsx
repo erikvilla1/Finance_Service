@@ -56,15 +56,10 @@ export function Greeting({ firstName, line }: { firstName: string | null; line: 
  * How far along the applicant's own part is: answers, the existing-loans
  * section when it applies, and documents sent, as one percentage.
  */
-export function readinessPercent(
-  lead: LeadSummary | undefined,
-  obligations?: { required: boolean; done: boolean },
-): number {
+export function readinessPercent(lead: LeadSummary | undefined): number {
   if (!lead) return 0;
-  const extra = obligations?.required ? 1 : 0;
-  const done =
-    lead.formAnswered + (obligations?.required && obligations.done ? 1 : 0) + (lead.docsTotal - lead.docsOutstanding);
-  const total = lead.formRequired + extra + lead.docsTotal;
+  const done = lead.formAnswered + (lead.docsTotal - lead.docsOutstanding);
+  const total = lead.formRequired + lead.docsTotal;
   return total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
 }
 
@@ -250,8 +245,6 @@ export function nextStepFor(
   lead: LeadSummary | undefined,
   actionNeeded: boolean,
   isSigned: boolean,
-  /** The existing-loans section applies and hasn't been filled in. */
-  obligationsLeft = false,
 ): NextStep {
   const id = application.id;
   const formLeft = Math.max(0, (lead?.formRequired ?? 0) - (lead?.formAnswered ?? 0));
@@ -273,15 +266,6 @@ export function nextStepFor(
       title: started ? "Finish your application" : "Complete your application",
       body: `${formLeft} ${formLeft === 1 ? "question" : "questions"} left. Your answers save as you go, so you can do it in more than one sitting.`,
       cta: { label: started ? "Pick up where you left off" : "Start your application", href: `/dashboard/${id}/application` },
-      tone: "action",
-    };
-  }
-  if (obligationsLeft) {
-    return {
-      icon: FileText,
-      title: "Finish your application",
-      body: "One section left: the loans and advances your business already has.",
-      cta: { label: "Finish this section", href: `/dashboard/${id}/application/obligations` },
       tone: "action",
     };
   }
@@ -460,18 +444,14 @@ export function Checklist({
   lead,
   signatureRequested,
   signed,
-  obligations,
 }: {
   applicationId: string;
   lead: LeadSummary | undefined;
   signatureRequested: boolean;
   signed: boolean;
-  /** The existing-loans section, when it applies: counted as one more item. */
-  obligations?: { required: boolean; done: boolean };
 }) {
-  const extra = obligations?.required ? 1 : 0;
-  const formDone = (lead?.formAnswered ?? 0) + (obligations?.required && obligations.done ? 1 : 0);
-  const formTotal = (lead?.formRequired ?? 0) + extra;
+  const formDone = lead?.formAnswered ?? 0;
+  const formTotal = lead?.formRequired ?? 0;
   const docsTotal = lead?.docsTotal ?? 0;
   const docsSent = docsTotal - (lead?.docsOutstanding ?? 0);
   const docsSettled = lead?.docsSettled ?? 0;

@@ -16,6 +16,12 @@ import {
   targetFor,
   type FormModule,
 } from "./mapping";
+import {
+  needsCoOwners,
+  ownershipComplete,
+  toPercent,
+  type CoOwner,
+} from "./co-owners";
 
 /**
  * Reading the full application back.
@@ -53,6 +59,12 @@ export interface FormSection {
   complete: boolean;
   /** Nothing has been filled in at all. Drives "Start" vs "Continue". */
   untouched: boolean;
+  /**
+   * The additional-owner lines (owner section only). Counted as one more
+   * required item whenever the primary share is under 100%: the section is
+   * complete when they add up (see co-owners.ts).
+   */
+  coOwners?: CoOwner[];
 }
 
 export interface ApplicationForm {
@@ -113,7 +125,7 @@ export async function loadApplicationForm(
 
   if (!application) return null;
 
-  const [{ data: business }, { data: owner }, { data: answers }] =
+  const [{ data: business }, { data: owner }, { data: answers }, { data: coOwnerRows }] =
     await Promise.all([
       application.business_id
         ? supabase
@@ -132,7 +144,23 @@ export async function loadApplicationForm(
         .from("application_answers")
         .select("question_key, value")
         .eq("application_id", applicationId),
+      supabase
+        .from("application_owners")
+        .select("id, first_name, last_name, title, ownership_pct, email, mobile_phone")
+        .eq("application_id", applicationId)
+        .eq("is_primary", false)
+        .order("created_at"),
     ]);
+
+  const coOwners: CoOwner[] = (coOwnerRows ?? []).map((row) => ({
+    id: row.id,
+    firstName: row.first_name ?? "",
+    lastName: row.last_name ?? "",
+    title: row.title ?? "",
+    ownershipPct: toPercent(row.ownership_pct),
+    email: row.email ?? "",
+    mobilePhone: row.mobile_phone ?? "",
+  }));
 
   const answerMap: Record<string, unknown> = {};
   for (const row of answers ?? []) answerMap[row.question_key] = row.value;
@@ -188,9 +216,20 @@ export async function loadApplicationForm(
     }
 
     const required = visible.filter((question) => question.isRequired);
-    const requiredAnswered = required.filter((question) =>
+    let requiredTotal = required.length;
+    let requiredAnswered = required.filter((question) =>
       isAnswered(values[question.key]),
     ).length;
+
+    // Ownership has to add up. A primary share under 100% is one more thing
+    // the section needs: the other owners, listed, totalling the rest.
+    if (moduleKey === "owner") {
+      const primaryPct = toPercent(values.owner_ownership_pct);
+      if (needsCoOwners(primaryPct)) {
+        requiredTotal += 1;
+        if (ownershipComplete(primaryPct, coOwners)) requiredAnswered += 1;
+      }
+    }
 
     sections.push({
       module: moduleKey,
@@ -199,10 +238,11 @@ export async function loadApplicationForm(
       questions: visible,
       allQuestions: step.questions,
       values,
-      requiredTotal: required.length,
+      requiredTotal,
       requiredAnswered,
-      complete: required.length > 0 && requiredAnswered === required.length,
+      complete: requiredTotal > 0 && requiredAnswered === requiredTotal,
       untouched: visible.every((question) => !isAnswered(values[question.key])),
+      ...(moduleKey === "owner" ? { coOwners } : {}),
     });
   }
 

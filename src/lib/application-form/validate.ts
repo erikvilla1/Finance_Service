@@ -136,7 +136,7 @@ function validateNumber(
   return { value: parsed };
 }
 
-function validateEmail(value: unknown): ValidationResult {
+export function validateEmail(value: unknown): ValidationResult {
   const text = String(value).trim().toLowerCase();
 
   // Deliberately loose. The only address that is definitely deliverable is one

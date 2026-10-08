@@ -5,7 +5,6 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { customerStatus } from "@/lib/customer-status";
-import { obligationsRequired } from "@/lib/application-form/obligations";
 import { formatDate } from "@/lib/crm";
 import { loadLeadSummaries } from "@/lib/leads";
 import { loadChecklist } from "@/lib/documents/checklist";
@@ -110,37 +109,22 @@ export default async function DashboardPage() {
     .is("deleted_at", null);
   const signed = new Set((signedDocuments ?? []).map((d) => d.application_id));
 
-  // The existing-loans section is part of the application for anyone who said
-  // they have loans or advances, and it's counted apart from the questions:
-  // one row there finishes it.
-  const needsDebts = list.filter((application) => obligationsRequired(application)).map((a) => a.id);
-  const { data: debtRows } = needsDebts.length
-    ? await supabase.from("existing_debts").select("application_id").in("application_id", needsDebts)
-    : { data: [] };
-  const withDebts = new Set((debtRows ?? []).map((row) => row.application_id));
-  const obligationsOf = (application: (typeof list)[number]) => ({
-    required: obligationsRequired(application),
-    done: withDebts.has(application.id),
-  });
-
   // What the applicant has done, so a finished draft reads as In review (see
-  // customerStatus): every question answered and every document sent.
+  // customerStatus): every question answered and every document sent. The
+  // existing-obligations schedule is optional and is not counted here; the
+  // application overview is where it is offered.
   const progressOf = (application: (typeof list)[number]) => {
     const summary = summaries.get(application.id);
     if (!summary) return undefined;
-    const obligations = obligationsOf(application);
     return {
       applicationDone:
-        summary.formRequired > 0 &&
-        summary.formAnswered >= summary.formRequired &&
-        (!obligations.required || obligations.done),
+        summary.formRequired > 0 && summary.formAnswered >= summary.formRequired,
       documentsSent: summary.docsOutstanding === 0,
     };
   };
 
   const [current, ...others] = list;
   const lead = summaries.get(current.id);
-  const obligations = obligationsOf(current);
 
   // The current file's documents (for the activity feed and any "send another
   // copy" banner) and when its form was last saved. Reads only.
@@ -172,17 +156,11 @@ export default async function DashboardPage() {
       note: item.documents.find((d) => d.status === "rejected")?.note ?? null,
     }));
   const view = customerStatus(current.status, progressOf(current));
-  const next = nextStepFor(
-    current,
-    lead,
-    view.actionNeeded,
-    signed.has(current.id),
-    obligations.required && !obligations.done,
-  );
+  const next = nextStepFor(current, lead, view.actionNeeded, signed.has(current.id));
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Greeting firstName={firstName} line={greetingLine(view.stage, readinessPercent(lead, obligations))} />
+      <Greeting firstName={firstName} line={greetingLine(view.stage, readinessPercent(lead))} />
 
       {returned.length > 0 && (
         <div className="mt-8">
@@ -199,7 +177,6 @@ export default async function DashboardPage() {
             lead={lead}
             signatureRequested={Boolean(current.signature_requested_at)}
             signed={signed.has(current.id)}
-            obligations={obligations}
           />
         </div>
 

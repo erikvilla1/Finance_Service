@@ -1,8 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createZip, safeFileName, type ZipEntry } from "@/lib/zip";
-import { assessCompleteness } from "./completeness";
 import { loadFundingApplication } from "./load";
-import { formatCurrency, formatDate } from "@/lib/crm";
 
 /**
  * The lender package: one zip, everything a funder needs, named so the folder
@@ -19,10 +17,13 @@ import { formatCurrency, formatDate } from "@/lib/crm";
  * current. The newest non-deleted file wins, which is the same one the checklist
  * shows as satisfying the request.
  *
- * THE MANIFEST IS NOT DECORATION. It lists what is inside, and — more usefully —
- * what is not. A funder receiving a package with no debt schedule should be able
- * to see that it was waived rather than lost, and Robert should be able to see
- * it before he sends rather than after.
+ * NO MANIFEST. An earlier version put a "00 Package manifest.txt" at the top of
+ * the zip listing what was enclosed and what was not. The client asked what it
+ * was and for it to go (Notion 09.27): everything it said is already on the
+ * admin page the download comes from (lender package readiness, the missing
+ * list), and a funder does not need our internal completeness notes in their
+ * folder. `missing` still comes back to the caller for the warning before the
+ * download.
  *
  * Runs on the service role, deliberately and narrowly. Reading a dozen files out
  * of a private bucket in one request is the one thing a per-user client makes
@@ -46,8 +47,6 @@ export async function buildLenderPackage(
   const data = await loadFundingApplication(applicationId);
   if (!data) return null;
 
-  const report = assessCompleteness(data.context);
-  const application = data.context.application ?? {};
   const business = data.context.business;
 
   const businessName =
@@ -100,7 +99,6 @@ export async function buildLenderPackage(
   );
 
   const entries: ZipEntry[] = [];
-  const included: string[] = [];
   const missing: string[] = [];
 
   let position = 1;
@@ -110,11 +108,7 @@ export async function buildLenderPackage(
     const document = newestByRequest.get(request.id);
 
     if (!document) {
-      if (request.status === "waived") {
-        included.push(`${label} — waived, not required for this file`);
-      } else if (request.is_required) {
-        missing.push(label);
-      }
+      if (request.status !== "waived" && request.is_required) missing.push(label);
       continue;
     }
 
@@ -139,46 +133,8 @@ export async function buildLenderPackage(
       modified: new Date(document.created_at),
     });
 
-    included.push(
-      `${label} — ${document.file_name}${
-        document.status === "accepted" ? "" : ` (${document.status}, not yet accepted)`
-      }`,
-    );
-
     position += 1;
   }
-
-  // ---------------------------------------------------------------- manifest
-  const manifest = [
-    `LENDER PACKAGE`,
-    ``,
-    `Business          ${businessName}`,
-    `Reference         ${reference}`,
-    `Requested amount  ${formatCurrency(application.requested_amount as number | null)}`,
-    `Financing goal    ${(application.financing_goal as string) ?? "—"}`,
-    `Prepared          ${formatDate(new Date().toISOString())}`,
-    ``,
-    `APPLICATION COMPLETENESS`,
-    `${report.requiredPresent} of ${report.requiredTotal} required fields`,
-    report.readyToSend
-      ? `Complete.`
-      : `Outstanding: ${report.missing.map((f) => f.formLabel).join(", ")}`,
-    ``,
-    `ENCLOSED`,
-    ...(included.length > 0 ? included.map((line) => `  ${line}`) : ["  Nothing."]),
-    ``,
-    `NOT ENCLOSED`,
-    ...(missing.length > 0 ? missing.map((line) => `  ${line}`) : ["  Nothing outstanding."]),
-    ``,
-    `Collected on the signed document and not stored by us:`,
-    `  ${report.collectedAtSigning.map((f) => f.formLabel).join(", ")}`,
-    ``,
-  ].join("\n");
-
-  entries.unshift({
-    name: "00 Package manifest.txt",
-    data: new TextEncoder().encode(manifest),
-  });
 
   return {
     filename: `${safeFileName(`${reference} ${businessName}`)}.zip`,

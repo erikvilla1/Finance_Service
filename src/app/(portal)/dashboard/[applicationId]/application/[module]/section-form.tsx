@@ -9,6 +9,8 @@ import type { Question } from "@/lib/questions";
 import { hiddenQuestionKeys } from "@/lib/questions/rules";
 import type { QuestionRuleRow } from "@/types/database";
 import { saveSectionAction, type SectionState } from "./actions";
+import { CoOwnersBlock } from "./co-owners-block";
+import { toPercent, type CoOwner } from "@/lib/application-form/co-owners";
 
 /**
  * One section of the full application.
@@ -41,7 +43,7 @@ export function SectionForm({
   baseValues,
   readOnly,
   nextHref,
-  isLast,
+  coOwners,
 }: {
   applicationId: string;
   module: string;
@@ -50,9 +52,10 @@ export function SectionForm({
   rules: QuestionRuleRow[];
   baseValues: Record<string, unknown>;
   readOnly: boolean;
-  /** Where a successful save goes: the next section, or the overview. */
+  /** Where a successful save goes: the application overview. */
   nextHref: string;
-  isLast: boolean;
+  /** The additional-owner lines as saved (owner section only). */
+  coOwners?: CoOwner[];
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -67,9 +70,10 @@ export function SectionForm({
   const inFlight = useRef(false);
   const debounce = useRef<number | undefined>(undefined);
 
-  // "Save and continue" continues. A save with a rejected field stays put so
-  // it can be fixed; the button reads "Saving…" until the next page is up,
-  // because the navigation runs inside the same transition.
+  // "Save and continue" saves and goes back to the overview. A save with a
+  // rejected field stays put so it can be fixed; the button reads "Saving…"
+  // until the next page is up, because the navigation runs inside the same
+  // transition.
   const [state, formAction, pending] = useActionState<SectionState, FormData>(
     async (previous, formData) => {
       pendingSave.current = false;
@@ -199,6 +203,9 @@ export function SectionForm({
   const failedLabels = questions
     .filter((question) => failed[question.key])
     .map((question) => question.label);
+  if (Object.keys(failed).some((key) => key.startsWith("co_owner_"))) {
+    failedLabels.push("Other owners");
+  }
 
   // A hidden field is not submitted, and the save path only writes what it is
   // sent — so a question that stops applying keeps whatever it had rather than
@@ -246,6 +253,16 @@ export function SectionForm({
         />
       ))}
 
+      {module === "owner" && (
+        <CoOwnersBlock
+          initial={coOwners ?? []}
+          primaryPct={toPercent(draft.owner_ownership_pct)}
+          readOnly={readOnly}
+          errors={errors}
+          onChange={scheduleSave}
+        />
+      )}
+
       {state.error && (
         <p
           ref={errorRef}
@@ -265,7 +282,7 @@ export function SectionForm({
       {!readOnly && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-ink-100 pt-6">
           <button type="submit" disabled={pending} className={primaryButton}>
-            {pending ? "Saving…" : isLast ? "Save and finish" : "Save and continue"}
+            {pending ? "Saving…" : "Save and continue"}
           </button>
           <AutosaveStatus status={autosave} />
         </div>

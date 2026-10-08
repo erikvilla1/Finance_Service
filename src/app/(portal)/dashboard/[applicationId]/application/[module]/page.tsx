@@ -53,12 +53,12 @@ export default async function SectionPage({
   if (!form || index === -1) notFound();
 
   const section = form.sections[index];
-  const next = form.sections[index + 1];
-  // Saving moves on: to the next section, or from the last one back to the
-  // application overview, which shows anything still left (obligations too).
-  const nextHref = next
-    ? `/dashboard/${applicationId}/application/${next.module}`
-    : `/dashboard/${applicationId}/application`;
+  // Saving goes back to the application overview, not on to the next
+  // section. The overview is where the green checks live, and it is what
+  // tells someone where they are; being carried straight into section two
+  // after saving section one read as the form not having saved (client
+  // review, Notion 09.27).
+  const nextHref = `/dashboard/${applicationId}/application`;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -109,7 +109,7 @@ export default async function SectionPage({
             baseValues={form.allValues}
             readOnly={!form.editable}
             nextHref={nextHref}
-            isLast={!next}
+            coOwners={section.coOwners}
           />
         </Panel>
     </div>

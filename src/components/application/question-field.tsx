@@ -132,7 +132,21 @@ export function QuestionField({
         );
 
       case "date":
-        return <Input {...shared} type="date" />;
+        // Capped at today in the picker as well as on the server
+        // (validate.ts rejects a future date): a business start date or a
+        // date of birth in the future is a typo, and the picker should not
+        // offer it. The attribute is computed where it renders, so the
+        // server's day and the browser's can differ around midnight;
+        // suppressed rather than synchronised, because the server check is
+        // the one that counts.
+        return (
+          <Input
+            {...shared}
+            type="date"
+            max={new Date().toISOString().slice(0, 10)}
+            suppressHydrationWarning
+          />
+        );
 
       case "email":
         return (

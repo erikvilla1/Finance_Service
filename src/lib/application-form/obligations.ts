@@ -9,8 +9,8 @@ import { isEditable } from "./load";
  * is one row in `application_questions` producing one input; a debt schedule is
  * an unknown number of rows with four fields each, so it has no representation
  * in that model and quietly never got built. Meanwhile the completeness check
- * has required it since 0003 for anyone answering yes to existing debt — a bar
- * nobody could clear.
+ * had required it since 0003 for anyone answering yes to existing debt — a bar
+ * nobody could clear. It is optional now (obligationsApply, below).
  *
  * REPLACED WHOLE, NOT MERGED. The form posts the complete schedule and this
  * deletes what was there and writes what came back. Diffing rows by id would
@@ -122,8 +122,21 @@ export async function saveObligations(
  * existing advance or loan. Asking a business with no debt to list its debts is
  * a section they cannot complete and will not understand.
  */
-export function obligationsRequired(application: {
+/**
+ * Whether the schedule is offered.
+ *
+ * OFFERED, NOT REQUIRED. The client review (Notion 09.27) made the debt
+ * schedule optional: it never blocks a file, a green check or the package.
+ * It is still put in front of — and only — someone who has said the
+ * business carries existing financing, in the prequal (an outstanding
+ * balance, an advance among the debt types) or in the financials section
+ * ("Open MCA or loan accounts?"), because that is the applicant a funding
+ * source will ask about it, and listing it up front saves the round trip.
+ */
+export function obligationsApply(application: {
   has_existing_mca?: unknown;
+  existing_debt_balance?: unknown;
 }): boolean {
-  return application.has_existing_mca === true;
+  const balance = Number(application.existing_debt_balance);
+  return application.has_existing_mca === true || (Number.isFinite(balance) && balance > 0);
 }
