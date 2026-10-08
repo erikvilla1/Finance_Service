@@ -40,14 +40,26 @@ export default async function PortalLayout({
   ]);
 
   // A document the specialist sent back ("Send another copy") puts a dot on
-  // Documents, the way a signature request puts one on Sign.
-  const { count: returnedDocuments } = latest
-    ? await supabase
-        .from("document_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("application_id", latest.id)
-        .eq("status", "rejected")
-    : { count: 0 };
+  // Documents, the way a signature request puts one on Sign. A signed
+  // application that has not been returned marks Sign as done.
+  const [{ count: returnedDocuments }, { data: signedDocument }] = latest
+    ? await Promise.all([
+        supabase
+          .from("document_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("application_id", latest.id)
+          .eq("status", "rejected"),
+        supabase
+          .from("documents")
+          .select("id")
+          .eq("application_id", latest.id)
+          .eq("document_type_key", "signed_application")
+          .neq("status", "rejected")
+          .is("deleted_at", null)
+          .limit(1)
+          .maybeSingle(),
+      ])
+    : [{ count: 0 }, { data: null }];
 
   return (
     <div className="relative min-h-dvh bg-ink-50">
@@ -61,6 +73,7 @@ export default async function PortalLayout({
           }}
           applicationId={latest?.id ?? null}
           signatureRequested={Boolean(latest?.signature_requested_at)}
+          signed={Boolean(signedDocument)}
           documentsAttention={(returnedDocuments ?? 0) > 0}
         >
           <main id="main" className="min-h-dvh px-4 pb-10 pt-8 sm:px-8 lg:px-12 lg:pt-12">
