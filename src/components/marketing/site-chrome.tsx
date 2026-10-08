@@ -251,6 +251,9 @@ export function SiteHeader() {
    * has exactly one job.
    */
   const isGuidePage = pathname?.startsWith("/resources/") ?? false;
+  // Guide pages: the bar appears once the page has scrolled at all. See the
+  // note on the bar below. Called unconditionally (rules of hooks).
+  const guideScrolled = useScrolledPast(24);
 
   /**
    * All three capsules — logo, nav, trailing — lift away together on scroll.
@@ -289,10 +292,15 @@ export function SiteHeader() {
         is fully covered rather than showing through around the edges of each
         element individually.
 
-        NOT ON GUIDE PAGES. Those already sit on the gradient hero band with
-        just the logo floating on it, by design (see the note on that band in
-        resources/[slug]/page.tsx) — this bar would flatten that back into an
-        ordinary opaque header.
+        ON GUIDE PAGES, ONLY ONCE SCROLLED. At the top of a guide the logo
+        floats on the page's gradient with nothing behind it, by design. But
+        the scroll-direction hide is lg-only, so on a phone the logo stayed
+        pinned at the top with no surface and drew straight over the body
+        text as it scrolled past — the one place the whole site had the
+        "two things overlapping" problem this bar exists to prevent. So a
+        guide page gets the bar too, at opacity 0 at the top (the gradient
+        shows) and 1 once the page has moved: the same bar, the same fade,
+        driven by scroll position instead of the hero.
 
         TWO SIGNALS, NESTED RATHER THAN COMBINED INTO ONE. The bar should be
         gone whenever the capsules themselves are gone (scrolling down —
@@ -322,14 +330,12 @@ export function SiteHeader() {
         capsule — the same pt-6/pt-9 again — gives the bar a symmetric margin
         on both sides of the row it holds, rather than hugging one edge of it.
       */}
-      {!isGuidePage && (
-        <div aria-hidden="true" className={`absolute inset-x-0 top-0 ${capsule}`}>
-          <div
-            className="h-[6.5rem] border-b border-ink-200/80 bg-white/95 shadow-card backdrop-blur-xl transition-opacity duration-300 sm:h-[8.5rem]"
-            style={{ opacity: overHero ? 0 : 1 }}
-          />
-        </div>
-      )}
+      <div aria-hidden="true" className={`absolute inset-x-0 top-0 ${capsule}`}>
+        <div
+          className="h-[6.5rem] border-b border-ink-200/80 bg-white/95 shadow-card backdrop-blur-xl transition-opacity duration-300 sm:h-[8.5rem]"
+          style={{ opacity: isGuidePage ? (guideScrolled ? 1 : 0) : overHero ? 0 : 1 }}
+        />
+      </div>
       {/* Padding matches the gap between the video card's top edge and this
           row, so the logo sits the same distance from the card's left edge as
           it does from its top. See the hero arithmetic on the home page. */}

@@ -204,17 +204,25 @@ export function wrapHtml(options: {
        </td></tr>`;
 
   return `<!doctype html>
-<html><body style="margin:0;padding:0;background:#f4f2ee;">
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @media only screen and (max-width: 480px) {
+    .fls-outer { padding: 20px 12px !important; }
+    .fls-card { padding: 26px 22px 24px !important; }
+    .fls-heading { font-size: 20px !important; }
+  }
+</style></head>
+<body style="margin:0;padding:0;background:#f4f2ee;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-         style="background:#f4f2ee;padding:32px 16px;">
+         class="fls-outer" style="background:#f4f2ee;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
              style="max-width:560px;">
         <tr><td style="padding:0 4px 18px;">${wordmark}</td></tr>
-        <tr><td style="background:#ffffff;border:1px solid #e6e3dc;border-radius:14px;
+        <tr><td class="fls-card" style="background:#ffffff;border:1px solid #e6e3dc;border-radius:14px;
                        padding:34px 36px 30px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr><td style="padding-bottom:14px;font-family:${font};font-size:22px;
+            <tr><td class="fls-heading" style="padding-bottom:14px;font-family:${font};font-size:22px;
                            font-weight:700;color:#121211;line-height:1.3;">${options.heading}</td></tr>
             <tr><td style="padding-bottom:22px;font-family:${font};font-size:15px;
                            line-height:1.65;color:#3f3f3d;">${options.body}</td></tr>

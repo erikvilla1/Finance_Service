@@ -439,6 +439,20 @@ save would write to production.
 confirm what Robert saw as required. The session's permission classifier
 refused the read. Migration 0035 makes the intent true regardless.
 
+## Mobile pass
+
+Every changed screen was audited at 390px (and the email at 375 and 320):
+no horizontal overflow anywhere, every input at 16px or more, the deposit
+step, the owner block, the deck and the guide pages all lay out. Two fixes
+came out of it: the guide pages' floating logo had no surface on a phone
+and drew over the body text once scrolled (the header's scroll-direction
+hide is desktop-only), so guide pages now get the same backdrop bar as the
+rest of the site once the page has moved; and the breadcrumb, index,
+related-guide and Back to Home links got touch-sized boxes. The email
+template carries a phone-width rule (tighter card padding, 20px heading)
+for the clients that honour embedded styles, with the inline values as the
+fallback everywhere else.
+
 ## What is left
 
 1. **Apply migrations 0035 and 0036** (`QUESTIONS.md` §11). Until then:

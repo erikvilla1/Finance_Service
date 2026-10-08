@@ -110,13 +110,13 @@ export default async function ResourceGuidePage({
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-semibold">
               <li>
-                <Link href="/" className="text-brand-600 hover:text-brand-700">
+                <Link href="/" className="-my-2 inline-block py-2 text-brand-600 hover:text-brand-700">
                   Home
                 </Link>
               </li>
               <li className="flex items-center gap-x-1.5">
                 <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-ink-400" strokeWidth={2.5} />
-                <Link href="/#resources" className="text-brand-600 hover:text-brand-700">
+                <Link href="/#resources" className="-my-2 inline-block py-2 text-brand-600 hover:text-brand-700">
                   Resources
                 </Link>
               </li>
@@ -242,7 +242,7 @@ export default async function ResourceGuidePage({
                 </ButtonLink>
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700"
+                  className="-my-2 inline-flex items-center gap-1.5 py-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
                 >
                   <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
                   Back to Home
@@ -260,7 +260,7 @@ export default async function ResourceGuidePage({
               <ul className="mt-3 space-y-2 text-sm">
                 {sections.map((section) => (
                   <li key={section.id}>
-                    <a href={`#${section.id}`} className="text-ink-700 hover:text-brand-700">
+                    <a href={`#${section.id}`} className="-my-1 inline-block py-1 text-ink-700 hover:text-brand-700">
                       {section.label}
                     </a>
                   </li>
@@ -275,7 +275,7 @@ export default async function ResourceGuidePage({
                     <li key={item.slug}>
                       <Link
                         href={`/resources/${item.slug}`}
-                        className="inline-flex items-center gap-1 font-medium text-brand-700 hover:text-brand-800"
+                        className="-my-2 inline-flex items-center gap-1 py-2 font-medium text-brand-700 hover:text-brand-800"
                       >
                         {item.title}
                         <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.5} />

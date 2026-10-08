@@ -121,7 +121,7 @@ export default async function ApplicationPage({
             title: "Existing obligations",
             detail: obligationsDone
               ? `${obligations.length} listed`
-              : "Optional. You mentioned existing financing; listing it here saves a round trip with the funding source later.",
+              : "Optional. Listing what the business already owes saves a round trip later.",
             state: obligationsDone ? ("done" as const) : ("optional" as const),
           },
         ]
