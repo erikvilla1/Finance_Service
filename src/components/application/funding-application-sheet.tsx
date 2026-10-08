@@ -65,7 +65,7 @@ export function FundingApplicationSheet({
           <span className="font-mono text-sm">{referenceCode}</span>
         </div>
         <p className="mt-1 text-sm text-ink-600">
-          Financial Lending Specialists, Inc. — please complete all applicable fields
+          Financial Lending Specialists, Inc. — prepared from the information in your application
         </p>
       </header>
 

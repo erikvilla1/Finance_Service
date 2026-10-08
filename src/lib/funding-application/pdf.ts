@@ -144,7 +144,7 @@ export async function buildFundingApplicationPdf(
   });
   y -= 30;
   text(
-    "Financial Lending Specialists, Inc. — please complete all applicable fields",
+    "Financial Lending Specialists, Inc. — prepared from the information in your application",
     MARGIN, y, { size: 9, color: LABEL },
   );
   y -= 10;
