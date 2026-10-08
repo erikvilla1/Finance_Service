@@ -505,15 +505,21 @@ export default function HomePage() {
                     financing can slow it down.&rdquo;
                   </blockquote>
 
-                  {/* One paragraph, from his LinkedIn About in the third
-                      person. max-w-4xl, the same measure as the firm's
+                  {/* The client's own copy, from the Sept 29 IWA review (item
+                      11), replacing a paraphrase of his LinkedIn About. Chosen
+                      because it says what the firm actually does — structures
+                      requests, navigates funder requirements, identifies
+                      capital across a network — without overstating FLS as a
+                      direct lender. max-w-4xl, the same measure as the firm's
                       paragraph below, so the two blocks share a right edge. */}
                   <p className="mt-5 max-w-4xl leading-relaxed text-ink-700">
-                    Robert founded Financial Lending Specialists in 2024,
-                    bringing two years in commercial finance and five years of
-                    helping business owners find the right solutions. He gets to
-                    know each client&apos;s goals before recommending a
-                    strategy.
+                    Robert founded Financial Lending Specialists in 2024 after
+                    several years working directly with business owners and two
+                    years focused specifically on commercial finance. He now
+                    works with businesses and investors to structure financing
+                    requests, navigate lender requirements, and identify
+                    appropriate capital solutions across a nationwide network of
+                    funding sources.
                   </p>
 
                   {/* The button, then the credential beside it (stated the

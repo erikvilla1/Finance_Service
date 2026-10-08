@@ -98,30 +98,30 @@ const SCENES: Scene[] = [
   {
     path: "/start/prequal",
     screen: shot("prequal", 1920, 1800, "Prequalification: the third of five questions about the business"),
-    overlay: { shot: shot("prequal-form", 1344, 406, "Two questions answered, the third being filled in"), width: "w-[50%]" },
+    overlay: { shot: shot("prequal-form", 1440, 502, "Two questions answered, the third being filled in"), width: "w-[50%]" },
     cursor: { hover: [0.38, 0.58], click: [0.1, 0.67] },
   },
   {
     path: "/start/result",
-    screen: shot("result", 1920, 3000, "Prequalification results"),
-    overlay: { shot: shot("result-option", 868, 468, "Equipment Financing, with an illustrative range of $90,000 to $150,000"), width: "w-[42%]" },
+    screen: shot("result", 1920, 1800, "Prequalification results: one financing option may fit"),
+    overlay: { shot: shot("result-option", 912, 386, "Equipment Financing, a potential match"), width: "w-[42%]" },
     cursor: { hover: [0.3, 0.5], click: [0.42, 0.4] },
   },
   {
     path: "/create-account",
-    screen: shot("create-account", 1920, 2364, "Create your account"),
-    overlay: { shot: shot("card-received", 1536, 1026, "Dashboard: application received"), width: "w-[52%]" },
+    screen: shot("create-account", 1920, 1800, "Create your account to continue"),
+    overlay: { shot: shot("card-received", 1168, 624, "Dashboard: application received"), width: "w-[52%]" },
     cursor: { hover: [0.44, 0.52], click: [0.27, 0.5] },
   },
   {
     path: "/dashboard/documents",
-    screen: shot("documents", 1920, 2750, "The document checklist"),
-    overlay: { shot: shot("card-need", 1536, 1026, "Dashboard: two documents still to send"), width: "w-[52%]" },
+    screen: shot("documents", 2560, 2866, "The document checklist"),
+    overlay: { shot: shot("card-need", 1168, 624, "Dashboard: two documents still to send"), width: "w-[52%]" },
     cursor: { hover: [0.4, 0.46], click: [0.14, 0.72] },
   },
   {
     path: "/dashboard",
-    screen: shot("dashboard-docsdone", 1920, 1800, "Dashboard: documents accepted"),
+    screen: shot("dashboard-docsdone", 2560, 2272, "Dashboard: documents accepted"),
     overlay: {
       shot: shot("email-documents", 1120, 746, "Email: we have everything we asked for"),
       width: "w-[46%]",
@@ -131,7 +131,7 @@ const SCENES: Scene[] = [
   },
   {
     path: "/dashboard",
-    screen: shot("dashboard-sign", 1920, 1800, "Dashboard: application ready to sign"),
+    screen: shot("dashboard-sign", 2560, 2272, "Dashboard: application ready to sign"),
     overlay: {
       shot: shot("email-sign", 1120, 784, "Email: your application is ready to sign"),
       width: "w-[46%]",
@@ -141,8 +141,8 @@ const SCENES: Scene[] = [
   },
   {
     path: "/dashboard",
-    screen: shot("dashboard-complete", 1920, 1800, "Dashboard: complete"),
-    overlay: { shot: shot("card-complete", 1536, 930, "Dashboard: application complete"), width: "w-[52%]" },
+    screen: shot("dashboard-complete", 2560, 2090, "Dashboard: complete"),
+    overlay: { shot: shot("card-complete", 1168, 592, "Dashboard: application complete"), width: "w-[52%]" },
     cursor: { hover: [0.42, 0.4], click: [0.88, 0.11] },
   },
 ];
