@@ -177,7 +177,7 @@ export interface ProfileChip {
 
 /** The flow footer's disclosure, carried here because this page hides it. */
 const FOOTER_DISCLOSURE =
-  "Nothing on this site is a commitment to lend or an offer of credit. All financing is subject to qualification, lender review, and program availability.";
+  "Nothing on this site is a commitment to fund or an offer of credit. All financing is subject to qualification, lender review, and program availability.";
 
 /*
  * [@media(max-height:820px)] below tightens type and spacing on laptop-height
@@ -241,7 +241,7 @@ export function MatchResults({
     overallState !== "no_current_match" ? RESULTS_DISCLAIMER : null,
     shown.length > 0 ? FINAL_STRUCTURE_NOTE : null,
     hasRanges
-      ? "Estimated ranges come from a funding source's published sizing guidelines applied to the figures you entered; they are not quotes, offers, or amounts anyone has agreed to lend."
+      ? "Estimated ranges come from a funding source's published sizing guidelines applied to the figures you entered; they are not quotes, offers, or amounts anyone has agreed to fund."
       : null,
     FOOTER_DISCLOSURE,
   ]

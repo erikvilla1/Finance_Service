@@ -764,7 +764,7 @@ export function SiteFooter() {
           <p className="text-xs leading-relaxed text-ink-600 lg:text-justify">
             Financial Lending Specialists D.B.A. FLS Capital Advisors arranges
             financing through third-party funding sources. Nothing on this
-            site is a commitment to lend or an offer of credit. All financing
+            site is a commitment to fund or an offer of credit. All financing
             is subject to qualification, lender review, and program
             availability. Program terms and availability vary and may change.
           </p>

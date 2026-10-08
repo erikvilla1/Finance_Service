@@ -41,7 +41,7 @@ import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-grad
  */
 
 const DISCLAIMER =
-  "General information only. This guide is intended for educational purposes and does not constitute an approval, commitment to lend, or guarantee of financing. Programs, eligibility, rates, fees, terms, collateral requirements, and documentation requirements vary by funding source and may change. Final eligibility and terms are determined by the applicable funding source after review of a complete application.";
+  "General information only. This guide is intended for educational purposes and does not constitute an approval, commitment to fund, or guarantee of financing. Programs, eligibility, rates, fees, terms, collateral requirements, and documentation requirements vary by funding source and may change. Final eligibility and terms are determined by the applicable funding source after review of a complete application.";
 
 export function generateStaticParams() {
   return RESOURCE_GUIDES.map((guide) => ({ slug: guide.slug }));

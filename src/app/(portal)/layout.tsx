@@ -64,7 +64,7 @@ export default async function PortalLayout({
           documentsAttention={(returnedDocuments ?? 0) > 0}
         >
           <main id="main" className="min-h-dvh px-4 pb-10 pt-8 sm:px-8 lg:px-12 lg:pt-12">
-            {/* No "not a commitment to lend" line here. Nothing in the
+            {/* No "not a commitment to fund" line here. Nothing in the
                 dashboard is an offer or a match; the notice lives on the
                 results page, where matches are shown, and in Terms §3 and
                 the Disclosures page. */}

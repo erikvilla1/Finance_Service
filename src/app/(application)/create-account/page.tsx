@@ -128,7 +128,7 @@ export default async function CreateAccountPage({
           {/*
             NO SMALL PRINT UNDER THE FORM. There were two lines here: that
             creating an account isn't an application for credit, and the
-            flow footer's "nothing on this site is a commitment to lend".
+            flow footer's "nothing on this site is a commitment to fund".
             The first is already said beside the button that led here; the
             second is Terms of Use §3 ("Nothing here is an offer of credit"),
             which this form's own checkbox has the applicant agree to. The
