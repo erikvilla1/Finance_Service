@@ -83,18 +83,3 @@ export async function addNote(formData: FormData) {
 
   revalidatePath(`/admin/applications/${applicationId}`);
 }
-
-export async function assignToMe(formData: FormData) {
-  const applicationId = String(formData.get("applicationId") ?? "");
-  const { supabase, userId } = await requireStaff();
-
-  const { error } = await supabase
-    .from("applications")
-    .update({ assigned_to: userId })
-    .eq("id", applicationId);
-
-  if (error) throw new Error("Could not assign the application.");
-
-  revalidatePath(`/admin/applications/${applicationId}`);
-  revalidatePath("/admin");
-}
