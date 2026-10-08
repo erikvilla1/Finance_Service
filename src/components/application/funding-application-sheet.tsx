@@ -46,9 +46,12 @@ export function FundingApplicationSheet({
     return String(value);
   };
 
+  // Blank stays blank, as on the PDF (pdf.ts): Number(null) is 0, and a
+  // preview that prints "$0" for a question nobody answered is a preview
+  // that disagrees with the document being signed.
   const money = (value: unknown): string => {
     const n = Number(value);
-    if (!Number.isFinite(n)) return "";
+    if (value === null || value === undefined || value === "" || !Number.isFinite(n)) return "";
     return new Intl.NumberFormat("en-US", {
       style: "currency", currency: "USD", maximumFractionDigits: 0,
     }).format(n);
