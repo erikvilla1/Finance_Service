@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 const QUESTIONS = [
   {
     q: "How long does a review take?",
-    a: "It depends on the program and how complete your file is. Finishing your application and sending your documents is the biggest thing that speeds it up, and we'll email you whenever anything changes.",
+    a: "Review times vary by program and depend on how complete your file is. A finished application with all requested documents moves fastest. We will notify you by email at each stage of the review.",
   },
   {
     q: "Does anything here affect my credit?",

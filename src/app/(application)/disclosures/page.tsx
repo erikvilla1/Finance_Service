@@ -53,7 +53,7 @@ export default function Page() {
           <p className={P}>
             Financial Lending Specialists D.B.A. FLS Capital Advisors
             arranges financing through third-party funding sources. We do
-            not lend money and we do not
+            not fund loans and we do not
             make credit decisions. Every approval, decline, and set of terms
             comes from the funding source, under its own underwriting
             criteria.
@@ -64,7 +64,7 @@ export default function Page() {
             Program descriptions, amount ranges, and any estimate produced by
             the pre-qualification questions are indicative only. They are
             based on unverified information you provide and do not constitute
-            a commitment to lend, an offer, a pre-approval, or a guarantee of
+            a commitment to fund, an offer, a pre-approval, or a guarantee of
             any particular amount, rate, or term. All financing is subject to
             qualification, funding-source review, documentation, and program
             availability.
@@ -125,10 +125,10 @@ export default function Page() {
           <p className={P}>
             Have a question? Contact us at{" "}
             <a
-              href="mailto:info@flscapitaladvisors.com"
+              href="mailto:help@flscapitaladvisors.com"
               className="underline underline-offset-2 hover:text-brand-700"
             >
-              info@flscapitaladvisors.com
+              help@flscapitaladvisors.com
             </a>
           </p>
         </div>

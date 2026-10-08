@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadApplicationForm } from "@/lib/application-form/load";
 import {
   loadObligations,
-  obligationsRequired,
+  obligationsApply,
 } from "@/lib/application-form/obligations";
 
 export const metadata: Metadata = {
@@ -43,7 +43,7 @@ export default async function ApplicationPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, financing_goal, has_existing_mca")
+    .select("id, financing_goal, has_existing_mca, existing_debt_balance")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -54,11 +54,13 @@ export default async function ApplicationPage({
   const form = await loadApplicationForm(applicationId);
 
   // The debt schedule is not a question, so it cannot come from the question
-  // engine — but it is required by the lender package whenever someone says
-  // they carry existing debt, and leaving it off this list is what let an
-  // applicant be told they were finished while the file could not be sent.
-  const needsObligations = obligationsRequired(application);
-  const obligations = needsObligations ? await loadObligations(applicationId) : [];
+  // engine. It is offered to anyone who has said the business carries
+  // existing financing, and it is OPTIONAL: it never counts towards the
+  // questions left or holds back a green check (client review, Notion
+  // 09.27). It sits in the list so it is found, marked so it is not mistaken
+  // for a requirement.
+  const offersObligations = obligationsApply(application);
+  const obligations = offersObligations ? await loadObligations(applicationId) : [];
   const obligationsDone = obligations.length > 0;
 
   if (!form || form.sections.length === 0) {
@@ -78,23 +80,18 @@ export default async function ApplicationPage({
     );
   }
 
-  const remaining =
-    form.requiredTotal -
-    form.requiredAnswered +
-    (needsObligations && !obligationsDone ? 1 : 0);
-  const done = form.requiredAnswered + (needsObligations && obligationsDone ? 1 : 0);
-  const total = form.requiredTotal + (needsObligations ? 1 : 0);
+  const remaining = form.requiredTotal - form.requiredAnswered;
+  const done = form.requiredAnswered;
+  const total = form.requiredTotal;
 
   const firstIncomplete = form.sections.find((section) => !section.complete);
-  const nextHref =
-    firstIncomplete
-      ? `/dashboard/${applicationId}/application/${firstIncomplete.module}`
-      : needsObligations && !obligationsDone
-        ? `/dashboard/${applicationId}/application/obligations`
-        : null;
+  const nextHref = firstIncomplete
+    ? `/dashboard/${applicationId}/application/${firstIncomplete.module}`
+    : null;
 
   // One list for the sections and, when it applies, the obligations schedule,
-  // so they read as the same kind of thing (they are: all required).
+  // so it is found where the rest of the application is — labelled optional,
+  // because it is.
   const rows: {
     key: string;
     href: string;
@@ -102,7 +99,7 @@ export default async function ApplicationPage({
     answered?: number;
     required?: number;
     detail?: string;
-    state: "done" | "progress" | "todo";
+    state: "done" | "progress" | "todo" | "optional";
   }[] = [
     ...form.sections.map((section) => ({
       key: section.module,
@@ -116,7 +113,7 @@ export default async function ApplicationPage({
           ? ("todo" as const)
           : ("progress" as const),
     })),
-    ...(needsObligations
+    ...(offersObligations
       ? [
           {
             key: "obligations",
@@ -124,8 +121,8 @@ export default async function ApplicationPage({
             title: "Existing obligations",
             detail: obligationsDone
               ? `${obligations.length} listed`
-              : "Needed because you have an existing advance or loan",
-            state: obligationsDone ? ("done" as const) : ("todo" as const),
+              : "Optional. Listing what the business already owes saves a round trip later.",
+            state: obligationsDone ? ("done" as const) : ("optional" as const),
           },
         ]
       : []),
@@ -135,6 +132,7 @@ export default async function ApplicationPage({
     done: { tone: "done" as const, label: "Complete" },
     progress: { tone: "progress" as const, label: "In progress" },
     todo: { tone: "todo" as const, label: "Not started" },
+    optional: { tone: "todo" as const, label: "Optional" },
   };
 
   return (
@@ -196,7 +194,9 @@ export default async function ApplicationPage({
                         ? "Edit"
                         : row.state === "todo"
                           ? "Start"
-                          : "Continue"}
+                          : row.state === "optional"
+                            ? "Add"
+                            : "Continue"}
                   </span>
                   <ArrowRight
                     aria-hidden="true"

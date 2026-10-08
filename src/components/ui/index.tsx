@@ -1068,7 +1068,7 @@ export function RadioCardGroup({
  * Standing disclaimer for anything resembling a prequalification result.
  *
  * BUSINESS_CONTEXT §12 and platform spec §26: results are indicative only and
- * never a commitment to lend. This component exists so that requirement is met
+ * never a commitment to fund. This component exists so that requirement is met
  * by construction rather than by remembering.
  */
 export function IndicativeDisclosure({ className }: { className?: string }) {
@@ -1079,7 +1079,7 @@ export function IndicativeDisclosure({ className }: { className?: string }) {
         className,
       )}
     >
-      This information is indicative only and is not a commitment to lend, an
+      This information is indicative only and is not a commitment to fund, an
       offer of credit, or an approval. Any financing is subject to qualification,
       lender review, and program availability. A financing specialist will review
       your information and may contact you if anything further is needed.

@@ -71,7 +71,7 @@ export function TermsContent() {
             <p className={P}>
               FLS is a financing broker. We help businesses identify and apply
               for financing from third-party funding sources. We are not a bank
-              or a lender. We do not lend money, and we do not decide whether
+              or a lender. We do not fund loans, and we do not decide whether
               you are approved — the funding source does, under its own
               underwriting.
             </p>
@@ -81,7 +81,7 @@ export function TermsContent() {
               Any figure, range, or program shown on this site — including
               anything produced by the pre-qualification questions — is an
               estimate based on information you supplied and have not yet
-              verified. It is not a commitment to lend, an offer of credit, a
+              verified. It is not a commitment to fund, an offer of credit, a
               pre-approval, or a guarantee that financing will be available on
               any terms. Actual terms are set by the funding source and depend
               on its verification and program availability, both of which change.
@@ -245,10 +245,10 @@ export function TermsContent() {
             <p className={P}>
               Have a question? Contact us at{" "}
               <a
-                href="mailto:info@flscapitaladvisors.com"
+                href="mailto:help@flscapitaladvisors.com"
                 className="underline underline-offset-2 hover:text-brand-700"
               >
-                info@flscapitaladvisors.com
+                help@flscapitaladvisors.com
               </a>
             </p>
     </>

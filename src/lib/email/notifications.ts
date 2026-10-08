@@ -15,6 +15,11 @@ import { absoluteUrl, sendEmail, wrapHtml, type SendOutcome } from "./send";
  * recipient has to do, or the end of a wait they know they are in. Mail that
  * can be ignored teaches people to ignore the mail that cannot.
  *
+ * NO REFERENCE CODE IN APPLICANT MAIL. The code is how a file is named inside
+ * the admin and in staff mail; the applicant has never seen it and it reads
+ * as a ticket number from a system (client review, Notion 09.27). What they
+ * recognise is their business and the person writing to them.
+ *
  * Reads run on the service role because these fire from contexts where the
  * acting user is staff and the recipient is the applicant — a per-user client
  * would see the sender's rows, not the reader's. Nothing here is written.
@@ -24,7 +29,6 @@ interface Recipient {
   email: string;
   name: string | null;
   businessName: string | null;
-  referenceCode: string;
 }
 
 /** Who to write to, and what to call them. */
@@ -33,7 +37,7 @@ async function recipientFor(applicationId: string): Promise<Recipient | null> {
 
   const { data: application } = await service
     .from("applications")
-    .select("id, reference_code, profile_id, business_id")
+    .select("id, profile_id, business_id")
     .eq("id", applicationId)
     .maybeSingle();
 
@@ -68,7 +72,6 @@ async function recipientFor(applicationId: string): Promise<Recipient | null> {
     // pipeline uses it: a bookkeeper often creates the login.
     name: owner?.full_name ?? profile.full_name ?? null,
     businessName: business?.legal_name ?? null,
-    referenceCode: application.reference_code,
   };
 }
 
@@ -162,7 +165,10 @@ export async function notifySignatureRequested(
   const url = absoluteUrl(`/dashboard/${applicationId}/sign`);
   const subject = "Your financing application is ready to sign";
 
-  const body = `Your specialist has reviewed everything and your funding application is ready for your signature. It is the last thing we need before your file can go to a funding source, and it takes a couple of minutes.`;
+  const forBusiness = recipient.businessName ? ` for ${recipient.businessName}` : "";
+  const body = `Your specialist has reviewed everything, and the funding application${forBusiness} is ready for your signature. It is the last thing we need before your file can go to a funding source, and it takes a couple of minutes.`;
+  const paper =
+    "Would you rather sign on paper? There is no charge either way. Reply to this email and we will send you a copy to print.";
 
   return sendEmail({
     to: recipient.email,
@@ -171,16 +177,17 @@ export async function notifySignatureRequested(
 
 ${body}
 
-Sign here: ${url}
+Review and sign: ${url}
 
-Reference ${recipient.referenceCode}
+${paper}
 
-Would you rather sign on paper? There is no charge either way — just reply and we will send you a copy to print.`,
+FLS Capital Advisors
+Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
     html: wrapHtml({
       heading: "Ready for your signature",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p><p style="margin:0;">${body}</p>`,
       cta: { label: "Review and sign", href: url },
-      footer: `Reference ${recipient.referenceCode}. Would you rather sign on paper? There is no charge either way — reply to this email and we will send you a copy to print.`,
+      footer: paper,
     }),
   });
 }
@@ -219,18 +226,20 @@ Your specialist looked at your signed application and needs you to review it and
 
 What they said: ${reason}
 
-Review and sign here: ${url}
+Review and sign: ${url}
 
-Reference ${recipient.referenceCode}
+Would you rather sign on paper? There is no charge either way. Reply to this email and we will send you a copy to print.
 
-Would you rather sign on paper? There is no charge either way — just reply and we will send you a copy to print.`,
+FLS Capital Advisors
+Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
       html: wrapHtml({
         heading: "Please review and sign again",
         body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
                <p style="margin:0 0 12px;">Your specialist looked at your signed application and needs you to review it and sign again. It takes a couple of minutes.</p>
-               <p style="margin:0;padding:12px 14px;background:#f6f6f5;border-radius:8px;">${reason}</p>`,
+               <p style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;">${reason}</p>`,
         cta: { label: "Review and sign", href: url },
-        footer: `Reference ${recipient.referenceCode}. Would you rather sign on paper? There is no charge either way — reply to this email and we will send you a copy to print.`,
+        footer:
+          "Would you rather sign on paper? There is no charge either way. Reply to this email and we will send you a copy to print.",
       }),
     });
   }
@@ -247,16 +256,16 @@ Your specialist looked at the ${documentLabel} you sent and needs another copy.
 
 What they said: ${reason}
 
-You can upload the replacement here: ${url}
+Upload the replacement: ${url}
 
-Reference ${recipient.referenceCode}`,
+FLS Capital Advisors
+Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
     html: wrapHtml({
       heading: "One document needs another copy",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
              <p style="margin:0 0 12px;">Your specialist looked at the <strong>${documentLabel}</strong> you sent and needs another copy.</p>
-             <p style="margin:0;padding:12px 14px;background:#f6f6f5;border-radius:8px;">${reason}</p>`,
+             <p style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;">${reason}</p>`,
       cta: { label: "Send a replacement", href: url },
-      footer: `Reference ${recipient.referenceCode}. Reply to this email if anything is unclear.`,
     }),
   });
 }
@@ -281,17 +290,17 @@ export async function notifyDocumentsComplete(
     subject: "We have everything we asked for",
     text: `${greeting(recipient)}
 
-Your specialist has checked the documents you sent and has everything they asked for. There is nothing you need to do right now — we will be in touch as your file progresses.
+Your specialist has checked the documents you sent and has everything they asked for. There is nothing you need to do right now. We will be in touch as your file progresses.
 
 Your documents: ${url}
 
-Reference ${recipient.referenceCode}`,
+FLS Capital Advisors
+Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
     html: wrapHtml({
       heading: "We have everything we asked for",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
-             <p style="margin:0;">Your specialist has checked the documents you sent and has everything they asked for. There is nothing you need to do right now — we will be in touch as your file progresses.</p>`,
+             <p style="margin:0;">Your specialist has checked the documents you sent and has everything they asked for. There is nothing you need to do right now. We will be in touch as your file progresses.</p>`,
       cta: { label: "View your documents", href: url },
-      footer: `Reference ${recipient.referenceCode}.`,
     }),
   });
 }
@@ -303,18 +312,18 @@ Reference ${recipient.referenceCode}`,
 /**
  * Something arrived and needs a person.
  *
- * Goes to STAFF_NOTIFICATION_EMAIL rather than to whoever is assigned, because
+ * Goes to one staff address rather than to whoever is assigned, because
  * assignment is often nobody early on and an unassigned file is exactly the one
  * that goes cold. One address is also one thing to change when Robert takes on
- * a second specialist.
+ * a second specialist. admin@ is the one the client named (Notion 09.27);
+ * STAFF_NOTIFICATION_EMAIL overrides it.
  */
 export async function notifyStaff(
   applicationId: string,
   event: string,
   detail: string,
 ): Promise<SendOutcome> {
-  const to = process.env.STAFF_NOTIFICATION_EMAIL;
-  if (!to) return { sent: false, reason: "no_staff_address" };
+  const to = process.env.STAFF_NOTIFICATION_EMAIL || "admin@flscapitaladvisors.com";
 
   const { who, referenceCode } = await fileSummary(applicationId);
   const url = absoluteUrl(`/admin/applications/${applicationId}`);
@@ -335,6 +344,7 @@ Open the file: ${url}`,
       }</p><p style="margin:0;">${detail}</p>`,
       cta: { label: "Open the file", href: url },
       footer: "Internal notification.",
+      internal: true,
     }),
   });
 }

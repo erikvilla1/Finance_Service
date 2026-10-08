@@ -139,13 +139,44 @@ recomputes it from the documents attached to the request. Nothing in the
 application should set that column by hand — the one exception is waiving,
 which is a decision about the request rather than a fact about any document.
 
+### Notification email — built
+
+`src/lib/email/send.ts` sends through Resend (`RESEND_API_KEY`), with a
+development safety catch (`EMAIL_REDIRECT_TO`) that reroutes every message to
+one address. `src/lib/email/notifications.ts` holds the four messages worth
+sending: the application is ready to sign, a document came back with a reason,
+everything asked for has been accepted, and one staff alert for anything that
+needs a person.
+
+Addresses, as the client named them (Notion, 09.27): replies and questions go
+to `help@flscapitaladvisors.com` (the default reply-to; `EMAIL_REPLY_TO`
+overrides), staff alerts go to `admin@flscapitaladvisors.com`
+(`STAFF_NOTIFICATION_EMAIL` overrides). The sender stays Resend's onboarding
+address until a domain is verified; see `.env.example`.
+
+Applicant mail never carries the reference code. It is the file's name inside
+the admin and in staff mail, and means nothing to the person receiving it.
+
+### E-signature — built
+
+`signed_application` is produced by signing, not uploading:
+`/dashboard/[applicationId]/sign` draws the funding application from what the
+database holds, the signer types their name, draws a mark, enters the SSN and
+tax ID, and agrees to the FCRA and ESIGN consents (`src/lib/funding-application/sign.ts`).
+The signed PDF becomes a `documents` row with `source = 'e_signature'` and
+appears on the specialist's checklist like any other document.
+
+The SSN and tax ID are drawn into the PDF and not kept — no column, no log.
+`fields.ts` marks them `source: "signer"` and the merge payload excludes them
+structurally. The full number is collected on the signed document, exactly
+as the client asked, and never stored.
+
 ### Still outstanding
 
-- **Notification email.** Nothing tells the applicant a document was requested,
-  and nothing tells a specialist one arrived. Today an upload is silent.
-  `RESEND_API_KEY` is a commented placeholder in `.env.example`; there is no
-  send path anywhere in the code. Separate from Supabase's auth mail above.
-- **E-signature.** `signed_application` is currently an ordinary checklist row
-  — print, sign, scan, upload. BUSINESS_CONTEXT §8 notes Robert already pays
-  for PandaDoc, which makes it the cheap choice over DocuSign when this is
-  built.
+- **Sending domain.** Until `flscapitaladvisors.com` (or a subdomain) is
+  verified in Resend, mail leaves from Resend's onboarding address and only
+  reaches the account owner. Verify the domain, set `EMAIL_FROM`, remove
+  `EMAIL_REDIRECT_TO`.
+- **A logged chase.** "Chase documents" on the admin file is a prefilled
+  `mailto:` (`src/components/admin/nudge-link.tsx`), so nothing records when a
+  file was last chased. The app-sent version wants a `crm_notes` row.

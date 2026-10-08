@@ -12,16 +12,20 @@ import { Reveal } from "@/components/marketing/reveal";
 /**
  * Header and footer.
  *
- * Navigation follows platform spec §6. The primary CTA is "Get Your Free
- * Quote", never "Contact Us" — spec §4 is explicit that contact must not be
+ * Navigation follows platform spec §6. The primary CTA is "See Your Financing
+ * Options", never "Contact Us" — spec §4 is explicit that contact must not be
  * the primary conversion action.
+ *
+ * The label was "Get Your Free Quote" until the client's Sept 29 review. It
+ * changed because the flow produces indicative ranges, not a lender quote, and
+ * "quote" promised a number FLS is not the one to give.
  */
 
 /**
  * In-page anchors, not routes.
  *
  * The marketing site is one scrolling page (see the home page's sections). The
- * only navigation that leaves it is "Get Your Free Quote" — every link
+ * only navigation that leaves it is "See Your Financing Options" — every link
  * here moves within it, so a visitor cannot wander into a corner of the site
  * that has no path back to the application.
  *
@@ -247,6 +251,9 @@ export function SiteHeader() {
    * has exactly one job.
    */
   const isGuidePage = pathname?.startsWith("/resources/") ?? false;
+  // Guide pages: the bar appears once the page has scrolled at all. See the
+  // note on the bar below. Called unconditionally (rules of hooks).
+  const guideScrolled = useScrolledPast(24);
 
   /**
    * All three capsules — logo, nav, trailing — lift away together on scroll.
@@ -285,10 +292,15 @@ export function SiteHeader() {
         is fully covered rather than showing through around the edges of each
         element individually.
 
-        NOT ON GUIDE PAGES. Those already sit on the gradient hero band with
-        just the logo floating on it, by design (see the note on that band in
-        resources/[slug]/page.tsx) — this bar would flatten that back into an
-        ordinary opaque header.
+        ON GUIDE PAGES, ONLY ONCE SCROLLED. At the top of a guide the logo
+        floats on the page's gradient with nothing behind it, by design. But
+        the scroll-direction hide is lg-only, so on a phone the logo stayed
+        pinned at the top with no surface and drew straight over the body
+        text as it scrolled past — the one place the whole site had the
+        "two things overlapping" problem this bar exists to prevent. So a
+        guide page gets the bar too, at opacity 0 at the top (the gradient
+        shows) and 1 once the page has moved: the same bar, the same fade,
+        driven by scroll position instead of the hero.
 
         TWO SIGNALS, NESTED RATHER THAN COMBINED INTO ONE. The bar should be
         gone whenever the capsules themselves are gone (scrolling down —
@@ -318,18 +330,26 @@ export function SiteHeader() {
         capsule — the same pt-6/pt-9 again — gives the bar a symmetric margin
         on both sides of the row it holds, rather than hugging one edge of it.
       */}
-      {!isGuidePage && (
-        <div aria-hidden="true" className={`absolute inset-x-0 top-0 ${capsule}`}>
-          <div
-            className="h-[6.5rem] border-b border-ink-200/80 bg-white/95 shadow-card backdrop-blur-xl transition-opacity duration-300 sm:h-[8.5rem]"
-            style={{ opacity: overHero ? 0 : 1 }}
-          />
-        </div>
-      )}
+      <div aria-hidden="true" className={`absolute inset-x-0 top-0 ${capsule}`}>
+        <div
+          className="h-[6.5rem] border-b border-ink-200/80 bg-white/95 shadow-card backdrop-blur-xl transition-opacity duration-300 sm:h-[8.5rem]"
+          style={{ opacity: isGuidePage ? (guideScrolled ? 1 : 0) : overHero ? 0 : 1 }}
+        />
+      </div>
       {/* Padding matches the gap between the video card's top edge and this
           row, so the logo sits the same distance from the card's left edge as
           it does from its top. See the hero arithmetic on the home page. */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      {/* TIGHTER GAPS BELOW sm, AND THE REASON IS ARITHMETIC, NOT TASTE.
+
+          Making "Sign in" visible on phones (it was hidden below sm, which left
+          a returning client with no way into the portal at all) added 52px to
+          this row. At 320px that tipped the logo + Sign in + CTA cluster 6px
+          past the viewport, giving the page the one bit of horizontal overflow
+          it otherwise does not have. Two gaps come in by 4px each below sm —
+          this grid gap and the trailing cluster's — which covers it with 2px to
+          spare. Measured at 320/360/375/414/640+; above sm there is slack either
+          way, so the gaps stay as they were. */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
         <Link
           href="/"
           aria-label="FLS Capital Advisors"
@@ -492,14 +512,14 @@ export function SiteHeader() {
             </nav>
 
             <div
-              className={`flex items-center gap-4 justify-self-end ${capsule} header-capsule--trailing`}
+              className={`flex items-center gap-3 justify-self-end sm:gap-4 ${capsule} header-capsule--trailing`}
             >
               {/* No capsule. It is a tertiary action sitting beside a primary one,
                   and giving it a surface of its own made the two read as a pair of
                   equals. */}
               <Link
                 href="/sign-in"
-                className={`hidden whitespace-nowrap text-base font-semibold transition-colors sm:inline ${
+                className={`whitespace-nowrap text-base font-semibold transition-colors ${
                   overHero
                     ? "text-white drop-shadow-sm hover:text-white/70"
                     : "text-ink-700 hover:text-ink-900"
@@ -513,18 +533,35 @@ export function SiteHeader() {
                   decided by Tailwind's stylesheet order rather than by the order
                   they are written — a coin flip that reads as a bug.
 
-                  size="md", not "lg": "lg"'s px-7 was sized for "See Your
-                  Personalized Quote" — against the shorter "Get Your Free Quote"
-                  it read as an oversized box around the text. "md" trims the
-                  padding; the capsule's fixed height (below) still pins this to
-                  the same height as the nav pill and logo regardless of size, so
-                  the row stays aligned either way. */}
+                  size="md", not "lg". The original reason was that "lg"'s px-7
+                  had been sized for a long label ("See Your Personalized Quote")
+                  and looked like an oversized box around the shorter "Get Your
+                  Free Quote". The label is long again, so that reason has
+                  expired — but "md" stays, for a different and firmer one: the
+                  binding constraint is now total header width, not how the label
+                  sits in its box. See the note on the labels below. */}
               <ButtonLink
                 href="/start"
                 size="md"
                 className={`${CAPSULE} whitespace-nowrap shadow-card`}
               >
-                Get Your Free Quote
+                {/* TWO LABELS, ONE BUTTON, AND THE SHORT ONE IS A MEASUREMENT
+                    RATHER THAN A PREFERENCE.
+
+                    Below sm the header row is logo (92px) + "Sign in" (52px) +
+                    this button, inside a 375px viewport. The full label renders
+                    at 242px, which overflows by 64px and reintroduces the
+                    horizontal scroll the rest of the page is careful not to
+                    have; at 360px it overflows by 80px. "See Options" is 129px
+                    and clears both. Measured in a real browser at 320/360/375/
+                    390/414 — do not "simplify" this back to one label without
+                    re-measuring with Sign in visible.
+
+                    display:none, not aria-hidden: the hidden half stays out of
+                    innerText, so this does not duplicate the label for crawlers
+                    the way the hero counter duplicates its figure. */}
+                <span className="sm:hidden">See Options</span>
+                <span className="hidden sm:inline">See Your Financing Options</span>
               </ButtonLink>
             </div>
           </>
@@ -733,7 +770,7 @@ export function SiteFooter() {
           <p className="text-xs leading-relaxed text-ink-600 lg:text-justify">
             Financial Lending Specialists D.B.A. FLS Capital Advisors arranges
             financing through third-party funding sources. Nothing on this
-            site is a commitment to lend or an offer of credit. All financing
+            site is a commitment to fund or an offer of credit. All financing
             is subject to qualification, lender review, and program
             availability. Program terms and availability vary and may change.
           </p>

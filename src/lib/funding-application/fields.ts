@@ -116,8 +116,11 @@ export const FUNDING_APPLICATION_FIELDS: FundingApplicationField[] = [
     notes: "Signer-input field. Collected on the executed document; we store ein_last4 only." },
 
   // ---------------------------------------------------------------- PREMISES
+  // Optional since the client review (Notion 09.27): rent/own, DBA and the
+  // preferred contact phone no longer block a file. Landlord details still
+  // follow when "rent" is the answer.
   { key: "premises_status", formLabel: "Rented / Mortgaged", section: "premises",
-    source: "column", path: "business.premises_status", required: true },
+    source: "column", path: "business.premises_status", required: false },
   { key: "premises_monthly_payment", formLabel: "Monthly Payment", section: "premises",
     source: "column", path: "business.premises_monthly_payment", required: false,
     requiredWhen: (c) => {
@@ -155,9 +158,11 @@ export const FUNDING_APPLICATION_FIELDS: FundingApplicationField[] = [
     requiredWhen: (c) => c.application?.has_bankruptcy === true },
 
   // ------------------------------------------------------------- OBLIGATIONS
+  // Optional since the client review (Notion 09.27): a file is never held
+  // back for the debt schedule. It is still offered to anyone who reports
+  // existing financing, and whatever is listed is printed.
   { key: "existing_debts", formLabel: "Lender 1 / 2 and balances", section: "obligations",
     source: "collection", required: false,
-    requiredWhen: (c) => c.application?.has_existing_mca === true,
     notes: "The form has two rows; we store the full schedule and render as many as fit." },
 
   // ----------------------------------------------------------- PRIMARY OWNER

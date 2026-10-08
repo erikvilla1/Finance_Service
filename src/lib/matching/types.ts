@@ -55,6 +55,8 @@ export interface FieldDef {
   help?: string;
   type: FieldType;
   options?: FieldOption[];
+  /** Example value shown in an empty typed field (currency, number). */
+  placeholder?: string;
   required: boolean;
   /** Only asked when this condition holds (e.g. purchase price on a purchase). */
   showIf?: Condition;
@@ -113,7 +115,7 @@ export interface Rule {
   description: string;
   /**
    * The test. Omit when the source documents the rule but FLS has not yet
-   * received the number (e.g. 360's deposit-to-cost ratio): the rule then
+   * received the number: the rule then
    * evaluates as "pending", which caps the program at Potential Match and
    * tells staff exactly what is outstanding.
    */

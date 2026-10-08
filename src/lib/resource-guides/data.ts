@@ -38,6 +38,21 @@ export interface ResourceGuide {
   slug: string;
   order: number;
   title: string;
+  /**
+   * The title as it reads inside a sentence, where one is needed.
+   *
+   * The landing page sets a line mid-sentence ("Find the right ... path") and
+   * used to build it with `title.toLowerCase()`. That is right for nine of the
+   * eleven titles — "Equipment Financing" -> "equipment financing" reads
+   * correctly — and wrong for the two carrying an acronym, which came out as
+   * "sba financing" and "mca restructuring".
+   *
+   * An override on the data rather than a rule at the render site, because the
+   * exceptions are a property of the words, not of the page: a twelfth guide
+   * with an acronym in its name needs this filled in, and nothing else needs
+   * to change. Leave it unset whenever plain lowercasing is correct.
+   */
+  titleInSentence?: string;
   dek: string;
   intro: string[];
   useCasesTitle: string;
@@ -127,6 +142,7 @@ export const RESOURCE_GUIDES: ResourceGuide[] = [
     slug: "sba-financing",
     order: 2,
     title: "SBA Financing",
+    titleInSentence: "SBA financing",
     dek: "A practical guide to longer-term business financing for acquisitions, owner-occupied real estate, expansion, equipment, and other eligible business purposes.",
     intro: [
       "SBA financing can be a strong option for established businesses and qualified buyers who need longer repayment periods or a financing structure tied to a major business transaction. The SBA does not simply replace lender underwriting; the lender still evaluates the borrower, business, transaction, cash flow, and eligibility.",
@@ -678,6 +694,7 @@ export const RESOURCE_GUIDES: ResourceGuide[] = [
     slug: "business-debt-refinance-and-mca-restructuring",
     order: 11,
     title: "Business Debt Refinance & MCA Restructuring",
+    titleInSentence: "business debt refinance & MCA restructuring",
     dek: "A practical guide to evaluating whether existing business obligations can be refinanced, consolidated, or restructured into a more manageable capital structure.",
     intro: [
       "Business debt refinance is not simply about replacing one obligation with another. The objective is to evaluate payment burden, remaining balances, cost, term, collateral, business cash flow, and whether a new structure creates a meaningful improvement.",

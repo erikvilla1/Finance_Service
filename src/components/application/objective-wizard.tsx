@@ -350,7 +350,7 @@ function FieldControl({
           >
             $
           </span>
-          <AmountInput id={id} name={field.id} required={required} disabled={disabled} placeholder="0" className="pl-7" />
+          <AmountInput id={id} name={field.id} required={required} disabled={disabled} placeholder={field.placeholder ?? "0"} className="pl-7" />
         </div>
       ) : (
         <Input
@@ -362,7 +362,7 @@ function FieldControl({
           disabled={disabled}
           min={field.id === "equipment_year" ? 1950 : 0}
           max={field.id === "equipment_year" ? THIS_YEAR + 1 : undefined}
-          placeholder={field.id === "equipment_year" ? String(THIS_YEAR - 5) : undefined}
+          placeholder={field.placeholder ?? (field.id === "equipment_year" ? String(THIS_YEAR - 5) : undefined)}
         />
       )}
     </Field>

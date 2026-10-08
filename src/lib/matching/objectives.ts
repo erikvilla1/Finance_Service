@@ -74,7 +74,7 @@ export function findObjective(id: string | null | undefined): Objective | null {
 /**
  * Which objective each Resources guide deep-links into (spec §14).
  *
- * The eleven guides stay as content; this is what their "Get Your Free Quote"
+ * The eleven guides stay as content; this is what their "See Your Financing Options"
  * preselects. Several guides share an objective because the guides are organised
  * by solution and the funnel by goal (both flip and ground-up construction are
  * "investment real estate"; the SBA guide's readers are most often buying or

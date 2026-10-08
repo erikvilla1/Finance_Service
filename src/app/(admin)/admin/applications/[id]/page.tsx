@@ -30,7 +30,7 @@ import {
 import { loadLeadSummaries } from "@/lib/leads";
 import { assessCompleteness } from "@/lib/funding-application/completeness";
 import { loadFundingApplication } from "@/lib/funding-application/load";
-import { addNote, assignToMe, updateStatus } from "./actions";
+import { addNote, updateStatus } from "./actions";
 import { DocumentsCard } from "./documents-card";
 import { SubmissionsCard } from "./submissions-card";
 import { MatchRoutes, type StoredMatch } from "./match-routes";
@@ -137,12 +137,18 @@ export default async function ApplicationDetailPage({
       */}
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-sm text-ink-500 dark:text-ink-400">
-            {application.reference_code}
-            {lead?.contactName && lead?.businessName
-              ? ` · ${lead.contactName}`
-              : ""}
-          </p>
+          {/* THE REFERENCE IS NO LONGER THE HEADLINE. This line used to open
+              with FLS-2026-000075, which made the filing number the deal's
+              identity — on screen, in the pipeline, and in the chase email's
+              subject. Robert identifies deals by business, so the business is
+              the h1 and the reference moved to the end of the meta line below:
+              still there to match a funder's correspondence, no longer the
+              first thing read. */}
+          {lead?.contactName && lead?.businessName && (
+            <p className="font-mono text-sm text-ink-500 dark:text-ink-400">
+              {lead.contactName}
+            </p>
+          )}
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink-900 dark:text-ink-100">
             {lead?.businessName ?? lead?.contactName ?? "Name not given yet"}
           </h1>
@@ -151,6 +157,9 @@ export default async function ApplicationDetailPage({
             {` · ${formatCurrency(application.requested_amount)}`}
             {application.track ? ` · ${humanize(application.track)} track` : ""}
             {` · created ${formatDate(application.created_at)}`}
+            <span className="ml-2 font-mono text-sm text-ink-400 dark:text-ink-500">
+              {application.reference_code}
+            </span>
           </p>
           {lead?.contactEmail && (
             <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">
@@ -165,11 +174,7 @@ export default async function ApplicationDetailPage({
           {/* Renders itself away when there is nothing outstanding, so it only
               appears on the files it is actually for. */}
           {lead && (
-            <NudgeLink
-              summary={lead}
-              reference={application.reference_code}
-              className="mt-3"
-            />
+            <NudgeLink summary={lead} className="mt-3" />
           )}
         </div>
         <Badge tone={statusTone(application.status)}>
@@ -507,13 +512,6 @@ export default async function ApplicationDetailPage({
               </Select>
               <Button type="submit" size="sm" className="w-full">
                 Update status
-              </Button>
-            </form>
-
-            <form action={assignToMe} className="mt-3">
-              <input type="hidden" name="applicationId" value={application.id} />
-              <Button type="submit" size="sm" variant="secondary" className="w-full">
-                {application.assigned_to ? "Reassign to me" : "Assign to me"}
               </Button>
             </form>
           </Card>

@@ -3,7 +3,14 @@ import { loadQuestions, type Question } from "@/lib/questions";
 import type { ProductTrack } from "@/types/database";
 import { coerceValue, isAnswered, targetFor, type FormModule } from "./mapping";
 import { isEditable } from "./load";
-import { normalizeAndValidate } from "./validate";
+import { normalizeAndValidate, validateEmail, validatePhone } from "./validate";
+import {
+  MAX_CO_OWNERS,
+  coOwnerFieldName,
+  needsCoOwners,
+  toPercent,
+  type CoOwner,
+} from "./co-owners";
 
 /**
  * Writing one section of the full application.
@@ -169,6 +176,18 @@ export async function saveSection(
     if (!result.ok) return result;
   }
 
+  // ----------------------------------------------------------- OTHER OWNERS
+  if (module === "owner") {
+    const result = await syncCoOwners(
+      supabase,
+      applicationId,
+      formData,
+      validated.has("owner_ownership_pct") ? toPercent(validated.get("owner_ownership_pct")) : undefined,
+    );
+    if (!result.ok) return result;
+    Object.assign(fieldErrors, result.fieldErrors);
+  }
+
   // ------------------------------------------------------------------- ANSWERS
   if (byTable.answers.length > 0) {
     const { error } = await supabase.from("application_answers").upsert(
@@ -305,4 +324,160 @@ async function writeOwner(
   } as never);
 
   return error ? { ok: false, error: saveFailed } : { ok: true };
+}
+
+/**
+ * The additional-owner lines, kept in step with the primary share.
+ *
+ * Three cases, decided by the primary owner's percentage — the one just
+ * posted, or the stored one when this save did not carry it:
+ *
+ *  - 100% (or more): there are no other owners. Any lines are removed, so a
+ *    partner typed in and then revised away does not linger on the file.
+ *  - Under 100% and the form posted lines: the lines REPLACE what was there,
+ *    row for row — existing rows are updated in place, extra ones inserted,
+ *    surplus ones deleted. Replacing rather than diffing, for the reason the
+ *    debt schedule gives (obligations.ts).
+ *  - Under 100% and no lines posted (the block was not on the page): nothing
+ *    is touched. The save path only writes what it was sent.
+ *
+ * A line is kept when it has a first and last name — `full_name` is NOT NULL,
+ * so a nameless line cannot be stored and is reported instead, with the typed
+ * values left in the inputs. A percentage, email or phone that does not parse
+ * is reported the same way; the rest of the line is saved. The TOTAL is not
+ * policed here: whether it adds up decides whether the section is complete
+ * (load.ts), and the form shows the running figure as it is typed. Refusing
+ * the write until it was right would turn autosave into a nag.
+ */
+async function syncCoOwners(
+  supabase: Client,
+  applicationId: string,
+  formData: FormData,
+  postedPrimaryPct: number | null | undefined,
+): Promise<{ ok: true; fieldErrors: Record<string, string> } | { ok: false; error: string }> {
+  let primaryPct = postedPrimaryPct ?? null;
+
+  if (postedPrimaryPct === undefined) {
+    const { data: primary } = await supabase
+      .from("application_owners")
+      .select("ownership_pct")
+      .eq("application_id", applicationId)
+      .eq("is_primary", true)
+      .maybeSingle();
+    primaryPct = toPercent(primary?.ownership_pct);
+  }
+
+  const { data: existingRows } = await supabase
+    .from("application_owners")
+    .select("id")
+    .eq("application_id", applicationId)
+    .eq("is_primary", false)
+    .order("created_at");
+  const existing = (existingRows ?? []).map((row) => row.id);
+
+  const removeFrom = async (ids: string[]) => {
+    if (ids.length === 0) return true;
+    const { error } = await supabase
+      .from("application_owners")
+      .delete()
+      .in("id", ids)
+      .eq("is_primary", false);
+    return !error;
+  };
+
+  // A whole owner: the lines no longer apply.
+  if (primaryPct !== null && !needsCoOwners(primaryPct)) {
+    return (await removeFrom(existing))
+      ? { ok: true, fieldErrors: {} }
+      : { ok: false, error: saveFailed };
+  }
+
+  // The block was not on the page (no JavaScript, or a blank primary share).
+  if (!formData.has(coOwnerFieldName("first_name", 0))) {
+    return { ok: true, fieldErrors: {} };
+  }
+
+  const fieldErrors: Record<string, string> = {};
+  const lines: { index: number; owner: CoOwner }[] = [];
+
+  for (let index = 0; index < MAX_CO_OWNERS; index++) {
+    const read = (field: Parameters<typeof coOwnerFieldName>[0]) =>
+      String(formData.get(coOwnerFieldName(field, index)) ?? "").trim();
+    if (!formData.has(coOwnerFieldName("first_name", index))) continue;
+
+    const owner: CoOwner = {
+      id: null,
+      firstName: read("first_name"),
+      lastName: read("last_name"),
+      title: read("title"),
+      ownershipPct: null,
+      email: "",
+      mobilePhone: "",
+    };
+    const pctText = read("ownership_pct");
+    const emailText = read("email");
+    const phoneText = read("mobile_phone");
+
+    const blank =
+      !owner.firstName && !owner.lastName && !owner.title && !pctText && !emailText && !phoneText;
+    if (blank) continue;
+
+    if (!owner.firstName || !owner.lastName) {
+      fieldErrors[coOwnerFieldName("first_name", index)] =
+        "Give this owner a first and last name — the line is recorded against it.";
+      continue;
+    }
+
+    if (pctText) {
+      const pct = toPercent(pctText);
+      if (pct === null || pct < 0 || pct > 100) {
+        fieldErrors[coOwnerFieldName("ownership_pct", index)] = "Enter a percentage from 0 to 100.";
+      } else {
+        owner.ownershipPct = pct;
+      }
+    }
+
+    if (emailText) {
+      const checked = validateEmail(emailText);
+      if (checked.error) fieldErrors[coOwnerFieldName("email", index)] = checked.error;
+      else owner.email = String(checked.value);
+    }
+
+    if (phoneText) {
+      const checked = validatePhone(phoneText);
+      if (checked.error) fieldErrors[coOwnerFieldName("mobile_phone", index)] = checked.error;
+      else owner.mobilePhone = String(checked.value);
+    }
+
+    lines.push({ index, owner });
+  }
+
+  // Row for row: update what exists, insert the rest, drop the surplus.
+  for (let position = 0; position < lines.length; position++) {
+    const { owner } = lines[position];
+    const row = {
+      first_name: owner.firstName,
+      last_name: owner.lastName,
+      full_name: `${owner.firstName} ${owner.lastName}`,
+      title: owner.title || null,
+      ownership_pct: owner.ownershipPct,
+      email: owner.email || null,
+      mobile_phone: owner.mobilePhone || null,
+    };
+
+    const id = existing[position];
+    const { error } = id
+      ? await supabase.from("application_owners").update(row as never).eq("id", id)
+      : await supabase
+          .from("application_owners")
+          .insert({ ...row, application_id: applicationId, is_primary: false } as never);
+
+    if (error) return { ok: false, error: saveFailed };
+  }
+
+  if (!(await removeFrom(existing.slice(lines.length)))) {
+    return { ok: false, error: saveFailed };
+  }
+
+  return { ok: true, fieldErrors };
 }

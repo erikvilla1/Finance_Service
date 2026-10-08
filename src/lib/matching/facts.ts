@@ -185,12 +185,17 @@ export function buildFacts(objective: ObjectiveId, answers: Answers): Facts {
   facts.request_amount = requested;
 
   // --- Cash flow -------------------------------------------------------------
+  // ONE DOLLAR FIGURE. Monthly revenue is the magnitude every cash-flow rule
+  // reads, including the ones a lender words as "a month deposited" — for the
+  // businesses these products serve the two are the same number, and asking
+  // for both was asking twice. Deposits are captured as a count instead
+  // (monthly_deposit_count): a bank-statement texture signal for staff, and a
+  // fact a lender's "at least N deposits a month" rule can test when one is
+  // documented. No program tests it yet; nothing is invented.
   const monthlyRevenue =
     num(answers.avg_monthly_revenue) ?? num(answers.ar_monthly_sales) ?? null;
-  const monthlyDeposits =
-    num(answers.avg_monthly_deposits) ?? num(answers.equipment_monthly_deposits) ?? null;
   facts.monthly_revenue = monthlyRevenue;
-  facts.monthly_deposits = monthlyDeposits;
+  facts.deposit_count = num(answers.monthly_deposit_count);
   // For an acquisition, the revenue a credit box reads is the target's.
   facts.annual_revenue =
     monthlyRevenue != null
@@ -198,12 +203,6 @@ export function buildFacts(objective: ObjectiveId, answers: Answers): Facts {
       : objective === "business_acquisition"
         ? num(answers.acq_target_revenue)
         : null;
-  // Many credit boxes accept either measure ("$500K annual sales OR $40K a
-  // month deposited"); this is the stronger of the two the applicant gave.
-  facts.monthly_cash_flow_best =
-    monthlyRevenue != null || monthlyDeposits != null
-      ? Math.max(monthlyRevenue ?? 0, monthlyDeposits ?? 0)
-      : null;
 
   // --- Existing obligations --------------------------------------------------
   setRange(facts, "positions", str(answers.open_positions_count) ?? str(answers.debt_position_count), COUNT);
@@ -216,8 +215,10 @@ export function buildFacts(objective: ObjectiveId, answers: Answers): Facts {
       : debtTypes.includes("mca") || frequency === "daily" || frequency === "weekly";
 
   // --- Equipment --------------------------------------------------------------
-  const deposits = num(answers.equipment_monthly_deposits) ?? num(answers.avg_monthly_deposits);
-  facts.deposit_to_cost = ratio(deposits, equipmentCost);
+  // 360's "organic monthly deposits ÷ equipment cost". The numerator is the
+  // monthly revenue figure (see Cash flow above); the fact keeps the lender's
+  // name for the ratio so the rule reads like the source document.
+  facts.deposit_to_cost = ratio(monthlyRevenue, equipmentCost);
   const year = num(answers.equipment_year);
   const thisYear = new Date().getFullYear();
   facts.equipment_age_years =

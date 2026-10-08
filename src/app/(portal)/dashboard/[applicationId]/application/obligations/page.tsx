@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isEditable } from "@/lib/application-form/load";
 import {
   loadObligations,
-  obligationsRequired,
+  obligationsApply,
 } from "@/lib/application-form/obligations";
 import { ObligationsForm } from "./obligations-form";
 
@@ -40,7 +40,7 @@ export default async function ObligationsPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, status, has_existing_mca")
+    .select("id, status, has_existing_mca, existing_debt_balance")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -50,7 +50,7 @@ export default async function ObligationsPage({
 
   // Not applicable rather than not found: sending them back to the hub explains
   // itself, where a 404 on a link they were given would not.
-  if (!obligationsRequired(application)) {
+  if (!obligationsApply(application)) {
     redirect(`/dashboard/${applicationId}/application`);
   }
 
@@ -62,7 +62,7 @@ export default async function ObligationsPage({
         <PageHeader
           eyebrow="Your application"
           title="Existing obligations"
-          description="You told us the business has an existing advance or loan. Funding sources need to see what's already owed before they can consider new financing, so list each one below."
+          description="You told us the business has existing financing. This section is optional, but a funding source will want to see what is already owed before it considers new financing, so listing each one here saves a round trip later."
         />
 
         {!editable && (

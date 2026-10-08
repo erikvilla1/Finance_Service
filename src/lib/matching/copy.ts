@@ -23,7 +23,7 @@ export const MATCH_STATE_STAFF_LABEL: Record<MatchState, string> = {
 
 /** Spec §18, "Recommended top-of-results copy". */
 export const RESULTS_DISCLAIMER =
-  "Based on the information provided, these financing options may fit your profile. This is a preliminary matching tool, not a credit decision or commitment to lend. A financing specialist and the applicable funding source will review the complete file before terms are offered.";
+  "Based on the information provided, these financing options may fit your profile. This is a preliminary matching tool, not a credit decision or commitment to fund. A financing specialist and the applicable funding source will review the complete file before terms are offered.";
 
 /** Spec §18, "No Current Match copy". */
 export const NO_CURRENT_MATCH_COPY =

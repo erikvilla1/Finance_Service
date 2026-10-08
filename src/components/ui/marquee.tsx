@@ -155,8 +155,17 @@ export function Marquee({
             className={cx("flex shrink-0", isVertical && "flex-col")}
           >
             {half.map((item, index) => (
+              // THE REPEATS INSIDE THIS HALF ARE ALSO DUPLICATES, and they used
+              // to be exposed. `copies` repeats the children within each half
+              // to fill a wide viewport (see the note on MarqueeProps), so with
+              // the default copies=2 a screen reader read every item twice even
+              // though the half-clone above was correctly aria-hidden — the
+              // aria-hidden was on the wrong axis to catch this one. Only the
+              // first repetition carries information; index >= items.length is
+              // the second and any later one.
               <div
                 key={index}
+                aria-hidden={index >= items.length ? "true" : undefined}
                 className={cx("flex shrink-0", isVertical && "w-full")}
               >
                 {item}

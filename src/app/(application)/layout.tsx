@@ -149,7 +149,7 @@ export default function ApplicationLayout({
         <Container>
           <p className="text-xs leading-relaxed text-ink-500">
             Your information is submitted for review. Nothing on this site is a
-            commitment to lend or an offer of credit. All financing is subject to
+            commitment to fund or an offer of credit. All financing is subject to
             qualification, lender review, and program availability.
           </p>
         </Container>

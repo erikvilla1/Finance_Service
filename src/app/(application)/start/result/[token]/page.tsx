@@ -688,7 +688,7 @@ export default async function ResultPage({
             </strong>{" "}
             They are modelled from the revenue you reported to show the rough
             shape of what may be available. They are not quotes, not offers, and
-            not amounts anyone has agreed to lend. Real figures come from a
+            not amounts anyone has agreed to fund. Real figures come from a
             lender after a full review.
           </p>
         )}
