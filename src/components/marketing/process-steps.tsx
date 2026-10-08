@@ -91,14 +91,14 @@ interface Scene {
 const SCENES: Scene[] = [
   {
     path: "/start",
-    screen: shot("start", 1920, 2750, "The goal picker: what are you looking to accomplish?"),
-    overlay: { shot: shot("start-tile", 868, 244, "The Equipment Financing option"), width: "w-[44%]" },
+    screen: shot("start", 1920, 2056, "The goal picker: what are you looking to accomplish?"),
+    overlay: { shot: shot("start-tile", 868, 198, "The Finance Equipment option"), width: "w-[44%]" },
     cursor: { hover: [0.34, 0.42], click: [0.42, 0.5] },
   },
   {
     path: "/start/prequal",
-    screen: shot("prequal", 1920, 1800, "Prequalification, question three of eight"),
-    overlay: { shot: shot("prequal-form", 1440, 682, "Two questions answered, the third being filled in"), width: "w-[50%]" },
+    screen: shot("prequal", 1920, 1800, "Prequalification: the third of five questions about the business"),
+    overlay: { shot: shot("prequal-form", 1344, 406, "Two questions answered, the third being filled in"), width: "w-[50%]" },
     cursor: { hover: [0.38, 0.58], click: [0.1, 0.67] },
   },
   {
