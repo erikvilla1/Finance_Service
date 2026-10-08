@@ -201,10 +201,10 @@ export function PrivacyContent() {
             <p className={P}>
               Have a question? Contact us at{" "}
               <a
-                href="mailto:info@flscapitaladvisors.com"
+                href="mailto:help@flscapitaladvisors.com"
                 className="underline underline-offset-2 hover:text-brand-700"
               >
-                info@flscapitaladvisors.com
+                help@flscapitaladvisors.com
               </a>
             </p>
     </>

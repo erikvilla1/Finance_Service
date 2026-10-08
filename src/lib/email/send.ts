@@ -63,7 +63,11 @@ const DEFAULT_FROM = "FLS Capital Advisors <onboarding@resend.dev>";
  * A caller can still override per-message — notifyStaff has no reason to send
  * staff replies to the applicant-facing address.
  */
-const REPLY_TO = process.env.EMAIL_REPLY_TO;
+// help@ is the inbox the client named for applicants (Notion 09.27). The
+// sending address may be a send-only domain, so without a reply-to a reply
+// would vanish; this is the one address a person should land on.
+const HELP_ADDRESS = "help@flscapitaladvisors.com";
+const REPLY_TO = process.env.EMAIL_REPLY_TO || HELP_ADDRESS;
 
 export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -123,44 +127,102 @@ export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
  * browsers — Outlook still renders through Word — so a stylesheet, a flexbox or
  * a web font is a message that arrives looking broken to the one recipient who
  * matters. Tables and inline styles are ugly and they work everywhere.
+ *
+ * WHAT IT LOOKS LIKE, AND WHY. The first version was a white card with a red
+ * button — no brand in it anywhere, and red is the colour of a warning, not of
+ * this firm. The client's note was that an outbound email has to look and feel
+ * legitimate: these land in the inbox of someone deciding whether to hand over
+ * their bank statements. So: the wordmark the site uses, in the site's ink on
+ * the site's paper; one dark button, the same dark as the site's primary
+ * action; the link written out underneath it, because a button is the thing
+ * a cautious reader will not click, and a plain URL on the firm's domain is
+ * the thing they will check; and a signature line with the one address that
+ * reaches a person. Nothing internal — the reference code is the file's
+ * name inside the admin and means nothing to the applicant (see
+ * notifications.ts). The legal name is on every message because the
+ * sending name is the trading name.
  */
 export function wrapHtml(options: {
   heading: string;
   body: string;
   cta?: { label: string; href: string };
   footer?: string;
+  /** Staff mail: internal, so no help line and no legal foot. */
+  internal?: boolean;
 }): string {
+  const font =
+    "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+  // The wordmark as text, not an image: an image in an email is blocked by
+  // default in most clients, and a blank where the brand should be is the
+  // opposite of the point.
+  const wordmark = `<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+    <tr><td style="font-family:${font};font-size:22px;font-weight:800;
+                   letter-spacing:0.06em;color:#1f201b;line-height:1;">FLS</td></tr>
+    <tr><td style="font-family:${font};font-size:9px;font-weight:600;
+                   letter-spacing:0.22em;color:#5d5e5d;padding-top:4px;
+                   text-transform:uppercase;line-height:1;">Capital Advisors</td></tr>
+  </table>`;
+
   const cta = options.cta
-    ? `<tr><td style="padding:8px 0 24px;">
-         <a href="${options.cta.href}"
-            style="display:inline-block;background:#e62427;color:#ffffff;
-                   text-decoration:none;padding:12px 22px;border-radius:8px;
-                   font-weight:600;font-size:15px;">${options.cta.label}</a>
+    ? `<tr><td style="padding:4px 0 8px;">
+         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+           <tr><td style="background:#1f201b;border-radius:10px;">
+             <a href="${options.cta.href}"
+                style="display:inline-block;font-family:${font};color:#ffffff;
+                       text-decoration:none;padding:13px 24px;font-weight:600;
+                       font-size:15px;line-height:1;">${options.cta.label}</a>
+           </td></tr>
+         </table>
+       </td></tr>
+       <tr><td style="padding:0 0 24px;font-family:${font};font-size:12px;
+                      line-height:1.6;color:#7e7d7d;word-break:break-all;">
+         Or copy this link into your browser:<br>
+         <a href="${options.cta.href}" style="color:#5d5e5d;">${options.cta.href}</a>
        </td></tr>`
     : "";
 
+  const foot = options.internal
+    ? `<tr><td style="border-top:1px solid #e6e3dc;padding-top:16px;
+                      font-family:${font};font-size:12px;line-height:1.6;color:#7e7d7d;">
+         ${options.footer ?? "Internal notification."}
+       </td></tr>`
+    : `<tr><td style="border-top:1px solid #e6e3dc;padding-top:18px;
+                      font-family:${font};font-size:14px;line-height:1.6;color:#3f3f3d;">
+         ${options.footer ? `<p style="margin:0 0 14px;">${options.footer}</p>` : ""}
+         <p style="margin:0;">Questions? Reply to this email or write to
+           <a href="mailto:${HELP_ADDRESS}" style="color:#1f201b;font-weight:600;">${HELP_ADDRESS}</a>.
+         </p>
+       </td></tr>`;
+
+  const legal = options.internal
+    ? ""
+    : `<tr><td align="center" style="padding:20px 24px 0;font-family:${font};
+                                     font-size:11px;line-height:1.6;color:#9a9893;">
+         Financial Lending Specialists D.B.A. FLS Capital Advisors.
+         You are receiving this because you have a financing application with us.
+       </td></tr>`;
+
   return `<!doctype html>
-<html><body style="margin:0;padding:0;background:#f6f6f5;">
+<html><body style="margin:0;padding:0;background:#f4f2ee;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-         style="background:#f6f6f5;padding:32px 16px;">
+         style="background:#f4f2ee;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-             style="max-width:560px;background:#ffffff;border-radius:14px;
-                    padding:32px;font-family:-apple-system,BlinkMacSystemFont,
-                    'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2b2b2b;">
-        <tr><td style="padding-bottom:8px;font-size:13px;font-weight:700;
-                       letter-spacing:0.04em;color:#1d1d1b;">
-          FINANCIAL LENDING SPECIALISTS
+             style="max-width:560px;">
+        <tr><td style="padding:0 4px 18px;">${wordmark}</td></tr>
+        <tr><td style="background:#ffffff;border:1px solid #e6e3dc;border-radius:14px;
+                       padding:34px 36px 30px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding-bottom:14px;font-family:${font};font-size:22px;
+                           font-weight:700;color:#121211;line-height:1.3;">${options.heading}</td></tr>
+            <tr><td style="padding-bottom:22px;font-family:${font};font-size:15px;
+                           line-height:1.65;color:#3f3f3d;">${options.body}</td></tr>
+            ${cta}
+            ${foot}
+          </table>
         </td></tr>
-        <tr><td style="padding:8px 0 12px;font-size:21px;font-weight:700;
-                       color:#1d1d1b;line-height:1.3;">${options.heading}</td></tr>
-        <tr><td style="padding-bottom:20px;font-size:15px;line-height:1.6;
-                       color:#3f3f3d;">${options.body}</td></tr>
-        ${cta}
-        <tr><td style="border-top:1px solid #e8e8e6;padding-top:16px;
-                       font-size:12px;line-height:1.6;color:#7e7d7d;">
-          ${options.footer ?? "This message was sent by FLS Capital Advisors regarding your financing application."}
-        </td></tr>
+        ${legal}
       </table>
     </td></tr>
   </table>

@@ -123,7 +123,7 @@ const SCENES: Scene[] = [
     path: "/dashboard",
     screen: shot("dashboard-docsdone", 2560, 2272, "Dashboard: documents accepted"),
     overlay: {
-      shot: shot("email-documents", 1120, 746, "Email: we have everything we asked for"),
+      shot: shot("email-documents", 1120, 700, "Email: we have everything we asked for"),
       width: "w-[46%]",
       email: { subject: "We have everything we asked for" },
     },
@@ -133,7 +133,7 @@ const SCENES: Scene[] = [
     path: "/dashboard",
     screen: shot("dashboard-sign", 2560, 2272, "Dashboard: application ready to sign"),
     overlay: {
-      shot: shot("email-sign", 1120, 784, "Email: your application is ready to sign"),
+      shot: shot("email-sign", 1120, 744, "Email: your application is ready to sign"),
       width: "w-[46%]",
       email: { subject: "Your financing application is ready to sign" },
     },

@@ -30,7 +30,7 @@ import {
 import { loadLeadSummaries } from "@/lib/leads";
 import { assessCompleteness } from "@/lib/funding-application/completeness";
 import { loadFundingApplication } from "@/lib/funding-application/load";
-import { addNote, assignToMe, updateStatus } from "./actions";
+import { addNote, updateStatus } from "./actions";
 import { DocumentsCard } from "./documents-card";
 import { SubmissionsCard } from "./submissions-card";
 import { MatchRoutes, type StoredMatch } from "./match-routes";
@@ -174,11 +174,7 @@ export default async function ApplicationDetailPage({
           {/* Renders itself away when there is nothing outstanding, so it only
               appears on the files it is actually for. */}
           {lead && (
-            <NudgeLink
-              summary={lead}
-              reference={application.reference_code}
-              className="mt-3"
-            />
+            <NudgeLink summary={lead} className="mt-3" />
           )}
         </div>
         <Badge tone={statusTone(application.status)}>
@@ -516,13 +512,6 @@ export default async function ApplicationDetailPage({
               </Select>
               <Button type="submit" size="sm" className="w-full">
                 Update status
-              </Button>
-            </form>
-
-            <form action={assignToMe} className="mt-3">
-              <input type="hidden" name="applicationId" value={application.id} />
-              <Button type="submit" size="sm" variant="secondary" className="w-full">
-                {application.assigned_to ? "Reassign to me" : "Assign to me"}
               </Button>
             </form>
           </Card>

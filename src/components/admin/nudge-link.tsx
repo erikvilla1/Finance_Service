@@ -27,11 +27,9 @@ import type { LeadSummary } from "@/lib/leads";
  */
 export function NudgeLink({
   summary,
-  reference,
   className = "",
 }: {
   summary: Pick<LeadSummary, "contactEmail" | "contactName" | "businessName" | "docsMissing">;
-  reference: string;
   className?: string;
 }) {
   const { contactEmail, contactName, businessName, docsMissing } = summary;
@@ -61,9 +59,9 @@ export function NudgeLink({
   // applying and funding. "Quick nudge", no company name and a bare "Robert"
   // read as an internal reminder that escaped.
   //
-  // THE REFERENCE MOVES TO THE FOOT. It still has to travel — it is how a
-  // reply gets matched back to a file — but as a filing detail under the
-  // signature rather than the first thing in the subject line.
+  // NO REFERENCE CODE. It is internal — the file's name in the admin — and
+  // the applicant has never seen it (client review, Notion 09.27). A reply
+  // is matched to a file by the business name in the subject.
   const body = [
     greeting,
     "",
@@ -76,8 +74,6 @@ export function NudgeLink({
     "Thanks,",
     "Robert Saucedo",
     "FLS Capital Advisors",
-    "",
-    `Reference ${reference}`,
   ].join("\n");
 
   const href = `mailto:${encodeURIComponent(contactEmail)}?subject=${encodeURIComponent(
