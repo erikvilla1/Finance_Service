@@ -274,22 +274,12 @@ if you'd rather.
 
 # Added 2026-10-08
 
-## 11. Two migrations need applying to production
+## 11. Migrations — applied to production on 2026-10-08
 
-I could not touch the database from here (the session's permission layer
-refused even a read of `application_questions`), so two migrations are in
-the branch and not applied:
-
-- `0035_optional_application_fields.sql` — sets DBA, preferred contact phone
-  and rent/own to not required. The seeds already say so; this makes it
-  true whatever the live row says.
-- `0036_co_owner_rows.sql` — a delete policy so an applicant can remove an
-  added owner line (non-primary rows only, inside the normal edit window).
-
-Until 0036 is applied, removing a line in the form updates and inserts
-correctly but leaves surplus rows in place rather than deleting them.
-Apply with whatever you use for the previous 34 (`supabase db push`, or the
-SQL editor).
+Done through the Supabase connector you attached: `0035`, `0036`, and `0034`
+(the Working Capital rename, on main since before this session but never
+run on production). The migration history on the project now matches the
+repository, 0001 through 0036. Nothing left to paste.
 
 ## 12. "Lend" → "fund" went into the Terms and the Disclosures
 

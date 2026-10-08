@@ -455,10 +455,8 @@ fallback everywhere else.
 
 ## What is left
 
-1. **Apply migrations 0035 and 0036** (`QUESTIONS.md` §11). Until then:
-   the three fields are optional in the readiness check but carry whatever
-   flag the database has; removing an added owner line leaves the row
-   behind (no duplicates, just a stale row).
+1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,
+   with 0034 which had been waiting on main. History matches the repo.
 2. **Decide who unlocks signing** (`QUESTIONS.md` §15).
 3. **Counsel re-reads the legal pages** with "fund" in them (§12).
 4. **Verify the sending domain in Resend** and set `EMAIL_FROM`
