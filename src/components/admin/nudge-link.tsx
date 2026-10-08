@@ -30,11 +30,11 @@ export function NudgeLink({
   reference,
   className = "",
 }: {
-  summary: Pick<LeadSummary, "contactEmail" | "contactName" | "docsMissing">;
+  summary: Pick<LeadSummary, "contactEmail" | "contactName" | "businessName" | "docsMissing">;
   reference: string;
   className?: string;
 }) {
-  const { contactEmail, contactName, docsMissing } = summary;
+  const { contactEmail, contactName, businessName, docsMissing } = summary;
 
   // No address, nothing to send to. No outstanding documents, nothing to
   // chase — and a chase naming zero documents is worse than none at all.
@@ -45,21 +45,39 @@ export function NudgeLink({
 
   const list = docsMissing.map((d) => `  • ${d}`).join("\n");
 
-  const subject = `${reference} — still need ${docsMissing.length} document${
-    docsMissing.length === 1 ? "" : "s"
-  }`;
+  // THE SUBJECT LEADS WITH THE BUSINESS, NOT THE REFERENCE. It used to open
+  // "FLS-2026-000075 — still need 2 documents", which reads like a support
+  // ticket from a system rather than a message from the broker handling your
+  // file. The applicant has never seen that number and it means nothing to
+  // them; their own business name is the thing they recognise in an inbox.
+  const plural = docsMissing.length === 1 ? "" : "s";
+  const subject = businessName
+    ? `${businessName} — ${docsMissing.length} document${plural} still needed`
+    : `${docsMissing.length} document${plural} still needed for your financing file`;
 
+  // Written to read as a professional note from a named person at a named
+  // firm, because that is what it is: Robert sends this from his own mail
+  // client and it is often the only message an applicant gets between
+  // applying and funding. "Quick nudge", no company name and a bare "Robert"
+  // read as an internal reminder that escaped.
+  //
+  // THE REFERENCE MOVES TO THE FOOT. It still has to travel — it is how a
+  // reply gets matched back to a file — but as a filing detail under the
+  // signature rather than the first thing in the subject line.
   const body = [
     greeting,
     "",
-    "Quick nudge on your financing file — we're still waiting on:",
+    "We're putting your financing file together and still need the following before it can go to a funding source:",
     "",
     list,
     "",
-    "You can upload them from your dashboard, and I'll pick them up as soon as they land. Reply here if anything on that list is a problem to get hold of.",
+    "You can upload these from your dashboard whenever it suits, and I'll pick them up as soon as they arrive. If anything on that list is difficult to get hold of, reply here and we'll find another way.",
     "",
     "Thanks,",
-    "Robert",
+    "Robert Saucedo",
+    "FLS Capital Advisors",
+    "",
+    `Reference ${reference}`,
   ].join("\n");
 
   const href = `mailto:${encodeURIComponent(contactEmail)}?subject=${encodeURIComponent(

@@ -137,12 +137,18 @@ export default async function ApplicationDetailPage({
       */}
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-sm text-ink-500 dark:text-ink-400">
-            {application.reference_code}
-            {lead?.contactName && lead?.businessName
-              ? ` · ${lead.contactName}`
-              : ""}
-          </p>
+          {/* THE REFERENCE IS NO LONGER THE HEADLINE. This line used to open
+              with FLS-2026-000075, which made the filing number the deal's
+              identity — on screen, in the pipeline, and in the chase email's
+              subject. Robert identifies deals by business, so the business is
+              the h1 and the reference moved to the end of the meta line below:
+              still there to match a funder's correspondence, no longer the
+              first thing read. */}
+          {lead?.contactName && lead?.businessName && (
+            <p className="font-mono text-sm text-ink-500 dark:text-ink-400">
+              {lead.contactName}
+            </p>
+          )}
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink-900 dark:text-ink-100">
             {lead?.businessName ?? lead?.contactName ?? "Name not given yet"}
           </h1>
@@ -151,6 +157,9 @@ export default async function ApplicationDetailPage({
             {` · ${formatCurrency(application.requested_amount)}`}
             {application.track ? ` · ${humanize(application.track)} track` : ""}
             {` · created ${formatDate(application.created_at)}`}
+            <span className="ml-2 font-mono text-sm text-ink-400 dark:text-ink-500">
+              {application.reference_code}
+            </span>
           </p>
           {lead?.contactEmail && (
             <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">
