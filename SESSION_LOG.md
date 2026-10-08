@@ -453,6 +453,25 @@ template carries a phone-width rule (tighter card padding, 20px heading)
 for the clients that honour embedded styles, with the inline values as the
 fallback everywhere else.
 
+## Later the same day
+
+- **Sign now for the applicant.** Decided (QUESTIONS §15) and built: with
+  every section complete, the dashboard's next-step card and the
+  application overview offer "Sign now" (`requestOwnSignature` in
+  `(portal)/dashboard/actions.ts`), which releases the application through
+  the service role — migration 0030's guard keeps a customer's own client
+  from writing `signature_requested_at` — sends the ready-to-sign email in
+  applicant wording, and opens the signing page.
+- **Ownership lock.** A line is added only when a percentage field is left
+  with the total still short; at 100% any empty line goes and "Add another
+  owner" is hidden. Driven in a browser: 34/66 stays at one line, 34/33/33
+  stops at two.
+- **How It Works on Windows laptops.** The deck's 704px height gate was
+  why a 1366×768 or 125%-scaled 1080p window got the static list; it pins
+  from 640px now, with the stage trimmed below 704px.
+- **Migrations 0034–0036 applied to production** through the Supabase
+  connector; pull request #17 merged and deployed.
+
 ## What is left
 
 1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,

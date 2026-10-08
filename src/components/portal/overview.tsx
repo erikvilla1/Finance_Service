@@ -17,6 +17,7 @@ import type { CustomerStage } from "@/lib/customer-status";
 import { formatCurrency, formatDate } from "@/lib/crm";
 import type { LeadSummary } from "@/lib/leads";
 import { TimeGreeting } from "./time-greeting";
+import { SignNowButton } from "./sign-now-button";
 
 /**
  * The client overview's sections, shared by the dashboard page. See
@@ -37,6 +38,8 @@ export interface NextStep {
   title: string;
   body: string;
   cta?: { label: string; href: string };
+  /** A step that is a server action rather than a link: "Sign now". */
+  action?: { kind: "sign_now"; label: string; applicationId: string };
   tone: "action" | "calm";
 }
 
@@ -269,6 +272,19 @@ export function nextStepFor(
       tone: "action",
     };
   }
+  // Every section complete and nothing released yet: the applicant can
+  // sign now (client review, Notion 09.27). Ahead of the documents, because
+  // the signature is the thing a file cannot leave without and the
+  // documents can follow while it is reviewed.
+  if ((lead?.formRequired ?? 0) > 0 && !application.signature_requested_at && !isSigned) {
+    return {
+      icon: PenLine,
+      title: "Sign your application",
+      body: "Every section is complete. Review the application that goes to a funding source and sign it; it takes a couple of minutes. We will email you the link as well.",
+      action: { kind: "sign_now", label: "Sign now", applicationId: id },
+      tone: "action",
+    };
+  }
   if (docsLeft > 0) {
     return {
       icon: FolderUp,
@@ -425,6 +441,9 @@ export function NextStepCard({ step }: { step: NextStep }) {
             </p>
           </div>
         </div>
+        {step.action && (
+          <SignNowButton applicationId={step.action.applicationId} label={step.action.label} onDark />
+        )}
         {step.cta && (
           <Link
             href={step.cta.href}

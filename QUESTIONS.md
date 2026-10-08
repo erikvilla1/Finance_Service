@@ -309,22 +309,22 @@ the financials section. I did not read "thru email" confidently: it could
 mean the schedule is collected on the signed document, or that a reminder
 email asks for it. Neither is built. Tell me which and it is a small change.
 
-## 15. Who unlocks signing — a product decision, not a bug
+## 15. Who unlocks signing — decided and built (10-08)
 
-Notion: "Only when all 3 sections of the application are filled out (all
-green checks): unlock a click-to-sign button where it sends email to them
-where they sign and SSN." Today the **specialist** requests the signature
-from the admin file once the readiness check passes, which sends the email
-and unlocks the signing page; the applicant then types the full SSN on the
-document, which is drawn into the PDF and never stored (that part is done
-and was before this session).
+You asked where the applicant's button was, so it exists now: once every
+section of the application is complete, the dashboard's "Your next step"
+card and the application overview show **Sign now**. Pressing it releases
+the application for signature, sends the ready-to-sign email with the link,
+and opens the signing page, where the full SSN is typed onto the document
+and never stored. The specialist's review moves to the signed document: it
+lands on the checklist like any other, and a copy with a problem is
+returned with a reason, which reopens signing. The specialist's own
+"Request signature" button still works for files that need it.
 
-Changing it so the applicant unlocks signing the moment their checks go
-green means the file is signed **before** Robert has looked at it, and a
-correction after that means signing again. That is why it was built the
-other way round. If Robert wants it his way regardless, it is one condition
-on the dashboard and one server action; say so and I will do it. I did not
-want to flip the review order on a note.
+One consequence to know about: if a specialist withdraws a signature
+request after the applicant pressed the button, the button comes back and
+the applicant can press it again. If that matters, say so and I will make
+a withdrawal stick.
 
 ## 16. Three admin things Robert asked about
 

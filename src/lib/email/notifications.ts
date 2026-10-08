@@ -158,6 +158,7 @@ async function fileSummary(
  */
 export async function notifySignatureRequested(
   applicationId: string,
+  options: { requestedBy?: "specialist" | "applicant" } = {},
 ): Promise<SendOutcome> {
   const recipient = await recipientFor(applicationId);
   if (!recipient) return { sent: false, reason: "no_recipient" };
@@ -166,7 +167,13 @@ export async function notifySignatureRequested(
   const subject = "Your financing application is ready to sign";
 
   const forBusiness = recipient.businessName ? ` for ${recipient.businessName}` : "";
-  const body = `Your specialist has reviewed everything, and the funding application${forBusiness} is ready for your signature. It is the last thing we need before your file can go to a funding source, and it takes a couple of minutes.`;
+  // Two openings for two triggers: a specialist releasing a reviewed file,
+  // or the applicant pressing "Sign now" with every section complete — in
+  // which case the review comes after signing, and the email says so.
+  const body =
+    options.requestedBy === "applicant"
+      ? `Every section of the funding application${forBusiness} is complete, so it is ready for your signature. You can sign from the link below whenever you are ready; it takes a couple of minutes. Your specialist reviews the signed application before it goes to a funding source.`
+      : `Your specialist has reviewed everything, and the funding application${forBusiness} is ready for your signature. It is the last thing we need before your file can go to a funding source, and it takes a couple of minutes.`;
   const paper =
     "Would you rather sign on paper? There is no charge either way. Reply to this email and we will send you a copy to print.";
 
