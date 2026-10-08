@@ -344,3 +344,27 @@ a map.
 what was missing, what is collected at signing — put there so a funder
 could see a debt schedule was waived rather than lost. It is gone. The same
 facts are on the admin page the download comes from.
+
+## 17. The test-data reset has to be run from the SQL editor
+
+The Supabase connector attached to this session holds every `delete` for
+a confirmation it never gets here, so each attempt timed out and nothing
+was removed (verified by counting after each one). Run this in the
+dashboard's SQL Editor; it clears the pre-launch test data and keeps the
+configuration (products, questions, lenders, rulesets, document types) and
+the new admin login:
+
+```sql
+delete from storage.objects where bucket_id = 'application-documents';
+delete from public.applications;
+delete from public.businesses;
+delete from public.contact_submissions;
+delete from public.audit_logs;
+delete from auth.users where email <> 'admin@flscapitaladvisors.com';
+```
+
+Deleting `storage.objects` rows by SQL leaves the file bytes orphaned in
+the bucket; to remove those too, open Storage → `application-documents`,
+select all, delete, before or after the SQL. Everything else cascades:
+answers, owners, documents, requests, results, debts, notes, tasks,
+consents, submissions, and the profiles of the deleted users.
