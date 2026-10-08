@@ -174,9 +174,6 @@ export async function notifySignatureRequested(
     options.requestedBy === "applicant"
       ? `Every section of the funding application${forBusiness} is complete, so it is ready for your signature. You can sign from the link below whenever you are ready; it takes a couple of minutes. Your specialist reviews the signed application before it goes to a funding source.`
       : `Your specialist has reviewed everything, and the funding application${forBusiness} is ready for your signature. It is the last thing we need before your file can go to a funding source, and it takes a couple of minutes.`;
-  const paper =
-    "Would you rather sign on paper? There is no charge either way. Reply to this email and we will send you a copy to print.";
-
   return sendEmail({
     to: recipient.email,
     subject,
@@ -186,15 +183,12 @@ ${body}
 
 Review and sign: ${url}
 
-${paper}
-
 FLS Capital Advisors
 Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
     html: wrapHtml({
       heading: "Ready for your signature",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p><p style="margin:0;">${body}</p>`,
       cta: { label: "Review and sign", href: url },
-      footer: paper,
     }),
   });
 }
@@ -235,8 +229,6 @@ What they said: ${reason}
 
 Review and sign: ${url}
 
-Would you rather sign on paper? There is no charge either way. Reply to this email and we will send you a copy to print.
-
 FLS Capital Advisors
 Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
       html: wrapHtml({
@@ -245,8 +237,6 @@ Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
                <p style="margin:0 0 12px;">Your specialist looked at your signed application and needs you to review it and sign again. It takes a couple of minutes.</p>
                <p style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;">${reason}</p>`,
         cta: { label: "Review and sign", href: url },
-        footer:
-          "Would you rather sign on paper? There is no charge either way. Reply to this email and we will send you a copy to print.",
       }),
     });
   }

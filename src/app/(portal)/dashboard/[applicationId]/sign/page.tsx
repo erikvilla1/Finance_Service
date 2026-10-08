@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CircleAlert, CircleCheck, Hourglass } from "lucide-react";
-import { PageHeader, Panel, textLink } from "@/components/portal/ui";
+import { PageHeader, Panel } from "@/components/portal/ui";
 import { createClient } from "@/lib/supabase/server";
 import { FCRA_AUTHORIZATION_V1 } from "@/lib/funding-application/consent-text";
 import { E_SIGN_CONSENT } from "@/lib/funding-application/sign";
@@ -155,14 +154,6 @@ export default async function SignPage({
                 defaultTitle={owner?.title ?? ""}
               />
             </Panel>
-
-            <p className="mt-6 pl-3 text-sm leading-relaxed text-ink-600 sm:pl-4">
-              Would you rather sign on paper? There&apos;s no charge either way.{" "}
-              <Link href="/dashboard/support" className={textLink}>
-                Ask your specialist
-              </Link>{" "}
-              and they&apos;ll send you a copy to print.
-            </p>
           </>
         )}
     </div>
