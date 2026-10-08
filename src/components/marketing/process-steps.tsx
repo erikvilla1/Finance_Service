@@ -517,13 +517,14 @@ function Showcase({ active }: { active: number }) {
  * the safe render.
  */
 export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
-  // 40rem of height, not 44: the stage trims its padding and the frame its
-  // height below 44rem (see the SHORT WINDOWS note on the stage), which is
-  // what lets a 1366×768 laptop and a 1080p display at 125% scaling — most
-  // Windows laptops — get the deck rather than the list.
-  const pinned = useMediaQuery(
-    "(min-width: 80rem) and (min-height: 40rem) and (prefers-reduced-motion: no-preference)",
-  );
+  // SIZE ONLY, AND SMALLER THAN IT WAS. 76rem by 37rem is what a 1080p
+  // laptop at Windows' 150% scaling leaves a maximised browser (1263 by
+  // about 620 CSS px); below 44rem the stage trims its padding, below 40rem
+  // its type as well (see the SHORT WINDOWS note on the stage). Reduced
+  // motion no longer sends anyone to the list: the stage is driven by the
+  // reader's own scrolling, and the client wants it the same on Windows
+  // as on a Mac (see .motion-keep in globals.css).
+  const pinned = useMediaQuery("(min-width: 76rem) and (min-height: 37rem)");
   return pinned ? <PinnedProcess steps={steps} /> : <StaticProcess steps={steps} />;
 }
 
@@ -656,7 +657,7 @@ function PinnedProcess({ steps }: { steps: ProcessStep[] }) {
       className="relative"
       style={{ height: `${count * STEP_VH + 100}vh` }}
     >
-      <div ref={stageRef} className="sticky top-0 h-dvh overflow-hidden">
+      <div ref={stageRef} className="motion-keep sticky top-0 h-dvh overflow-hidden">
         {/* Backdrop. A dot grid that drifts up as you scroll through, masked
             to fade out toward the edges, and one warm glow that travels
             from the lower right. Both transform-only. */}
@@ -688,14 +689,14 @@ function PinnedProcess({ steps }: { steps: ProcessStep[] }) {
             gaps in the left column come in, and the frame gives up height
             (Showcase) rather than the stage overflowing: the numeral keeps
             its 6.5rem because the roll in apply() is written in those units. */}
-        <div className="relative mx-auto flex h-full w-full max-w-[110rem] items-center px-14 pb-10 pt-24 [@media(max-height:44rem)]:pb-6 [@media(max-height:44rem)]:pt-16">
+        <div className="relative mx-auto flex h-full w-full max-w-[110rem] items-center px-14 pb-10 pt-24 [@media(max-height:44rem)]:pb-6 [@media(max-height:44rem)]:pt-16 [@media(max-height:40rem)]:pb-5 [@media(max-height:40rem)]:pt-14">
           <div className="grid w-full grid-cols-[minmax(0,24rem)_minmax(0,1fr)] items-center gap-12 min-[90rem]:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] min-[90rem]:gap-16">
             {/* ---------------------------------------------------- COPY */}
             <div>
               <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">
                 How it works
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl [@media(max-height:40rem)]:mt-2 [@media(max-height:40rem)]:text-2xl">
                 A simple path forward
               </h2>
 
@@ -718,7 +719,7 @@ function PinnedProcess({ steps }: { steps: ProcessStep[] }) {
                 {/* Every step's copy stacked in one grid cell, so the block
                     is always as tall as the longest and nothing below it
                     moves. */}
-                <div className="mt-6 grid [&>*]:col-start-1 [&>*]:row-start-1">
+                <div className="mt-6 grid [&>*]:col-start-1 [&>*]:row-start-1 [@media(max-height:40rem)]:mt-4">
                   {steps.map((step, index) => (
                     <div
                       key={step.title}
@@ -727,10 +728,10 @@ function PinnedProcess({ steps }: { steps: ProcessStep[] }) {
                       }}
                       style={{ opacity: index === 0 ? 1 : 0 }}
                     >
-                      <h3 className="text-3xl font-bold tracking-tight text-ink-900 min-[90rem]:text-[2.5rem] min-[90rem]:leading-[1.1]">
+                      <h3 className="text-3xl font-bold tracking-tight text-ink-900 min-[90rem]:text-[2.5rem] min-[90rem]:leading-[1.1] [@media(max-height:40rem)]:text-2xl">
                         {step.title}
                       </h3>
-                      <p className="mt-4 text-lg leading-relaxed text-ink-600">
+                      <p className="mt-4 text-lg leading-relaxed text-ink-600 [@media(max-height:40rem)]:mt-3 [@media(max-height:40rem)]:text-base">
                         {step.body}
                       </p>
                     </div>

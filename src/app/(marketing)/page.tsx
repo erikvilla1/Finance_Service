@@ -617,7 +617,7 @@ export default function HomePage() {
             cursor resting anywhere over it stopped the whole thing, which read
             as broken. Easing down to a crawl keeps it alive but readable. */}
         <Marquee
-          className="relative mt-10"
+          className="motion-keep relative mt-10"
           durationSec={70}
           hoverSpeed={0.2}
           fadeAmount={8}
