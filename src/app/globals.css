@@ -195,10 +195,19 @@
     border-radius: 0.25rem;
   }
 
+  /* MOTION-KEEP. Two sections run regardless of the operating system's
+     reduced-motion setting: the How It Works stage and the testimonials
+     marquee. The client's call (10-08): Windows laptops with "Animation
+     effects" off were getting a still list and a still row where a Mac got
+     the deck and the crawl, and the site is meant to look the same on both.
+     Both are gentle — the stage is driven by the reader's own scrolling and
+     the marquee slows to a crawl under the cursor — and `.motion-keep`
+     marks them out of the blanket rule below. Everything else still
+     settles instantly for anyone who asked for less motion. */
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *:where(:not(.motion-keep, .motion-keep *)),
+    *:where(:not(.motion-keep, .motion-keep *))::before,
+    *:where(:not(.motion-keep, .motion-keep *))::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -426,8 +435,10 @@
   @media (prefers-reduced-motion: reduce) {
     /* The blanket rule above forces animation-duration to 0.01ms, which on an
        infinite loop means it jumps to its end frame instead of stopping. This
-       wins on specificity (.marquee-track over *) and holds it still. */
-    .marquee-track {
+       wins on specificity (.marquee-track over *) and holds it still — unless
+       the marquee is marked motion-keep (the testimonials; see the note on
+       the blanket rule). */
+    .marquee:not(.motion-keep) .marquee-track {
       animation: none !important;
     }
   }

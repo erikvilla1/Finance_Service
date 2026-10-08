@@ -472,6 +472,20 @@ fallback everywhere else.
 - **Migrations 0034–0036 applied to production** through the Supabase
   connector; pull request #17 merged and deployed.
 
+- **Admin login.** One staff login now: `admin@flscapitaladvisors.com`
+  (role `admin`, email confirmed), created through the Supabase connector.
+  The two earlier admin profiles were set to `customer`, so nothing else
+  reaches `/admin`. The password was given in chat and is not written
+  anywhere in the repository.
+- **Test-data reset — not done from here.** The connector holds any
+  `delete` for a confirmation this session cannot give, and times out, so
+  the reset SQL is in `QUESTIONS.md` §17 for the dashboard's SQL editor.
+  Nothing was removed; counts were checked after every attempt.
+- **Windows.** Reduced motion no longer stills the testimonials or sends
+  How It Works to its list (`.motion-keep`), and the deck's size gate fits
+  a maximised window at 150% scaling. Verified with reduced motion
+  emulated at 1263×620, 1366×650 and 1440×900.
+
 ## What is left
 
 1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,
