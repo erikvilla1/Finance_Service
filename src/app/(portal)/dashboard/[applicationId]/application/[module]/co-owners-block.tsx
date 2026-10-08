@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Field, Input } from "@/components/ui";
 import { secondaryButton } from "@/components/portal/ui";
 import {
+  CO_OWNER_FIELDS,
   MAX_CO_OWNERS,
   coOwnerFieldName,
   needsCoOwners,
@@ -16,11 +17,14 @@ import {
  * The additional-owner lines under the owner section.
  *
  * Appears the moment the primary owner's percentage is under 100, with one
- * line ready; whenever every line has a percentage and the total still falls
- * short, another line is added — the "auto input other lines" the client asked
- * for. The running total sits above the lines and says what is still to
- * assign, so nobody has to do the subtraction, and the section's green check
- * (load.ts) waits for it to reach 100.
+ * line ready. Another line is added when a percentage field is LEFT with
+ * every line filled and the total still short — on leaving, not on typing,
+ * because "66" passes through "6" on the way and a line added at "6" was
+ * still there at "66" (client review). The moment the total reaches 100 any
+ * empty line is removed and "Add another owner" goes away: a complete cap
+ * table has no spare line. The running total sits above the lines and says
+ * what is still to assign, and the section's green check (load.ts) waits for
+ * it to reach 100.
  *
  * Inside the section's own <form>, so autosave and the button carry the lines
  * with everything else; the inputs are named `co_owner_<field>.<n>` and the
@@ -99,25 +103,29 @@ export function CoOwnersBlock({
   const parsed = parsedFrom(lines, draft);
   const assigned = ownershipAssigned(primaryPct, parsed);
   const remaining = Math.round((100 - assigned) * 100) / 100;
+  const full = remaining <= 0.01;
 
   if (!visible) return null;
 
+  const isBlank = (currentDraft: Draft, key: string) =>
+    CO_OWNER_FIELDS.every((field) => !(currentDraft[key]?.[field] ?? "").trim());
+
   const update = (key: string, field: string, value: string) => {
     const nextDraft: Draft = { ...draft, [key]: { ...draft[key], [field]: value } };
-    setDraft(nextDraft);
-    // Another line whenever every line has a percentage and the total is
-    // still short — the "auto input other lines" of the client review.
-    if (field === "ownership_pct" && lines.length < MAX_CO_OWNERS) {
-      const next = parsedFrom(lines, nextDraft);
-      const short = 100 - ownershipAssigned(primaryPct, next) > 0.01;
-      if (short && next.every((line) => line.ownershipPct !== null)) {
-        const line = newLine();
-        setLines([...lines, line]);
-        setDraft({ ...nextDraft, [line.key]: textOf(line) });
+    let nextLines = lines;
+    // The total just reached 100: a spare, untouched line has no job.
+    if (field === "ownership_pct") {
+      const reached = 100 - ownershipAssigned(primaryPct, parsedFrom(lines, nextDraft)) <= 0.01;
+      if (reached) {
+        nextLines = lines.filter((line) => line.key === key || !isBlank(nextDraft, line.key));
+        for (const line of lines) if (!nextLines.includes(line)) delete nextDraft[line.key];
       }
     }
+    setLines(nextLines);
+    setDraft(nextDraft);
     onChange();
   };
+
 
   const remove = (key: string) => {
     const rest = lines.filter((line) => line.key !== key);
@@ -138,6 +146,15 @@ export function CoOwnersBlock({
     const line = newLine();
     setLines([...lines, line]);
     setDraft({ ...draft, [line.key]: textOf(line) });
+  };
+
+  // Leaving a percentage field: another line if every line has a share and
+  // the total is still short — the "auto input other lines" of the review.
+  const settle = () => {
+    if (lines.length >= MAX_CO_OWNERS) return;
+    const current = parsedFrom(lines, draft);
+    const short = 100 - ownershipAssigned(primaryPct, current) > 0.01;
+    if (short && current.every((line) => line.ownershipPct !== null)) add();
   };
 
   const total = (
@@ -241,6 +258,7 @@ export function CoOwnersBlock({
                       className="pr-9"
                       value={values.ownership_pct}
                       onChange={(event) => update(line.key, "ownership_pct", event.currentTarget.value)}
+                      onBlur={settle}
                     />
                     <span
                       aria-hidden="true"
@@ -292,7 +310,7 @@ export function CoOwnersBlock({
         })}
       </ol>
 
-      {!readOnly && lines.length < MAX_CO_OWNERS && (
+      {!readOnly && !full && lines.length < MAX_CO_OWNERS && (
         <button type="button" onClick={add} className={`${secondaryButton} mt-4`}>
           <Plus aria-hidden="true" className="h-4 w-4" />
           Add another owner

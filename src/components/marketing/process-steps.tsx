@@ -307,7 +307,10 @@ function Showcase({ active }: { active: number }) {
         frame.style.setProperty("--x", `${event.clientX - rect.left}px`);
         frame.style.setProperty("--y", `${event.clientY - rect.top}px`);
       }}
-      className="group relative h-[34rem] w-full overflow-hidden rounded-[2rem] bg-accent-100 shadow-[0_40px_80px_-40px_rgb(16_24_40/0.45)] ring-1 ring-black/10"
+      // 34rem tall, or what a short window leaves after the stage's trimmed
+      // padding: the window inside is pinned to the frame's edges, so it
+      // simply shows less of the page rather than spilling out.
+      className="group relative h-[min(34rem,calc(100dvh-9rem))] w-full overflow-hidden rounded-[2rem] bg-accent-100 shadow-[0_40px_80px_-40px_rgb(16_24_40/0.45)] ring-1 ring-black/10"
     >
       {/*
         THE DESKTOP. The panel is a computer screen: a wallpaper, a menu bar
@@ -514,8 +517,12 @@ function Showcase({ active }: { active: number }) {
  * the safe render.
  */
 export function ProcessSteps({ steps }: { steps: ProcessStep[] }) {
+  // 40rem of height, not 44: the stage trims its padding and the frame its
+  // height below 44rem (see the SHORT WINDOWS note on the stage), which is
+  // what lets a 1366×768 laptop and a 1080p display at 125% scaling — most
+  // Windows laptops — get the deck rather than the list.
   const pinned = useMediaQuery(
-    "(min-width: 80rem) and (min-height: 44rem) and (prefers-reduced-motion: no-preference)",
+    "(min-width: 80rem) and (min-height: 40rem) and (prefers-reduced-motion: no-preference)",
   );
   return pinned ? <PinnedProcess steps={steps} /> : <StaticProcess steps={steps} />;
 }
@@ -677,7 +684,11 @@ function PinnedProcess({ steps }: { steps: ProcessStep[] }) {
 
         {/* pt clears the floating site header, which sits over the top
             ~100px of the viewport. */}
-        <div className="relative mx-auto flex h-full w-full max-w-[110rem] items-center px-14 pb-10 pt-24">
+        {/* SHORT WINDOWS. Below 44rem the top and bottom padding and the two
+            gaps in the left column come in, and the frame gives up height
+            (Showcase) rather than the stage overflowing: the numeral keeps
+            its 6.5rem because the roll in apply() is written in those units. */}
+        <div className="relative mx-auto flex h-full w-full max-w-[110rem] items-center px-14 pb-10 pt-24 [@media(max-height:44rem)]:pb-6 [@media(max-height:44rem)]:pt-16">
           <div className="grid w-full grid-cols-[minmax(0,24rem)_minmax(0,1fr)] items-center gap-12 min-[90rem]:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] min-[90rem]:gap-16">
             {/* ---------------------------------------------------- COPY */}
             <div>
@@ -688,7 +699,7 @@ function PinnedProcess({ steps }: { steps: ProcessStep[] }) {
                 A simple path forward
               </h2>
 
-              <div aria-hidden="true" className="mt-10">
+              <div aria-hidden="true" className="mt-10 [@media(max-height:44rem)]:mt-6">
                 {/* Numeral: all eight in a column behind a one-numeral
                     window, rolled by scroll. */}
                 <div className="h-[6.5rem] overflow-hidden">
@@ -729,7 +740,7 @@ function PinnedProcess({ steps }: { steps: ProcessStep[] }) {
 
               {/* Progress. One segment per step: passed ones full, the
                   current one filling with scroll. Each jumps to its step. */}
-              <div className="mt-10 flex items-center gap-4">
+              <div className="mt-10 flex items-center gap-4 [@media(max-height:44rem)]:mt-6">
                 <div className="flex flex-1 gap-1.5">
                   {steps.map((step, index) => (
                     <button

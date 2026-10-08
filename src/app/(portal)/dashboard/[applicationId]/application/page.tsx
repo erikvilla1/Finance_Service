@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowRight, Check, FileText, ShieldCheck } from "lucide-react";
 import { PageHeader, Panel, Pill, primaryButton } from "@/components/portal/ui";
+import { SignNowButton } from "@/components/portal/sign-now-button";
 import { createClient } from "@/lib/supabase/server";
 import { loadApplicationForm } from "@/lib/application-form/load";
 import {
@@ -43,7 +44,7 @@ export default async function ApplicationPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, financing_goal, has_existing_mca, existing_debt_balance")
+    .select("id, financing_goal, has_existing_mca, existing_debt_balance, signature_requested_at")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -217,7 +218,9 @@ export default async function ApplicationPage({
             </p>
             <p className="mt-1 text-sm leading-relaxed text-ink-600">
               {remaining === 0
-                ? "Robert will review this alongside your documents."
+                ? application.signature_requested_at
+                  ? "Robert reviews the signed application alongside your documents."
+                  : "Sign it when you are ready. Robert reviews the signed application alongside your documents."
                 : "Do the sections in any order and come back as often as you like."}
             </p>
             <div className="mt-4 flex items-center gap-3">
@@ -236,6 +239,13 @@ export default async function ApplicationPage({
                 {form.requiredAnswered === 0 ? "Start" : "Pick up where you left off"}
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
+            )}
+            {form.editable && remaining === 0 && (
+              <SignNowButton
+                applicationId={applicationId}
+                label={application.signature_requested_at ? "Review and sign" : "Sign now"}
+                className="mt-5"
+              />
             )}
           </Panel>
 
