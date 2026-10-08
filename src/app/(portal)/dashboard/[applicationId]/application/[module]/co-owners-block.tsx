@@ -279,6 +279,7 @@ export function CoOwnersBlock({
                 <Field
                   label="Email"
                   htmlFor={id("email")}
+                  required
                   error={errors[name("email")]}
                 >
                   <Input
@@ -293,6 +294,7 @@ export function CoOwnersBlock({
                 <Field
                   label="Mobile phone"
                   htmlFor={id("mobile_phone")}
+                  required
                   error={errors[name("mobile_phone")]}
                 >
                   <Input

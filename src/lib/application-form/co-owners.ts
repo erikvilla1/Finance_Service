@@ -73,7 +73,8 @@ export function ownershipAssigned(
 }
 
 /**
- * Adds up: 100% listed, every line named, and at least one line. Within a
+ * Adds up: 100% listed, every line named with an email and a mobile number
+ * (the client wants both for every owner), and at least one line. Within a
  * hundredth, because 33.33 + 33.33 + 33.34 is a real answer.
  */
 export function ownershipComplete(
@@ -86,7 +87,9 @@ export function ownershipComplete(
     (owner) =>
       owner.firstName.trim().length > 0 &&
       owner.lastName.trim().length > 0 &&
-      owner.ownershipPct !== null,
+      owner.ownershipPct !== null &&
+      owner.email.trim().length > 0 &&
+      owner.mobilePhone.trim().length > 0,
   );
   return named && Math.abs(ownershipAssigned(primaryPct, coOwners) - 100) < 0.01;
 }

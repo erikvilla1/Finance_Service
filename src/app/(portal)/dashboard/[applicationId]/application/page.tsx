@@ -44,7 +44,7 @@ export default async function ApplicationPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, financing_goal, has_existing_mca, existing_debt_balance, signature_requested_at")
+    .select("id, financing_goal, signature_requested_at")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -60,7 +60,7 @@ export default async function ApplicationPage({
   // questions left or holds back a green check (client review, Notion
   // 09.27). It sits in the list so it is found, marked so it is not mistaken
   // for a requirement.
-  const offersObligations = obligationsApply(application);
+  const offersObligations = await obligationsApply(applicationId);
   const obligations = offersObligations ? await loadObligations(applicationId) : [];
   const obligationsDone = obligations.length > 0;
 

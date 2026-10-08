@@ -40,7 +40,7 @@ export default async function ObligationsPage({
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, status, has_existing_mca, existing_debt_balance")
+    .select("id, status")
     .eq("id", applicationId)
     .eq("profile_id", user.id)
     .is("deleted_at", null)
@@ -50,7 +50,7 @@ export default async function ObligationsPage({
 
   // Not applicable rather than not found: sending them back to the hub explains
   // itself, where a 404 on a link they were given would not.
-  if (!obligationsApply(application)) {
+  if (!(await obligationsApply(applicationId))) {
     redirect(`/dashboard/${applicationId}/application`);
   }
 
