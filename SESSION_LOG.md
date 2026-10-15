@@ -323,6 +323,20 @@ its argv — kill by scanning `/proc` and skipping `$$`/`$PPID` instead.
 
 ---
 
+- **Business Debt Schedule template (10-15).** The Documents checklist
+  asked for "a completed schedule of existing business obligations" and
+  gave the applicant nothing to complete. The debt-schedule card now has a
+  "Download the template" button serving a fillable one-page PDF
+  (landscape, fourteen lines, totals), drawn with pdf-lib at
+  `/dashboard/<id>/documents/debt-schedule-template` and prefilled with the
+  business name and whatever the application's obligations section already
+  holds (creditor, type, balance, payment). The route runs on the
+  applicant's own client behind the same ownership check as the page and
+  writes nothing. Verified by rendering the PDF (blank and prefilled) and
+  the card at desktop and phone widths; unit tests cover the fields, the
+  prefill and the filename. Not exercised with a signed-in applicant — no
+  customer accounts exist since the reset. Pushed, not deployed.
+
 ## What is left (as of 2026-10-07)
 
 Superseded by the 2026-10-08 section below; kept for the record.
