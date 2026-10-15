@@ -178,10 +178,10 @@ export async function buildDebtScheduleTemplate(seed: DebtScheduleSeed): Promise
 
   // ------------------------------------------------------------------ heading
   text("Business Debt Schedule", MARGIN, y - 14, { font: bold, size: 18 });
-  const brand = "FLS Capital Advisors";
-  text(brand, PAGE_WIDTH - MARGIN - font.widthOfTextAtSize(brand, 9), y - 12, { size: 9, color: LABEL });
   y -= 30;
-  text("Financial Lending Specialists, Inc.", MARGIN, y, { size: 9, color: LABEL });
+  // One line, the way the site footer and the legal pages put it. The brand
+  // and the legal entity on separate lines read as two companies.
+  text("Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors", MARGIN, y, { size: 9, color: LABEL });
   y -= 18;
 
   for (const line of wrap(INSTRUCTIONS, font, 9, CONTENT)) {
