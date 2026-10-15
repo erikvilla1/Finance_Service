@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { CircleAlert } from "lucide-react";
-import { Panel, Pill, primaryButton, type PillTone } from "@/components/portal/ui";
+import { CircleAlert, Download } from "lucide-react";
+import { Panel, Pill, primaryButton, secondaryButton, type PillTone } from "@/components/portal/ui";
 import { formatDate } from "@/lib/crm";
 import { DOCUMENT_STATUS_LABEL, needsApplicant, type ChecklistItem } from "@/lib/documents/checklist";
 import { UploadControl, UploadedFile } from "./upload-controls";
@@ -16,6 +16,25 @@ export const GROUP_LABEL: Record<Group, string> = {
   needed: "Needed",
   with_specialist: "With your specialist",
   done: "Done",
+};
+
+/**
+ * Documents we hand out a form for.
+ *
+ * A credit report comes from a bureau and bank statements from the bank, but a
+ * debt schedule comes from nowhere unless someone gives the applicant a form
+ * to fill in — and until this, nobody did. The path is the route under this
+ * page that draws the template (prefilled with anything they've already told
+ * us) and sends it as a download. Keyed by document type so the next form —
+ * a personal financial statement, say — is one more entry, not another branch.
+ */
+const TEMPLATES: Partial<Record<string, { path: string; blurb: string }>> = {
+  business_debt_schedule: {
+    path: "debt-schedule-template",
+    blurb:
+      "Need a form to fill in? Ours is one page: a line for each loan, lease, advance, or business card, " +
+      "with anything you've already told us filled in. Fill it in on your computer or print it, then upload it here.",
+  },
 };
 
 const ITEM_TONE: Record<ChecklistItem["status"], PillTone> = {
@@ -39,6 +58,7 @@ export function DocumentItem({
   signatureRequested: boolean;
 }) {
   const open = needsApplicant(item.status);
+  const template = TEMPLATES[item.key];
   // Why it came back, in the specialist's words, from the latest returned file.
   const returnedNote =
     item.status === "rejected" ? item.documents.find((d) => d.status === "rejected")?.note ?? null : null;
@@ -104,6 +124,21 @@ export function DocumentItem({
             Your application is prefilled and ready. Signing it takes a couple of
             minutes.
           </p>
+        </div>
+      )}
+
+      {/* The form to fill in, only while it's theirs to do. Once a copy is
+          with the specialist the template is clutter; if it comes back, the
+          item reopens and the download is there again. A plain anchor, not
+          a Link: the route returns a file, and the browser's download
+          handling is what we want. */}
+      {template && open && (
+        <div className="mt-4 rounded-xl bg-ink-50 p-4">
+          <a href={`/dashboard/${applicationId}/documents/${template.path}`} className={secondaryButton}>
+            <Download aria-hidden="true" className="h-4 w-4" />
+            Download the template
+          </a>
+          <p className="mt-2 text-sm leading-relaxed text-ink-600">{template.blurb}</p>
         </div>
       )}
 

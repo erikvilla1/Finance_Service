@@ -368,3 +368,16 @@ the bucket; to remove those too, open Storage → `application-documents`,
 select all, delete, before or after the SQL. Everything else cascades:
 answers, owners, documents, requests, results, debts, notes, tasks,
 consents, submissions, and the profiles of the deleted users.
+
+## 18. The Business Debt Schedule template uses the usual columns, not Robert's
+
+The Documents page now hands out a fillable one-page PDF for the debt
+schedule (10-15), prefilled with whatever the applicant entered in the
+application's obligations section. Its columns are the ones funders
+generally ask for: creditor, type of debt, original amount, date opened,
+current balance, rate, monthly payment, maturity date, collateral or
+security, current or past due, and totals. If Robert or a funder works
+from a particular form — a lender's own, or the SBA's — send it and the
+template can match it column for column. It deliberately carries no
+certification sentence or signature line: that is wording for him or
+counsel to supply, not me.
