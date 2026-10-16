@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
     >
       <GrainGradient className="absolute inset-0" {...LIGHT_GRADIENT} />
       <HeroVideo
-        src="/video/sign-in.mp4"
+        clip={{ src: "/video/sign-in.mp4" }}
         className="absolute inset-0 h-full w-full object-cover opacity-35 blur-[2px]"
       />
 

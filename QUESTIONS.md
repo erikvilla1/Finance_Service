@@ -416,3 +416,21 @@ applicant, with "start a new one any time". If he would rather withdrawn
 files say something else, it is one label and one sentence in
 `customer-status.ts`.
 
+## 21. The 404 on Application and Documents: which account, which address?
+
+I could not make it happen. Both pages exist in the deployed build, both
+answer on production, the Farsh and Kai S accounts each own their
+application and the database policies let them read it, and Supabase has
+no failed request in that window. Two production deployments did land
+while you were clicking through (the header merge at 05:40 UTC and the
+sender-switch redeploy at 05:53 UTC), and a
+tab open across a deployment can get a 404 on its next click; the plan
+this project is on does not include Vercel's protection against that.
+
+If it happens again, I need three things: the account you were signed in
+as, the exact address in the browser bar when the 404 showed, and whether
+a plain refresh of that address also 404s. A refresh that works means it
+was the deployment; a refresh that still 404s is a bug I can then find.
+Either way the pages now show a retry screen inside the dashboard, not a
+404, when a database read fails.
+

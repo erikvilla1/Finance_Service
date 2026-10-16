@@ -32,7 +32,7 @@ export async function GET(
     return new NextResponse("Not signed in.", { status: 401 });
   }
 
-  const { data: application } = await supabase
+  const { data: application, error } = await supabase
     .from("applications")
     .select("id, business_id")
     .eq("id", applicationId)
@@ -40,6 +40,9 @@ export async function GET(
     .is("deleted_at", null)
     .maybeSingle();
 
+  if (error) {
+    return new NextResponse("Could not load the application.", { status: 500 });
+  }
   if (!application) {
     return new NextResponse("No such application.", { status: 404 });
   }
