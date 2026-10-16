@@ -72,7 +72,7 @@ enough to matter. Both are supported, but switch the template before launch.
 
 ## Before launch
 
-- [x] **Custom SMTP.** Done 10-16: smtp.resend.com:465, user `resend`, a sending-only key named "Supabase auth", sender admin@flscapitaladvisors.com; the email limit rose from 2/hour to 30/hour and a reset email was delivered through the domain.
+- [x] **Custom SMTP.** Done 10-16: smtp.resend.com:465, user `resend`, a sending-only key named "Supabase auth", sender admin@flscapitaladvisors.com; the email limit rose from 2/hour to 30/hour and a reset email was delivered through the domain. **Pending 10-16:** the key changes when Erik moves sending to an FLS-owned Resend account (QUESTIONS.md §22); the host, port, user and sender stay the same.
   Original note: Authentication → Emails → SMTP Settings. The built-in
       sender does **2 messages per hour** and Supabase documents it as being for
       demonstration purposes only. Custom SMTP raises this to 30/hour.

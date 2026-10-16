@@ -646,14 +646,46 @@ fallback everywhere else.
   repository private (Kai has write, not admin). Remaining items are
   Robert's decisions in `QUESTIONS.md` and the Outlook junk training.
 
+- **Handoff (10-16, night).** Kai asked whether the site is ready to hand
+  to Robert for real marketing. Swept it rather than answer from memory:
+  no `[CONFIRM]` placeholders left in shipped code; the three public
+  legal pages show info@ live; Resend domain verified with 69 of 50,000
+  monthly sends used; Vercel production READY; Supabase advisor shows
+  three warnings, none exploitable (two SECURITY DEFINER helpers that
+  return false for anon, and leaked-password protection, a Pro feature).
+  What the sweep turned up that is not code: the Supabase org is on the
+  **free plan** (no backups, 1 GB storage, pauses when idle), the Vercel
+  team is probably on **Hobby** (the Skew Protection "not on plan" error),
+  the repo is still public, and the sending domain lives in IWA's Resend
+  account. The lender catalog has 25 products, none verified or published,
+  so Financing Options renders its "being finalized" state by design and
+  the home page's $20M+ figure rests on unverified rows. Engine deep-dive
+  items 2–9 (per-product rework) remain not built; the prequal runs on
+  the general banding for those branches and says it is indicative.
+  Drafted the "FLS Website Completion" email to Robert (cc Erik), sent
+  by Kai: four pre-launch items for Erik (Supabase Pro, Vercel Pro,
+  repo private, move email sending to an FLS-owned Resend account on the
+  free tier with step-by-step), running costs, what Robert can cancel
+  (Airtable, PandaDoc, Dropbox, old site hosting), who holds which login,
+  day-to-day operation, and maintenance through IWA. Kai chose to leave
+  the counsel review and the $20M claim out of the email.
+
 ## What is left
 
-1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,
-   with 0034 which had been waiting on main. History matches the repo.
-2. **Decide who unlocks signing** (`QUESTIONS.md` §15).
-3. **Counsel re-reads the legal pages** with "fund" in them (§12).
-4. **Verify the sending domain in Resend** and set `EMAIL_FROM`
-   (`docs/AUTH_AND_EMAIL.md`).
-5. **Engine items 2–9** from the deep-dive docx — the per-product rework.
-6. The 10-07 items still open: public-repo exposures, bracketed business
-   facts, deploy.
+Code: nothing open. Everything below is a decision or an account setting.
+
+1. **Erik, before launch** (from the handoff email): Supabase org to Pro;
+   Vercel team to Pro if Hobby; repository to private; Resend account owned
+   by FLS. When the Resend move is done, I run the delivery tests (website
+   send and a Supabase password reset), check the new account's logs, and
+   remove both FLS domains from the IWA account.
+2. **Kai**: hand Robert the admin@ password out of band; confirm info@
+   exists in Google Workspace.
+3. **Robert**: counsel reads the legal pages (§12) and the licensing
+   question (§9); confirm or change the $20M+ claim (§5); read the funded
+   email and settle commission split and "Closed" wording (§20); verify
+   lender terms so programs can be published.
+4. **Engine items 2–9** from the deep-dive docx, the per-product rework.
+   Not a launch blocker; the next body of engine work.
+5. If the Application/Documents 404 recurs: account, exact URL, and
+   whether a refresh fixes it (§21).
