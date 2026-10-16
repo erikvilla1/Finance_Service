@@ -125,10 +125,10 @@ export default function Page() {
           <p className={P}>
             Have a question? Contact us at{" "}
             <a
-              href="mailto:admin@flscapitaladvisors.com"
+              href="mailto:info@flscapitaladvisors.com"
               className="underline underline-offset-2 hover:text-brand-700"
             >
-              admin@flscapitaladvisors.com
+              info@flscapitaladvisors.com
             </a>
           </p>
         </div>

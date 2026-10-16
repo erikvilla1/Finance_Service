@@ -429,8 +429,11 @@ cream plate and stays readable.
 
 **help@flscapitaladvisors.com** was the applicant-facing address in the
 09.27 notes, but no such mailbox was ever confirmed. It is gone from the
-emails, the reply-to default and the legal pages, which all give admin@
-now. If anyone has already written to help@, add it as an alias of admin@
+emails and the reply-to default, which give admin@ now. Kai's rule (10-16):
+**public pages show info@flscapitaladvisors.com** (privacy, terms,
+disclosures, and anything added to the marketing side later); **everything
+behind sign-in and every email the system sends uses admin@**. info@ must
+exist in Google Workspace, as a mailbox or an alias on the admin account. If anyone has already written to help@, add it as an alias of admin@
 in Google Workspace (Admin console → Users → the admin account → Alternate
 email addresses); otherwise nothing more is needed.
 
