@@ -48,6 +48,22 @@ export type SendOutcome =
 const DEFAULT_FROM = "FLS Capital Advisors <onboarding@resend.dev>";
 
 /**
+ * The From header, always with the firm's name in front of the address.
+ *
+ * EMAIL_FROM was set in production as a bare address, and a bare address is
+ * what every inbox then showed as the sender — "notifications@mail.…" in the
+ * place where the firm's name belongs. A missing display name also counts
+ * against a message in most junk filters. Whatever the variable holds, mail
+ * leaves as "FLS Capital Advisors <address>" unless it already carries a name.
+ */
+export function fromHeader(configured: string | undefined): string {
+  const value = configured?.trim();
+  if (!value) return DEFAULT_FROM;
+  if (value.includes("<")) return value;
+  return `FLS Capital Advisors <${value}>`;
+}
+
+/**
  * Where a reply goes.
  *
  * THE SENDING ADDRESS IS NOT A MAILBOX. Mail goes out as
@@ -97,7 +113,7 @@ export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
     const resend = new Resend(apiKey);
 
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || DEFAULT_FROM,
+      from: fromHeader(process.env.EMAIL_FROM),
       to,
       subject,
       text: message.text,

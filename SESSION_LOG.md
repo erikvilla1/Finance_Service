@@ -382,6 +382,15 @@ its argv — kill by scanning `/proc` and skipping `$$`/`$PPID` instead.
   submitted states at desktop and phone widths and the funding card empty
   and filled. Pushed, not deployed.
 
+- **Sender name (10-16, later).** Mail was arriving as a bare
+  `notifications@mail.flscapitaladvisors.com` because `EMAIL_FROM` in Vercel
+  holds the address without a display name. `fromHeader` now puts
+  "FLS Capital Advisors" in front of whatever the variable holds. Moving the
+  address to `admin@flscapitaladvisors.com` is configuration, not code: the
+  root domain has to be verified in Resend first, then `EMAIL_FROM` changed
+  in Vercel; the steps and the failure mode are in `docs/AUTH_AND_EMAIL.md`.
+  Pushed, not deployed.
+
 ## What is left (as of 2026-10-07)
 
 Superseded by the 2026-10-08 section below; kept for the record.
