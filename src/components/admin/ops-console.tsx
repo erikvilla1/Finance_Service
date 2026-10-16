@@ -71,6 +71,8 @@ export type ConsoleData = {
     won: number;
     lost: number;
     amountFunded: number;
+    /** FLS's take across the funding records. Zero until one is written. */
+    commission: number;
     amountRequested: number;
     inPipeline: number;
     withLender: number;
@@ -383,7 +385,11 @@ export function OpsConsole({ data }: { data: ConsoleData }) {
         <Metric
           label="Amount funded"
           value={money(data.totals.amountFunded)}
-          sub="Sum of funded lender offers"
+          sub={
+            data.totals.commission > 0
+              ? `${money(data.totals.commission)} commission to FLS`
+              : "From funding records, else funded offers"
+          }
           color={SERIES.funded}
           Icon={Banknote}
         />

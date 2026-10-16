@@ -381,3 +381,38 @@ from a particular form — a lender's own, or the SBA's — send it and the
 template can match it column for column. It deliberately carries no
 certification sentence or signature line: that is wording for him or
 counsel to supply, not me.
+
+## 19. The notification email landed in Junk
+
+Kai's own Outlook filed "We have everything we asked for" under Junk
+(screenshot, 10-16), from `notifications@mail.flscapitaladvisors.com`.
+Nothing in the message's content is unusual; this is almost always the
+sending domain's reputation and authentication. Worth checking in Resend
+that the domain shows SPF and DKIM verified and that a DMARC record exists
+for `flscapitaladvisors.com` (a `p=none` policy with a reporting address is
+enough to start), and asking the first few applicants to mark the message
+"not junk" — a brand-new sending domain earns its way out of the folder.
+I have not changed anything here; it is DNS and Resend settings, not code.
+
+## 20. The funded email, and what "commission" means on the record
+
+**The email.** When a file is moved to Funded, the applicant now receives
+"Your financing is complete": good news, the financing on the application
+for their business has been completed, their specialist will be in touch
+about the details. No amount, no lender, no terms, no timing of funds.
+Robert should read the wording once before the first real one goes out;
+it is in `src/lib/email/notifications.ts` (`notifyFunded`) and is plain
+language, not legal copy. It sends only on the move into Funded, never on
+a re-save.
+
+**The record.** The Funding card on the file has one commission field,
+described as what FLS collected, gross. If Robert wants the ISO or
+referral split recorded separately (so his net is a number rather than a
+note), that is one more column and one more field; I left it in notes
+until he says which split he means.
+
+**"Closed".** Closed and withdrawn files now read "Closed" to the
+applicant, with "start a new one any time". If he would rather withdrawn
+files say something else, it is one label and one sentence in
+`customer-status.ts`.
+

@@ -30,7 +30,10 @@ const TRACK: { key: string; label: string; stages: CustomerStage[] }[] = [
   { key: "application", label: "Your application", stages: ["started"] },
   { key: "review", label: "In review", stages: ["received", "reviewing", "need_from_you"] },
   { key: "submitted", label: "Submitted", stages: ["with_funder"] },
-  { key: "complete", label: "Complete", stages: ["complete"] },
+  // "Complete" while it is still ahead: the platform does not say "Funded"
+  // about a file that has not. Once there, the step reads what happened
+  // (StatusCard swaps the label): Funded, or Closed.
+  { key: "complete", label: "Complete", stages: ["funded", "closed"] },
 ];
 
 export interface NextStep {
@@ -84,8 +87,10 @@ export function greetingLine(stage: CustomerStage, percent: number): string {
       return "Robert needs a few things from you to keep things moving.";
     case "with_funder":
       return "Your file is with a funding source. We'll keep you posted.";
-    case "complete":
-      return "This application is complete.";
+    case "funded":
+      return "Your financing is complete.";
+    case "closed":
+      return "This application is closed.";
   }
 }
 
@@ -135,9 +140,19 @@ function pathFor(stage: CustomerStage): PathStep[] {
         },
         { ...talk, state: "upcoming" },
       ];
+    case "closed":
+      return [
+        { title: "Your application and documents are in", state: "done" },
+        { title: "Robert S. reviewed your file", state: "done", robert: true },
+        {
+          title: "This application is closed",
+          detail: "If your plans change, you can start a new one any time, or message Robert.",
+          state: "current",
+        },
+      ];
     case "with_funder":
-    case "complete": {
-      const finished = stage === "complete";
+    case "funded": {
+      const finished = stage === "funded";
       return [
         { title: "Robert prepared your file", state: "done", robert: true },
         {
@@ -248,10 +263,32 @@ export function nextStepFor(
   lead: LeadSummary | undefined,
   actionNeeded: boolean,
   isSigned: boolean,
+  stage: CustomerStage,
 ): NextStep {
   const id = application.id;
   const formLeft = Math.max(0, (lead?.formRequired ?? 0) - (lead?.formAnswered ?? 0));
   const docsLeft = lead?.docsOutstanding ?? 0;
+
+  // The end states win over everything below. A funded file can still carry
+  // a document request nobody closed, and "Upload 1 document" under a
+  // Funded status would be the page arguing with itself.
+  if (stage === "funded") {
+    return {
+      icon: Check,
+      title: "Your financing is complete",
+      body: "There's nothing left to do here. Your specialist will be in touch about the details and anything you need from here.",
+      tone: "calm",
+    };
+  }
+  if (stage === "closed") {
+    return {
+      icon: FileText,
+      title: "This application is closed",
+      body: "If your plans change, you can start a new application any time, or message your specialist.",
+      cta: { label: "Start a new application", href: "/start" },
+      tone: "calm",
+    };
+  }
 
   if (application.signature_requested_at && !isSigned) {
     return {
@@ -306,7 +343,9 @@ export function nextStepFor(
   return {
     icon: Hourglass,
     title: "You're all set for now",
-    body: "There's nothing you need to do. We'll email you as soon as anything changes.",
+    // Only what is true: the emails that exist are for things we need from
+    // them (a signature, another copy of a document). News comes from Robert.
+    body: "There's nothing you need to do right now. If we need anything from you, it will show up here and we'll email you.",
     tone: "calm",
   };
 }
@@ -324,6 +363,9 @@ export function StatusCard({
   actionNeeded: boolean;
 }) {
   const at = TRACK.findIndex((step) => step.stages.includes(stage));
+  // Funded: every step done. Closed: the file stops at the last step and
+  // the step says so, rather than showing four ticks over a withdrawal.
+  const funded = stage === "funded";
 
   return (
     <section
@@ -339,8 +381,14 @@ export function StatusCard({
 
       <ol className="mt-7 grid grid-cols-4 gap-2" aria-label="Your file's progress">
         {TRACK.map((step, i) => {
-          const done = i < at || stage === "complete";
-          const current = i === at && stage !== "complete";
+          const done = i < at || funded;
+          const current = i === at && !funded;
+          const label =
+            step.key === "complete" && (funded || stage === "closed")
+              ? funded
+                ? "Funded"
+                : "Closed"
+              : step.label;
           return (
             <li key={step.key} aria-current={current ? "step" : undefined} className="min-w-0">
               <div className="flex items-center gap-2">
@@ -392,7 +440,7 @@ export function StatusCard({
                   current ? "font-semibold text-ink-900" : done ? "text-ink-700" : "text-ink-400"
                 }`}
               >
-                {step.label}
+                {label}
               </p>
               {current && (
                 <p className="hidden text-[0.7rem] font-semibold uppercase tracking-wider text-accent-800 sm:block">

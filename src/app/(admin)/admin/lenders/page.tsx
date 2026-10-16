@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, humanize } from "@/lib/crm";
 import type { LenderRow } from "@/types/database";
 import { addLender } from "@/app/(admin)/admin/applications/[id]/submission-actions";
+import { RemoveLenderButton } from "./remove-lender-button";
 
 export const metadata: Metadata = {
   title: "Lenders",
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
  *
  * Staff-only by construction: the table has no customer policy at all, so an
  * applicant reaching this URL gets an empty list rather than a filtered one.
+ *
+ * REMOVING ONE is a soft delete behind a two-step button on the card
+ * (remove-lender-button.tsx, actions.ts): the row stays for the submissions
+ * that reference it and leaves this list, and the name can be used again.
  */
 export default async function LendersPage() {
   const supabase = await createClient();
@@ -78,7 +83,10 @@ export default async function LendersPage() {
                         .join(" · ") || "No contact recorded"}
                     </p>
                   </div>
-                  {!lender.is_active && <Badge tone="neutral">Inactive</Badge>}
+                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                    {!lender.is_active && <Badge tone="neutral">Inactive</Badge>}
+                    <RemoveLenderButton lenderId={lender.id} name={lender.name} />
+                  </div>
                 </div>
 
                 <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-600 dark:text-ink-300 dark:text-ink-400">

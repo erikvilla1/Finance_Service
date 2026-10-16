@@ -33,6 +33,7 @@ import { loadFundingApplication } from "@/lib/funding-application/load";
 import { addNote, updateStatus } from "./actions";
 import { DocumentsCard } from "./documents-card";
 import { SubmissionsCard } from "./submissions-card";
+import { FundingCard } from "./funding-card";
 import { MatchRoutes, type StoredMatch } from "./match-routes";
 import type { ProductMatch as MatchedFamily } from "@/lib/matching/types";
 
@@ -96,6 +97,19 @@ export default async function ApplicationDetailPage({
   // and on its own page.
   const summaries = await loadLeadSummaries(supabase, [application]);
   const lead = summaries.get(application.id);
+
+  // The funding record (0040) and the lenders it can name: live ones, plus
+  // the recorded one if it has since been removed, so the select never
+  // silently drops a saved value.
+  const [{ data: fundingRecord }, { data: lenderRows }] = await Promise.all([
+    supabase.from("application_fundings").select("*").eq("application_id", id).maybeSingle(),
+    supabase.from("lenders").select("id, name, deleted_at").order("name"),
+  ]);
+  const fundingLenders = (lenderRows ?? []).filter(
+    (l) => l.deleted_at === null || l.id === fundingRecord?.lender_id,
+  );
+  const showFunding =
+    fundingRecord !== null || ["approved", "funded", "closed"].includes(application.status);
 
   const fundingData = await loadFundingApplication(id);
   const completeness = assessCompleteness(
@@ -307,6 +321,17 @@ export default async function ApplicationDetailPage({
             requestedAmount={application.requested_amount}
           />
 
+          {/* After the submissions, because funding is what one of them
+              became. Hidden until the file is approved, funded or closed. */}
+          {showFunding && (
+            <FundingCard
+              applicationId={application.id}
+              status={application.status}
+              funding={fundingRecord ?? null}
+              lenders={fundingLenders}
+            />
+          )}
+
           <Card>
             <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">
               What they told us
@@ -503,7 +528,12 @@ export default async function ApplicationDetailPage({
               <label htmlFor="status" className="sr-only">
                 Status
               </label>
-              <Select id="status" name="status" defaultValue={application.status}>
+              {/* Keyed on the status: React 19 resets the form after the
+                  action, and an uncontrolled select resets to the default it
+                  MOUNTED with — the status at page load — so after "Update
+                  status" it read the old status while the badge above read
+                  the new one. A new key remounts it with the new default. */}
+              <Select key={application.status} id="status" name="status" defaultValue={application.status}>
                 {STATUS_ORDER.map((status) => (
                   <option key={status} value={status}>
                     {STATUS_LABELS[status]}

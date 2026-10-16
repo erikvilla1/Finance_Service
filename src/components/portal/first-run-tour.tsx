@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { markTourSeen } from "@/app/(portal)/dashboard/actions";
 
 /**
  * The first-run walkthrough: a spotlight that points at the real dashboard.
@@ -25,44 +26,14 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
  * held in state: they're measurements, and a render per measurement would be
  * wasted work and a flicker.
  *
- * "SEEN" IS REMEMBERED IN THIS BROWSER (localStorage, keyed by user id), so the
- * database is untouched. The trade-off: a second device shows it once more.
+ * "SEEN" IS ON THE PROFILE (profiles.tour_seen_at, migration 0038), not in
+ * this browser. The first version kept it in localStorage, and the client
+ * met the tour a second time on a second laptop, over a file that was weeks
+ * old and complete. The brief is one showing per account: right after the
+ * account is created, the first time the dashboard opens. The page reads
+ * the flag and passes `seen`; the moment the tour appears it records itself
+ * (markTourSeen), so a reload partway through does not start it over.
  */
-
-// v2: the spotlight replaced the v1 slideshow, so everyone sees it once.
-const storageKey = (userId: string) => `fls:tour-seen:v2:${userId}`;
-
-const listeners = new Set<() => void>();
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  window.addEventListener("storage", listener);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", listener);
-  };
-}
-
-/** Whether this browser has finished the tour. Server render: treat as seen. */
-function useTourSeen(userId: string): boolean {
-  return useSyncExternalStore(
-    subscribe,
-    () => {
-      try {
-        return localStorage.getItem(storageKey(userId)) === "1";
-      } catch {
-        return true; // Storage blocked: never trap anyone in a tour.
-      }
-    },
-    () => true,
-  );
-}
-
-function markTourSeen(userId: string) {
-  try {
-    localStorage.setItem(storageKey(userId), "1");
-  } catch {}
-  for (const listener of listeners) listener();
-}
 
 type Side = "top" | "bottom" | "left" | "right";
 
@@ -154,10 +125,18 @@ function findTarget(keys: string[]): HTMLElement | null {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), Math.max(min, max));
 
-export function FirstRunTour({ userId, firstName }: { userId: string; firstName: string | null }) {
-  const seen = useTourSeen(userId);
-  if (seen) return null;
-  return <Spotlight firstName={firstName} onDone={() => markTourSeen(userId)} />;
+export function FirstRunTour({ seen, firstName }: { seen: boolean; firstName: string | null }) {
+  const [open, setOpen] = useState(!seen);
+
+  // Recorded on appearance, not on Finish. Fire-and-forget: the write
+  // failing is not something the person can act on, and the cost is the
+  // tour once more next time.
+  useEffect(() => {
+    if (open) void markTourSeen();
+  }, [open]);
+
+  if (!open) return null;
+  return <Spotlight firstName={firstName} onDone={() => setOpen(false)} />;
 }
 
 function Spotlight({ firstName, onDone }: { firstName: string | null; onDone: () => void }) {

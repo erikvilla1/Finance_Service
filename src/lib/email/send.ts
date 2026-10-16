@@ -132,8 +132,7 @@ export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
  * button — no brand in it anywhere, and red is the colour of a warning, not of
  * this firm. The client's note was that an outbound email has to look and feel
  * legitimate: these land in the inbox of someone deciding whether to hand over
- * their bank statements. So: the wordmark the site uses, in the site's ink on
- * the site's paper; one dark button, the same dark as the site's primary
+ * their bank statements. So: the mark the site uses, on the site's paper; one dark button, the same dark as the site's primary
  * action; the link written out underneath it, because a button is the thing
  * a cautious reader will not click, and a plain URL on the firm's domain is
  * the thing they will check; and a signature line with the one address that
@@ -153,16 +152,20 @@ export function wrapHtml(options: {
   const font =
     "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-  // The wordmark as text, not an image: an image in an email is blocked by
-  // default in most clients, and a blank where the brand should be is the
-  // opposite of the point.
-  const wordmark = `<table role="presentation" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="font-family:${font};font-size:22px;font-weight:800;
-                   letter-spacing:0.06em;color:#1f201b;line-height:1;">FLS</td></tr>
-    <tr><td style="font-family:${font};font-size:9px;font-weight:600;
-                   letter-spacing:0.22em;color:#5d5e5d;padding-top:4px;
-                   text-transform:uppercase;line-height:1;">Capital Advisors</td></tr>
-  </table>`;
+  // The mark the site uses, as an image, with the name as its alt text.
+  //
+  // The first version set the name in type instead, because some clients
+  // hold remote images back until the reader allows them. The client wants
+  // the same mark as the site, so the image it is; the styled alt text (which
+  // Gmail and Apple Mail honour) is the brand for anyone who has images off.
+  // The file is the one the header and the portal load, served from the
+  // site itself — no second copy to drift. Width and height are attributes as
+  // well as styles because Outlook ignores the styles and would otherwise
+  // draw the file at its full 2254px.
+  const wordmark = `<img src="${absoluteUrl("/brand/fls-capital-dark.png")}" alt="FLS Capital Advisors"
+       width="96" height="46"
+       style="display:block;width:96px;height:46px;border:0;outline:none;text-decoration:none;
+              font-family:${font};font-size:12px;line-height:1.25;font-weight:700;letter-spacing:0.04em;color:#1f201b;" />`;
 
   const cta = options.cta
     ? `<tr><td style="padding:4px 0 8px;">

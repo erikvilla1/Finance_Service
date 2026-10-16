@@ -302,6 +302,45 @@ Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
   });
 }
 
+/**
+ * The file has funded.
+ *
+ * The one piece of news the platform is allowed to state outright, because
+ * by the time Robert marks it, it has happened. No amount, no terms, no
+ * lender: those are Robert's to go through with them, and the email says
+ * he will. Sent once, from the status change (updateStatus), and only when
+ * the status actually moved to funded — not on a re-save.
+ */
+export async function notifyFunded(applicationId: string): Promise<SendOutcome> {
+  const recipient = await recipientFor(applicationId);
+  if (!recipient) return { sent: false, reason: "no_recipient" };
+
+  const url = absoluteUrl("/dashboard");
+  const forBusiness = recipient.businessName ? ` for ${recipient.businessName}` : "";
+
+  return sendEmail({
+    to: recipient.email,
+    subject: "Your financing is complete",
+    text: `${greeting(recipient)}
+
+Good news: the financing on your application${forBusiness} has been completed. Your specialist will be in touch about the details and anything you need from here.
+
+Thank you for working with FLS Capital Advisors.
+
+Your dashboard: ${url}
+
+FLS Capital Advisors
+Questions? Reply to this email or write to help@flscapitaladvisors.com.`,
+    html: wrapHtml({
+      heading: "Your financing is complete",
+      body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
+             <p style="margin:0 0 12px;">Good news: the financing on your application${forBusiness} has been completed. Your specialist will be in touch about the details and anything you need from here.</p>
+             <p style="margin:0;">Thank you for working with FLS Capital Advisors.</p>`,
+      cta: { label: "View your dashboard", href: url },
+    }),
+  });
+}
+
 // -----------------------------------------------------------------------------
 // STAFF
 // -----------------------------------------------------------------------------

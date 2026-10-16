@@ -24,8 +24,10 @@ export const metadata: Metadata = {
  * EVERY NUMBER HERE IS COMPUTED, NONE ARE ESTIMATED. That constraint decided
  * the layout more than any design reference did:
  *
- *   - "Amount funded" is the sum of lender_submissions.offered_amount on
- *     submissions that actually funded — NOT requested_amount on applications
+ *   - "Amount funded" is the funding record's amount where Robert has written
+ *     one (application_fundings, 0040), else the sum of
+ *     lender_submissions.offered_amount on submissions that actually funded
+ *     — NOT requested_amount on applications
  *     whose status is 'funded', which is what the old version summed. Those
  *     are different numbers: what a business asked for and what a funder
  *     actually wrote are rarely equal, and reporting the first as the second
@@ -52,10 +54,38 @@ type Row = {
 };
 
 type SubmissionRow = {
+  application_id: string;
   status: string;
   offered_amount: number | string | null;
   responded_at: string | null;
 };
+
+/** The funding record (0040): what actually funded, when, and what FLS earned. */
+type FundingRow = {
+  application_id: string;
+  funded_amount: number | string | null;
+  funded_on: string | null;
+  commission_amount: number | string | null;
+};
+
+/**
+ * Funded dollars, best source first. A funding record with an amount is the
+ * fact; a funded lender offer is the stand-in for files that predate the
+ * record or whose record Robert has not filled in yet. Never both for one
+ * file, which is what the set is for.
+ */
+function fundedDollars(subs: SubmissionRow[], fundings: FundingRow[]) {
+  const recorded = new Set(
+    fundings.filter((f) => f.funded_amount != null).map((f) => f.application_id),
+  );
+  const fromRecords = fundings
+    .filter((f) => f.funded_amount != null)
+    .map((f) => ({ amount: num(f.funded_amount), at: f.funded_on ? new Date(f.funded_on) : null }));
+  const fromOffers = subs
+    .filter((s) => s.status === "funded" && !recorded.has(s.application_id))
+    .map((s) => ({ amount: num(s.offered_amount), at: s.responded_at ? new Date(s.responded_at) : null }));
+  return [...fromRecords, ...fromOffers];
+}
 
 const num = (v: number | string | null | undefined) => Number(v ?? 0) || 0;
 
@@ -83,6 +113,7 @@ const SPAN: Record<"monthly" | "quarterly" | "annual", number> = {
 function series(
   rows: Row[],
   submissions: SubmissionRow[],
+  fundings: FundingRow[],
   grain: "monthly" | "quarterly" | "annual",
 ): Bucket[] {
   const acc = new Map<string, Bucket>();
@@ -106,12 +137,11 @@ function series(
     }
   }
 
-  // Funded dollars come from the lender side, keyed on when the funder
-  // responded — see the note at the top of this file.
-  for (const s of submissions) {
-    if (s.status === "funded" && s.responded_at) {
-      touch(new Date(s.responded_at)).funded += num(s.offered_amount);
-    }
+  // Funded dollars: the funding record where Robert has written one (keyed
+  // on the funded date), else the funded lender offer keyed on when the
+  // funder responded — see fundedDollars and the note at the top.
+  for (const f of fundedDollars(submissions, fundings)) {
+    if (f.at) touch(f.at).funded += f.amount;
   }
 
   return [...acc.entries()]
@@ -123,32 +153,35 @@ function series(
 export default async function OverviewPage() {
   const supabase = await createClient();
 
-  const [{ data: applications }, { data: submissions }] = await Promise.all([
+  const [{ data: applications }, { data: submissions }, { data: fundingRows }] = await Promise.all([
     supabase
       .from("applications")
       .select("status, requested_amount, created_at, funded_at")
       .is("deleted_at", null),
     supabase
       .from("lender_submissions")
-      .select("status, offered_amount, responded_at"),
+      .select("application_id, status, offered_amount, responded_at"),
+    supabase
+      .from("application_fundings")
+      .select("application_id, funded_amount, funded_on, commission_amount"),
   ]);
 
   const rows = (applications ?? []) as Row[];
   const subs = (submissions ?? []) as SubmissionRow[];
+  const fundings = (fundingRows ?? []) as FundingRow[];
 
   const closedOut = ["funded", "closed", "withdrawn", "declined"];
 
   const data: ConsoleData = {
     quote: quoteOfTheDay(),
-    monthly: series(rows, subs, "monthly"),
-    quarterly: series(rows, subs, "quarterly"),
-    annual: series(rows, subs, "annual"),
+    monthly: series(rows, subs, fundings, "monthly"),
+    quarterly: series(rows, subs, fundings, "quarterly"),
+    annual: series(rows, subs, fundings, "annual"),
     totals: {
       won: rows.filter((r) => r.status === "funded").length,
       lost: rows.filter((r) => r.status === "declined" || r.status === "withdrawn").length,
-      amountFunded: subs
-        .filter((s) => s.status === "funded")
-        .reduce((sum, s) => sum + num(s.offered_amount), 0),
+      amountFunded: fundedDollars(subs, fundings).reduce((sum, f) => sum + f.amount, 0),
+      commission: fundings.reduce((sum, f) => sum + num(f.commission_amount), 0),
       amountRequested: rows.reduce((sum, r) => sum + num(r.requested_amount), 0),
       inPipeline: rows.filter((r) => !closedOut.includes(r.status)).length,
       withLender: rows.filter((r) => r.status === "submitted_to_funder").length,

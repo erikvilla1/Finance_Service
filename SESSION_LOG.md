@@ -337,6 +337,51 @@ its argv — kill by scanning `/proc` and skipping `$$`/`$PPID` instead.
   prefill and the filename. Not exercised with a signed-in applicant — no
   customer accounts exist since the reset. Pushed, not deployed.
 
+- **Debt schedule template heading (10-15, later).** One line under the
+  title, "Financial Lending Specialists, Inc. D.B.A. FLS Capital Advisors",
+  the footer's wording; the brand mark top right is gone. Merged as #23.
+
+- **Email header is the logo (10-16).** The notification emails carried the
+  brand as styled text; they now carry the same `fls-capital-dark.png` the
+  site header and the portal use, served from the site, with the brand name
+  as sized alt text for anyone with images off. Rendered at desktop and
+  phone widths and with images blocked.
+- **First-run tour, once per account (10-16).** It was remembered in
+  localStorage, so a second laptop ran the welcome tour again over a
+  finished file. Migration 0038 (applied to production) adds
+  `profiles.tour_seen_at`; the dashboard passes `seen`, the tour records
+  itself the moment it appears, and existing accounts are backfilled as
+  seen. "How this works" remains for a replay.
+- **Lenders can be removed (10-16).** A two-step Remove on each card in
+  /admin/lenders; a soft delete (`deleted_at`), because submissions
+  reference lenders with delete restricted and the history is worth more
+  than the row. Migration 0039 (applied) makes the slug unique among live
+  rows only, so a removed lender's name can be added again. The two demo
+  lenders ("rick", "united capital source") were removed the same way in
+  production.
+- **Admin status dropdown (10-16).** After "Update status" it snapped back
+  to the status the page loaded with (React 19 resets the form; an
+  uncontrolled select resets to its mount-time default), so it read "Initial
+  review" under a "Funded" badge. Keyed on the status, it remounts with the
+  new one. Pushed, not deployed.
+
+- **What happens when a file funds (10-16, later).** Until now: a badge
+  and a timestamp. Now, when Robert moves a file to Funded: the applicant
+  gets one email ("Your financing is complete", no amount, no lender, no
+  terms); a funding record is opened on the file, dated today, for Robert
+  to complete (amount, lender, date, FLS commission, notes — migration
+  0040, `application_fundings`, staff-only so the commission never reaches
+  the applicant's row; applied to production); and the admin overview's
+  "Amount funded" reads the record where one is written, falling back to
+  the funded lender offer, with the commission total in the tile. On the
+  applicant's side the end state is split: Funded ("Your financing has been
+  completed") and Closed (closed or withdrawn), each with its own next-step
+  card, path and track label; "Complete" stays as the unreached fourth
+  step. The all-set card no longer promises an email on every change, only
+  when something is needed. Rendered the Funded, Closed and
+  submitted states at desktop and phone widths and the funding card empty
+  and filled. Pushed, not deployed.
+
 ## What is left (as of 2026-10-07)
 
 Superseded by the 2026-10-08 section below; kept for the record.
