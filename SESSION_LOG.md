@@ -626,12 +626,15 @@ fallback everywhere else.
   exist), and the junk placement is reputation rather than authentication,
   with the checks and the two mailbox-side steps in `QUESTIONS.md` §19.
   Then dark mode: Apple Mail had inverted the cream design itself and
-  left the black mark on a dark ground. The template now declares its
-  own dark version (charcoal page, near-black card, light type and
-  button) and swaps in the white mark; clients that ignore that and
-  invert anyway (Gmail's apps) get the black mark on a cream plate, which
-  is invisible in light mode and stays legible when inverted. Rendered
-  and checked in both schemes at phone and desktop widths.
+  left the black mark on a dark ground. A dark version of our own was
+  tried (charcoal, white mark) and Kai preferred the dashboard's look
+  everywhere, so the template now declares light only, which Apple Mail
+  and the Outlook apps respect, and takes the portal's palette: its
+  cream page, white panel with the same hairline, brand-900 button,
+  accent-800 eyebrow, ink type. Clients that invert regardless (Gmail's
+  apps) get the black mark on a plate of the page's cream, invisible as
+  designed and legible when inverted. Rendered and checked at phone and
+  desktop widths with light and dark schemes emulated.
 
 ## What is left
 

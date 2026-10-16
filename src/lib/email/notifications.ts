@@ -186,6 +186,7 @@ Review and sign: ${url}
 FLS Capital Advisors
 Questions? Reply to this email or write to ${CONTACT_ADDRESS}.`,
     html: wrapHtml({
+      eyebrow: "Next step",
       heading: "Ready for your signature",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p><p style="margin:0;">${body}</p>`,
       cta: { label: "Review and sign", href: url },
@@ -232,10 +233,11 @@ Review and sign: ${url}
 FLS Capital Advisors
 Questions? Reply to this email or write to ${CONTACT_ADDRESS}.`,
       html: wrapHtml({
+        eyebrow: "Your documents",
         heading: "Please review and sign again",
         body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
                <p style="margin:0 0 12px;">Your specialist looked at your signed application and needs you to review it and sign again. It takes a couple of minutes.</p>
-               <p class="fls-note" style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;color:#3f3f3d;">${reason}</p>`,
+               <p style="margin:0;padding:12px 14px;background:#f6efe0;border-radius:12px;color:#292928;">${reason}</p>`,
         cta: { label: "Review and sign", href: url },
       }),
     });
@@ -258,10 +260,11 @@ Upload the replacement: ${url}
 FLS Capital Advisors
 Questions? Reply to this email or write to ${CONTACT_ADDRESS}.`,
     html: wrapHtml({
+      eyebrow: "Your documents",
       heading: "One document needs another copy",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
              <p style="margin:0 0 12px;">Your specialist looked at the <strong>${documentLabel}</strong> you sent and needs another copy.</p>
-             <p class="fls-note" style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;color:#3f3f3d;">${reason}</p>`,
+             <p style="margin:0;padding:12px 14px;background:#f6efe0;border-radius:12px;color:#292928;">${reason}</p>`,
       cta: { label: "Send a replacement", href: url },
     }),
   });
@@ -294,6 +297,7 @@ Your documents: ${url}
 FLS Capital Advisors
 Questions? Reply to this email or write to ${CONTACT_ADDRESS}.`,
     html: wrapHtml({
+      eyebrow: "Your documents",
       heading: "We have everything we asked for",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
              <p style="margin:0;">Your specialist has checked the documents you sent and has everything they asked for. There is nothing you need to do right now. We will be in touch as your file progresses.</p>`,
@@ -332,6 +336,7 @@ Your dashboard: ${url}
 FLS Capital Advisors
 Questions? Reply to this email or write to ${CONTACT_ADDRESS}.`,
     html: wrapHtml({
+      eyebrow: "Your file",
       heading: "Your financing is complete",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
              <p style="margin:0 0 12px;">Good news: the financing on your application${forBusiness} has been completed. Your specialist will be in touch about the details and anything you need from here.</p>

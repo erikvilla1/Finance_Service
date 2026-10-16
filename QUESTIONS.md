@@ -408,10 +408,11 @@ plan change, not a setting.
 
 **The logo** in those messages was blank because mail clients block remote
 images for anything in Junk. It now travels inside the message, so it
-shows either way. In dark mode the email now uses its own dark palette
-with the white mark (Apple Mail, Outlook apps); Gmail's apps ignore an
-email's dark styles and invert the colours themselves, so there the black
-mark sits on a small cream plate and stays readable.
+shows either way. The email now matches the dashboard (cream page, white
+panel, the dark button) and tells mail clients it is light only, so Apple
+Mail and the Outlook apps stop inverting it; Gmail's apps invert the
+colours themselves regardless, so there the black mark sits on a small
+cream plate and stays readable.
 
 **help@flscapitaladvisors.com** was the applicant-facing address in the
 09.27 notes, but no such mailbox was ever confirmed. It is gone from the
