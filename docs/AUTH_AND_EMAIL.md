@@ -173,10 +173,33 @@ as the client asked, and never stored.
 
 ### Still outstanding
 
-- **Sending domain.** Until `flscapitaladvisors.com` (or a subdomain) is
-  verified in Resend, mail leaves from Resend's onboarding address and only
-  reaches the account owner. Verify the domain, set `EMAIL_FROM`, remove
-  `EMAIL_REDIRECT_TO`.
+- **Sending address.** Mail currently leaves from
+  `notifications@mail.flscapitaladvisors.com`: `mail.flscapitaladvisors.com`
+  is the domain verified in Resend, and `EMAIL_FROM` in Vercel points at it.
+  Resend suggests a subdomain so the root domain's reputation is kept apart;
+  it is not itself a junk signal. To send as `admin@flscapitaladvisors.com`
+  instead, in this order:
+  1. Resend → Domains → add `flscapitaladvisors.com` and publish the records
+     it gives (a DKIM TXT at `resend._domainkey`, MX and TXT on the return-path
+     subdomain, and a DMARC TXT at `_dmarc` if there is none). The root
+     domain's existing mail (Google Workspace or Microsoft 365) keeps working;
+     none of its records are changed.
+  2. Wait for the domain to show verified.
+  3. Vercel → Settings → Environment Variables → `EMAIL_FROM` =
+     `FLS Capital Advisors <admin@flscapitaladvisors.com>`, then redeploy.
+  Setting `EMAIL_FROM` before step 2 completes means Resend rejects every
+  send, and because a failed email never breaks the action that triggered it
+  (`send.ts`, rule 1), the only symptom is applicants hearing nothing.
+  Whatever the address, the code now puts the firm's name in front of it
+  (`fromHeader`), because a bare address is what inboxes were showing as the
+  sender. `EMAIL_REPLY_TO` should name an inbox someone reads; it is set in
+  Vercel to `notifications@flscapitaladvisors.com`, which is worth confirming
+  exists.
+- **Junk placement.** Three test notifications landed in the owner's Outlook
+  Junk folder (10-16). Authentication is the first thing to confirm in Resend
+  (DKIM and return path green, DMARC present); after that it is reputation,
+  which a new sending domain earns by volume and by recipients marking mail
+  "not junk".
 - **A logged chase.** "Chase documents" on the admin file is a prefilled
   `mailto:` (`src/components/admin/nudge-link.tsx`), so nothing records when a
   file was last chased. The app-sent version wants a `crm_notes` row.
