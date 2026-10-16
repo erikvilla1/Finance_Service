@@ -1,4 +1,12 @@
 import { Resend } from "resend";
+import {
+  EMAIL_LOGO_BASE64,
+  EMAIL_LOGO_CID,
+  EMAIL_LOGO_FILENAME,
+  EMAIL_LOGO_LIGHT_BASE64,
+  EMAIL_LOGO_LIGHT_CID,
+  EMAIL_LOGO_LIGHT_FILENAME,
+} from "./logo";
 
 /**
  * Sending mail.
@@ -79,11 +87,14 @@ export function fromHeader(configured: string | undefined): string {
  * A caller can still override per-message — notifyStaff has no reason to send
  * staff replies to the applicant-facing address.
  */
-// help@ is the inbox the client named for applicants (Notion 09.27). The
-// sending address may be a send-only domain, so without a reply-to a reply
-// would vanish; this is the one address a person should land on.
-const HELP_ADDRESS = "help@flscapitaladvisors.com";
-const REPLY_TO = process.env.EMAIL_REPLY_TO || HELP_ADDRESS;
+// admin@ is the one mailbox the firm reads (client, 10-16: everything routes
+// to the admin inbox). It was help@, the address named in the 09.27 notes,
+// but no such mailbox was ever confirmed to exist; a contact address in a
+// footer that nobody reads is worse than none. The sending address may be a
+// send-only domain, so without a reply-to a reply would vanish; this is the
+// one address a person should land on, and the one the legal pages give.
+export const CONTACT_ADDRESS = "admin@flscapitaladvisors.com";
+const REPLY_TO = process.env.EMAIL_REPLY_TO || CONTACT_ADDRESS;
 
 export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -119,6 +130,13 @@ export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
       text: message.text,
       html: message.html,
       replyTo: message.replyTo ?? REPLY_TO,
+      // The logo, inside the message, in both versions (see logo.ts).
+      // Referenced from wrapHtml by Content-ID, so it shows with remote
+      // images still blocked; the white one is drawn only in dark mode.
+      attachments: [
+        { filename: EMAIL_LOGO_FILENAME, content: EMAIL_LOGO_BASE64, contentId: EMAIL_LOGO_CID },
+        { filename: EMAIL_LOGO_LIGHT_FILENAME, content: EMAIL_LOGO_LIGHT_BASE64, contentId: EMAIL_LOGO_LIGHT_CID },
+      ],
     });
 
     if (error) {
@@ -168,25 +186,28 @@ export function wrapHtml(options: {
   const font =
     "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-  // The mark the site uses, as an image, with the name as its alt text.
+  // The mark the site uses, as an image, with the name as its alt text (the
+  // styled alt text is the brand for anyone who has images off).
   //
-  // The first version set the name in type instead, because some clients
-  // hold remote images back until the reader allows them. The client wants
-  // the same mark as the site, so the image it is; the styled alt text (which
-  // Gmail and Apple Mail honour) is the brand for anyone who has images off.
-  // The file is the one the header and the portal load, served from the
-  // site itself — no second copy to drift. Width and height are attributes as
-  // well as styles because Outlook ignores the styles and would otherwise
-  // draw the file at its full 2254px.
-  const wordmark = `<img src="${absoluteUrl("/brand/fls-capital-dark.png")}" alt="FLS Capital Advisors"
+  // Both marks are in the message as inline attachments (sendEmail, logo.ts)
+  // and referenced here by Content-ID, so they show with remote content
+  // blocked. The black one is the default; the white one is hidden and
+  // shown by the dark-mode rules below, in clients that honour them. The
+  // conditional comment keeps the hidden one away from Outlook on Windows,
+  // which ignores display:none on images. Width and height are attributes
+  // as well as styles because Outlook ignores the styles.
+  const wordmark = `<img src="cid:${EMAIL_LOGO_CID}" alt="FLS Capital Advisors" class="fls-logo-dark"
+       width="112" height="58"
+       style="display:block;width:112px;height:58px;border:0;outline:none;text-decoration:none;
+              font-family:${font};font-size:12px;line-height:1.25;font-weight:700;letter-spacing:0.04em;color:#1f201b;" />
+<!--[if !mso]><!--><img src="cid:${EMAIL_LOGO_LIGHT_CID}" alt="" class="fls-logo-light"
        width="96" height="46"
-       style="display:block;width:96px;height:46px;border:0;outline:none;text-decoration:none;
-              font-family:${font};font-size:12px;line-height:1.25;font-weight:700;letter-spacing:0.04em;color:#1f201b;" />`;
+       style="display:none;width:96px;height:46px;border:0;outline:none;text-decoration:none;mso-hide:all;" /><!--<![endif]-->`;
 
   const cta = options.cta
     ? `<tr><td style="padding:4px 0 8px;">
          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-           <tr><td style="background:#1f201b;border-radius:10px;">
+           <tr><td class="fls-btn" style="background:#1f201b;border-radius:10px;">
              <a href="${options.cta.href}"
                 style="display:inline-block;font-family:${font};color:#ffffff;
                        text-decoration:none;padding:13px 24px;font-weight:600;
@@ -194,7 +215,7 @@ export function wrapHtml(options: {
            </td></tr>
          </table>
        </td></tr>
-       <tr><td style="padding:0 0 24px;font-family:${font};font-size:12px;
+       <tr><td class="fls-muted" style="padding:0 0 24px;font-family:${font};font-size:12px;
                       line-height:1.6;color:#7e7d7d;word-break:break-all;">
          Or copy this link into your browser:<br>
          <a href="${options.cta.href}" style="color:#5d5e5d;">${options.cta.href}</a>
@@ -202,48 +223,74 @@ export function wrapHtml(options: {
     : "";
 
   const foot = options.internal
-    ? `<tr><td style="border-top:1px solid #e6e3dc;padding-top:16px;
+    ? `<tr><td class="fls-foot fls-muted" style="border-top:1px solid #e6e3dc;padding-top:16px;
                       font-family:${font};font-size:12px;line-height:1.6;color:#7e7d7d;">
          ${options.footer ?? "Internal notification."}
        </td></tr>`
-    : `<tr><td style="border-top:1px solid #e6e3dc;padding-top:18px;
+    : `<tr><td class="fls-foot" style="border-top:1px solid #e6e3dc;padding-top:18px;
                       font-family:${font};font-size:14px;line-height:1.6;color:#3f3f3d;">
          ${options.footer ? `<p style="margin:0 0 14px;">${options.footer}</p>` : ""}
          <p style="margin:0;">Questions? Reply to this email or write to
-           <a href="mailto:${HELP_ADDRESS}" style="color:#1f201b;font-weight:600;">${HELP_ADDRESS}</a>.
+           <a href="mailto:${CONTACT_ADDRESS}" style="color:#1f201b;font-weight:600;">${CONTACT_ADDRESS}</a>.
          </p>
        </td></tr>`;
 
   const legal = options.internal
     ? ""
-    : `<tr><td align="center" style="padding:20px 24px 0;font-family:${font};
+    : `<tr><td align="center" class="fls-legal" style="padding:20px 24px 0;font-family:${font};
                                      font-size:11px;line-height:1.6;color:#9a9893;">
          Financial Lending Specialists D.B.A. FLS Capital Advisors.
          You are receiving this because you have a financing application with us.
        </td></tr>`;
 
+  // DARK MODE, ON OUR TERMS. Without the two meta tags and these rules, a
+  // client in dark mode inverts the light design itself: the cream page and
+  // white card go dark, the type goes light, and the black mark, being an
+  // image, stays black on the new dark ground (the client's screenshot,
+  // 10-16). Declaring support puts the dark version in our hands: the
+  // firm's near-black on charcoal, light type, a light button, and the
+  // white mark. Clients that ignore all this (Gmail's apps) still invert on
+  // their own, which is what the cream plate under the black mark is for.
   return `<!doctype html>
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <style>
+  :root { color-scheme: light dark; supported-color-schemes: light dark; }
   @media only screen and (max-width: 480px) {
     .fls-outer { padding: 20px 12px !important; }
     .fls-card { padding: 26px 22px 24px !important; }
     .fls-heading { font-size: 20px !important; }
   }
+  @media (prefers-color-scheme: dark) {
+    .fls-page, .fls-outer { background: #141413 !important; }
+    .fls-card { background: #1f201b !important; border-color: #34342f !important; }
+    .fls-heading { color: #f4f2ee !important; }
+    .fls-text, .fls-text p { color: #d9d7d1 !important; }
+    .fls-text p.fls-note { background: #2c2c28 !important; color: #ecebe6 !important; }
+    .fls-btn { background: #f4f2ee !important; }
+    .fls-btn a { color: #1f201b !important; }
+    .fls-muted, .fls-muted a { color: #9b9a95 !important; }
+    .fls-foot { border-top-color: #3a3a35 !important; color: #d9d7d1 !important; }
+    .fls-foot a { color: #f4f2ee !important; }
+    .fls-legal { color: #8a8985 !important; }
+    .fls-logo-dark { display: none !important; }
+    .fls-logo-light { display: block !important; }
+  }
 </style></head>
-<body style="margin:0;padding:0;background:#f4f2ee;">
+<body class="fls-page" style="margin:0;padding:0;background:#f4f2ee;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
          class="fls-outer" style="background:#f4f2ee;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
              style="max-width:560px;">
-        <tr><td style="padding:0 4px 18px;">${wordmark}</td></tr>
+        <tr><td style="padding:0 0 12px;">${wordmark}</td></tr>
         <tr><td class="fls-card" style="background:#ffffff;border:1px solid #e6e3dc;border-radius:14px;
                        padding:34px 36px 30px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr><td class="fls-heading" style="padding-bottom:14px;font-family:${font};font-size:22px;
                            font-weight:700;color:#121211;line-height:1.3;">${options.heading}</td></tr>
-            <tr><td style="padding-bottom:22px;font-family:${font};font-size:15px;
+            <tr><td class="fls-text" style="padding-bottom:22px;font-family:${font};font-size:15px;
                            line-height:1.65;color:#3f3f3d;">${options.body}</td></tr>
             ${cta}
             ${foot}

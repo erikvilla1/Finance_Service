@@ -382,17 +382,43 @@ template can match it column for column. It deliberately carries no
 certification sentence or signature line: that is wording for him or
 counsel to supply, not me.
 
-## 19. The notification email landed in Junk
+## 19. The notification email lands in Junk: what is and isn't ours to fix
 
-Kai's own Outlook filed "We have everything we asked for" under Junk
-(screenshot, 10-16), from `notifications@mail.flscapitaladvisors.com`.
-Nothing in the message's content is unusual; this is almost always the
-sending domain's reputation and authentication. Worth checking in Resend
-that the domain shows SPF and DKIM verified and that a DMARC record exists
-for `flscapitaladvisors.com` (a `p=none` policy with a reporting address is
-enough to start), and asking the first few applicants to mark the message
-"not junk" — a brand-new sending domain earns its way out of the folder.
-I have not changed anything here; it is DNS and Resend settings, not code.
+Kai's Outlook filed the test messages under Junk again on 10-16, now from
+`admin@flscapitaladvisors.com`. I checked the parts that are ours:
+
+- **Authentication is right.** Resend shows the root domain verified; the
+  DKIM key, the return-path SPF and MX are in Vercel DNS; a DMARC record
+  (`p=none`, reports to admin@) already existed; the root SPF covers Google
+  Workspace, which hosts the mailbox. Every message passes SPF, DKIM and
+  DMARC.
+- **What is left is reputation.** Outlook.com treats a domain it has never
+  seen as suspect, and Kai's own mailbox had already junked the earlier
+  `notifications@mail.…` messages, which teaches its personal filter to
+  junk the domain. That is per-mailbox and per-provider and it lifts with
+  use: real recipients opening, replying and moving a message to the inbox.
+
+Two things that help now, neither of them code: in Kai's Outlook, move one
+of the messages to the inbox ("Not junk") and add admin@flscapitaladvisors.com
+to contacts, then send another test and it should land; and test from a
+Gmail address too, since Gmail and Outlook judge new domains differently.
+If the first real applicants' messages still land in Junk after a few weeks
+of sending, the next step is a dedicated sending IP in Resend, which is a
+plan change, not a setting.
+
+**The logo** in those messages was blank because mail clients block remote
+images for anything in Junk. It now travels inside the message, so it
+shows either way. In dark mode the email now uses its own dark palette
+with the white mark (Apple Mail, Outlook apps); Gmail's apps ignore an
+email's dark styles and invert the colours themselves, so there the black
+mark sits on a small cream plate and stays readable.
+
+**help@flscapitaladvisors.com** was the applicant-facing address in the
+09.27 notes, but no such mailbox was ever confirmed. It is gone from the
+emails, the reply-to default and the legal pages, which all give admin@
+now. If anyone has already written to help@, add it as an alias of admin@
+in Google Workspace (Admin console → Users → the admin account → Alternate
+email addresses); otherwise nothing more is needed.
 
 ## 20. The funded email, and what "commission" means on the record
 

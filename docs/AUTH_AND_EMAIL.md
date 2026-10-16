@@ -149,7 +149,7 @@ everything asked for has been accepted, and one staff alert for anything that
 needs a person.
 
 Addresses, as the client named them (Notion, 09.27): replies and questions go
-to `help@flscapitaladvisors.com` (the default reply-to; `EMAIL_REPLY_TO`
+to `admin@flscapitaladvisors.com` (the default reply-to; `EMAIL_REPLY_TO`
 overrides), staff alerts go to `admin@flscapitaladvisors.com`
 (`STAFF_NOTIFICATION_EMAIL` overrides). The sender stays Resend's onboarding
 address until a domain is verified; see `.env.example`.

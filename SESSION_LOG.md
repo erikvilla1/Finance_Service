@@ -618,6 +618,21 @@ fallback everywhere else.
     deployments that landed while Kai was clicking through (05:40 and
     05:53 UTC); Vercel's skew protection is not on this plan.
 
+- **Test emails (10-16, later still).** Five sample notifications sent to
+  Kai from the new admin@ sender. They landed in Junk with a blank logo:
+  the logo is now an inline attachment referenced by Content-ID (shows with
+  remote images blocked), the contact address in every email, the reply-to
+  default and the legal pages is admin@ (help@ was never confirmed to
+  exist), and the junk placement is reputation rather than authentication,
+  with the checks and the two mailbox-side steps in `QUESTIONS.md` §19.
+  Then dark mode: Apple Mail had inverted the cream design itself and
+  left the black mark on a dark ground. The template now declares its
+  own dark version (charcoal page, near-black card, light type and
+  button) and swaps in the white mark; clients that ignore that and
+  invert anyway (Gmail's apps) get the black mark on a cream plate, which
+  is invisible in light mode and stays legible when inverted. Rendered
+  and checked in both schemes at phone and desktop widths.
+
 ## What is left
 
 1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,
