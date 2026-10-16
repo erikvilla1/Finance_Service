@@ -391,6 +391,13 @@ its argv — kill by scanning `/proc` and skipping `$$`/`$PPID` instead.
   in Vercel; the steps and the failure mode are in `docs/AUTH_AND_EMAIL.md`.
   Pushed, not deployed.
 
+- **Guide pages, wide screens (10-16, later).** The header's white
+  backdrop bar no longer returns on scroll-up at lg and above on
+  /resources/* (it stays below lg, where the logo would otherwise draw over
+  the text), and the guide's header, article and contents list sit in a
+  centred 64rem column instead of hugging the container's edges. Checked at
+  1700px and 390px. Pushed, not deployed.
+
 ## What is left (as of 2026-10-07)
 
 Superseded by the 2026-10-08 section below; kept for the record.

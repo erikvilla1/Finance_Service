@@ -99,6 +99,14 @@ export default async function ResourceGuidePage({
       <GrainGradient className="fixed inset-0 -z-10" {...LIGHT_GRADIENT} />
 
       <Container>
+        {/* A DOCUMENT COLUMN, NOT THE FULL CONTAINER. The article is capped
+            at max-w-2xl and the contents list at 17rem, so on a wide display
+            the two sat at opposite edges of the container with a field of
+            nothing between them, and the text hugged the left edge of the
+            screen (client, 10-16). 64rem is the two columns plus their gap;
+            centring that keeps the page reading as a page. Below that width
+            the wrapper is as wide as the container and changes nothing. */}
+        <div className="mx-auto max-w-5xl">
         {/* HEADER. Tight on purpose: a document starts near the top. */}
         <header className="pb-8 pt-6 sm:pb-10 sm:pt-8">
           {/*
@@ -291,6 +299,7 @@ export default async function ResourceGuidePage({
         <p className="border-t border-ink-200 py-8 text-xs leading-relaxed text-ink-500">
           {DISCLAIMER}
         </p>
+        </div>
       </Container>
     </>
   );

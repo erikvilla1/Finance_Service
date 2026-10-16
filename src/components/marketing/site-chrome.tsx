@@ -292,15 +292,18 @@ export function SiteHeader() {
         is fully covered rather than showing through around the edges of each
         element individually.
 
-        ON GUIDE PAGES, ONLY ONCE SCROLLED. At the top of a guide the logo
-        floats on the page's gradient with nothing behind it, by design. But
-        the scroll-direction hide is lg-only, so on a phone the logo stayed
-        pinned at the top with no surface and drew straight over the body
-        text as it scrolled past — the one place the whole site had the
-        "two things overlapping" problem this bar exists to prevent. So a
-        guide page gets the bar too, at opacity 0 at the top (the gradient
-        shows) and 1 once the page has moved: the same bar, the same fade,
-        driven by scroll position instead of the hero.
+        ON GUIDE PAGES, BELOW lg ONLY, AND ONLY ONCE SCROLLED. At the top of
+        a guide the logo floats on the page's gradient with nothing behind
+        it, by design. The scroll-direction hide is lg-only, so on a phone
+        the logo stays pinned at the top and would draw straight over the
+        body text as it scrolled past — the one place the site had the "two
+        things overlapping" problem this bar exists to prevent. So below lg
+        a guide page gets the bar, at opacity 0 at the top and 1 once the
+        page has moved. At lg and up it is gone (lg:hidden): there the
+        capsules slide away on scroll-down and only return on scroll-up,
+        and the client found the white band that came back with them heavy
+        on a reading page (10-16). The logo alone, on the page's own paper,
+        is what returns.
 
         TWO SIGNALS, NESTED RATHER THAN COMBINED INTO ONE. The bar should be
         gone whenever the capsules themselves are gone (scrolling down —
@@ -332,7 +335,9 @@ export function SiteHeader() {
       */}
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 ${capsule}`}>
         <div
-          className="h-[6.5rem] border-b border-ink-200/80 bg-white/95 shadow-card backdrop-blur-xl transition-opacity duration-300 sm:h-[8.5rem]"
+          className={`h-[6.5rem] border-b border-ink-200/80 bg-white/95 shadow-card backdrop-blur-xl transition-opacity duration-300 sm:h-[8.5rem] ${
+            isGuidePage ? "lg:hidden" : ""
+          }`}
           style={{ opacity: isGuidePage ? (guideScrolled ? 1 : 0) : overHero ? 0 : 1 }}
         />
       </div>
