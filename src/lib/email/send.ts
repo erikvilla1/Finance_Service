@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { EMAIL_LOGO_BASE64, EMAIL_LOGO_CID, EMAIL_LOGO_FILENAME } from "./logo";
 
 /**
  * Sending mail.
@@ -79,11 +80,14 @@ export function fromHeader(configured: string | undefined): string {
  * A caller can still override per-message — notifyStaff has no reason to send
  * staff replies to the applicant-facing address.
  */
-// help@ is the inbox the client named for applicants (Notion 09.27). The
-// sending address may be a send-only domain, so without a reply-to a reply
-// would vanish; this is the one address a person should land on.
-const HELP_ADDRESS = "help@flscapitaladvisors.com";
-const REPLY_TO = process.env.EMAIL_REPLY_TO || HELP_ADDRESS;
+// admin@ is the one mailbox the firm reads (client, 10-16: everything routes
+// to the admin inbox). It was help@, the address named in the 09.27 notes,
+// but no such mailbox was ever confirmed to exist; a contact address in a
+// footer that nobody reads is worse than none. The sending address may be a
+// send-only domain, so without a reply-to a reply would vanish; this is the
+// one address a person should land on, and the one the legal pages give.
+export const CONTACT_ADDRESS = "admin@flscapitaladvisors.com";
+const REPLY_TO = process.env.EMAIL_REPLY_TO || CONTACT_ADDRESS;
 
 export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -119,6 +123,11 @@ export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
       text: message.text,
       html: message.html,
       replyTo: message.replyTo ?? REPLY_TO,
+      // The logo, inside the message (see logo.ts). Referenced from wrapHtml
+      // by Content-ID, so it shows with remote images still blocked.
+      attachments: [
+        { filename: EMAIL_LOGO_FILENAME, content: EMAIL_LOGO_BASE64, contentId: EMAIL_LOGO_CID },
+      ],
     });
 
     if (error) {
@@ -174,11 +183,14 @@ export function wrapHtml(options: {
   // hold remote images back until the reader allows them. The client wants
   // the same mark as the site, so the image it is; the styled alt text (which
   // Gmail and Apple Mail honour) is the brand for anyone who has images off.
-  // The file is the one the header and the portal load, served from the
-  // site itself — no second copy to drift. Width and height are attributes as
-  // well as styles because Outlook ignores the styles and would otherwise
-  // draw the file at its full 2254px.
-  const wordmark = `<img src="${absoluteUrl("/brand/fls-capital-dark.png")}" alt="FLS Capital Advisors"
+  //
+  // The second version linked the site's PNG, and the client's first look at
+  // it was an empty box: clients block remote images for anything in Junk,
+  // which is where a new domain's mail starts out. So the file travels with
+  // the message as an inline attachment (sendEmail) and is referenced here
+  // by Content-ID; it shows with remote content still off. Width and height
+  // are attributes as well as styles because Outlook ignores the styles.
+  const wordmark = `<img src="cid:${EMAIL_LOGO_CID}" alt="FLS Capital Advisors"
        width="96" height="46"
        style="display:block;width:96px;height:46px;border:0;outline:none;text-decoration:none;
               font-family:${font};font-size:12px;line-height:1.25;font-weight:700;letter-spacing:0.04em;color:#1f201b;" />`;
@@ -210,7 +222,7 @@ export function wrapHtml(options: {
                       font-family:${font};font-size:14px;line-height:1.6;color:#3f3f3d;">
          ${options.footer ? `<p style="margin:0 0 14px;">${options.footer}</p>` : ""}
          <p style="margin:0;">Questions? Reply to this email or write to
-           <a href="mailto:${HELP_ADDRESS}" style="color:#1f201b;font-weight:600;">${HELP_ADDRESS}</a>.
+           <a href="mailto:${CONTACT_ADDRESS}" style="color:#1f201b;font-weight:600;">${CONTACT_ADDRESS}</a>.
          </p>
        </td></tr>`;
 
