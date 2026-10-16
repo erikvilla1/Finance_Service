@@ -159,7 +159,7 @@ export default async function DashboardPage() {
       note: item.documents.find((d) => d.status === "rejected")?.note ?? null,
     }));
   const view = customerStatus(current.status, progressOf(current));
-  const next = nextStepFor(current, lead, view.actionNeeded, signed.has(current.id));
+  const next = nextStepFor(current, lead, view.actionNeeded, signed.has(current.id), view.stage);
 
   return (
     <div className="mx-auto max-w-5xl">

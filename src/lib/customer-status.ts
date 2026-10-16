@@ -28,7 +28,8 @@ export type CustomerStage =
   | "reviewing"
   | "need_from_you"
   | "with_funder"
-  | "complete";
+  | "funded"
+  | "closed";
 
 export interface CustomerStatusView {
   stage: CustomerStage;
@@ -46,7 +47,8 @@ export const CUSTOMER_STAGES: CustomerStage[] = [
   "reviewing",
   "need_from_you",
   "with_funder",
-  "complete",
+  "funded",
+  "closed",
 ];
 
 export const CUSTOMER_STAGE_LABELS: Record<CustomerStage, string> = {
@@ -55,7 +57,8 @@ export const CUSTOMER_STAGE_LABELS: Record<CustomerStage, string> = {
   reviewing: "Reviewing your file",
   need_from_you: "We need a few things",
   with_funder: "Submitted for financing",
-  complete: "Complete",
+  funded: "Funded",
+  closed: "Closed",
 };
 
 /**
@@ -92,9 +95,13 @@ const STAGE_BY_STATUS: Record<ApplicationStatus, CustomerStage> = {
   approved: "with_funder",
   declined: "reviewing",
 
-  funded: "complete",
-  closed: "complete",
-  withdrawn: "complete",
+  // TWO END STATES, NOT ONE. Both used to read "Complete", which is the same
+  // word for a business that was funded and one that walked away. "Funded"
+  // is the one outcome the platform is allowed to state, because by then it
+  // has happened; "Closed" says the file is finished without implying why.
+  funded: "funded",
+  closed: "closed",
+  withdrawn: "closed",
 };
 
 const STAGE_COPY: Record<CustomerStage, string> = {
@@ -108,8 +115,10 @@ const STAGE_COPY: Record<CustomerStage, string> = {
     "There are a few items we need from you before we can move forward. They're listed below.",
   with_funder:
     "Your application is with a funding source. We'll be in touch as soon as we hear back.",
-  complete:
-    "This application is complete. If anything changes, your specialist will reach out.",
+  funded:
+    "Your financing has been completed. Your specialist will be in touch about anything else you need.",
+  closed:
+    "This application is closed. If your plans change, you can start a new one any time, or message your specialist.",
 };
 
 /** What the applicant has done, from their side of the file. */

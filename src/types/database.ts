@@ -607,6 +607,22 @@ export type LenderRow = {
   deleted_at: string | null;
 }
 
+/**
+ * What happened when a file funded (migration 0040). One row per application;
+ * staff policies only, because the commission is not the applicant's to see.
+ */
+export type ApplicationFundingRow = {
+  application_id: string;
+  lender_id: string | null;
+  funded_amount: number | null;
+  funded_on: string | null;
+  commission_amount: number | null;
+  notes: string | null;
+  recorded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type LenderSubmissionStatus =
   | "prepared"
   | "sent"
@@ -742,6 +758,7 @@ export type Database = {
       application_answers: Table<ApplicationAnswerRow>;
       business_assets: Table<BusinessAssetRow>;
       existing_debts: Table<ExistingDebtRow>;
+      application_fundings: Table<ApplicationFundingRow>;
       crm_notes: Table<CrmNoteRow>;
       crm_tasks: Table<CrmTaskRow>;
       application_status_history: Table<ApplicationStatusHistoryRow>;

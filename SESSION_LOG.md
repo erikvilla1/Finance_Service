@@ -365,6 +365,23 @@ its argv — kill by scanning `/proc` and skipping `$$`/`$PPID` instead.
   review" under a "Funded" badge. Keyed on the status, it remounts with the
   new one. Pushed, not deployed.
 
+- **What happens when a file funds (10-16, later).** Until now: a badge
+  and a timestamp. Now, when Robert moves a file to Funded: the applicant
+  gets one email ("Your financing is complete", no amount, no lender, no
+  terms); a funding record is opened on the file, dated today, for Robert
+  to complete (amount, lender, date, FLS commission, notes — migration
+  0040, `application_fundings`, staff-only so the commission never reaches
+  the applicant's row; applied to production); and the admin overview's
+  "Amount funded" reads the record where one is written, falling back to
+  the funded lender offer, with the commission total in the tile. On the
+  applicant's side the end state is split: Funded ("Your financing has been
+  completed") and Closed (closed or withdrawn), each with its own next-step
+  card, path and track label; "Complete" stays as the unreached fourth
+  step. The all-set card no longer promises an email on every change, only
+  when something is needed. Rendered the Funded, Closed and
+  submitted states at desktop and phone widths and the funding card empty
+  and filled. Pushed, not deployed.
+
 ## What is left (as of 2026-10-07)
 
 Superseded by the 2026-10-08 section below; kept for the record.
