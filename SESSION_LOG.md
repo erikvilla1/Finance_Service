@@ -398,6 +398,14 @@ its argv — kill by scanning `/proc` and skipping `$$`/`$PPID` instead.
   centred 64rem column instead of hugging the container's edges. Checked at
   1700px and 390px. Pushed, not deployed.
 
+- **Phone header (10-16, later).** "Sign in" and the CTA sat beside the
+  logo on phones instead of at the right edge: the nav pill is display:none
+  below lg and takes no grid cell, so the trailing cluster auto-placed into
+  the nav's auto-sized middle track. The grid is two tracks below lg and
+  three at lg, with the cluster pinned to the last one. Measured at 320,
+  390 and 1280: flush right, no horizontal overflow, desktop unchanged.
+  Pushed, not deployed.
+
 ## What is left (as of 2026-10-07)
 
 Superseded by the 2026-10-08 section below; kept for the record.

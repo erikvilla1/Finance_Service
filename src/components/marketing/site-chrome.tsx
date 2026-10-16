@@ -354,7 +354,14 @@ export function SiteHeader() {
           this grid gap and the trailing cluster's — which covers it with 2px to
           spare. Measured at 320/360/375/414/640+; above sm there is slack either
           way, so the gaps stay as they were. */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
+      {/* TWO TRACKS BELOW lg, THREE AT lg. The nav pill is display:none
+          below lg and so takes no cell, but a three-track grid still charges
+          the gap on either side of its empty middle track — 8px that tipped
+          a 320px phone into horizontal overflow once the trailing cluster was
+          pinned to the last track. Two tracks below lg: logo, then trailing,
+          one gap between them, and the 2px of slack at 320 that the note
+          below counts on. */}
+      <div className="grid grid-cols-[1fr_1fr] items-center gap-2 sm:gap-3 lg:grid-cols-[1fr_auto_1fr]">
         <Link
           href="/"
           aria-label="FLS Capital Advisors"
@@ -517,7 +524,16 @@ export function SiteHeader() {
             </nav>
 
             <div
-              className={`flex items-center gap-3 justify-self-end sm:gap-4 ${capsule} header-capsule--trailing`}
+              /* col-start-3, EXPLICITLY. Below lg the nav pill is display:none,
+                 and an element that is not displayed takes no grid cell — so
+                 auto-placement put this cluster into the nav's auto-sized
+                 middle column, where justify-self-end has nothing to push
+                 against, and "Sign in" sat right beside the logo with the
+                 right third of the row empty (client, phone screenshot,
+                 10-16). Naming the column keeps it in the last 1fr track
+                 whether or not the nav is rendered: the second of two below
+                 lg, the third of three at lg (see the grid's own note). */
+              className={`col-start-2 flex items-center gap-3 justify-self-end sm:gap-4 lg:col-start-3 ${capsule} header-capsule--trailing`}
             >
               {/* No capsule. It is a tertiary action sitting beside a primary one,
                   and giving it a surface of its own made the two read as a pair of
