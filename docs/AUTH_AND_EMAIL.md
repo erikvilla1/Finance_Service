@@ -72,7 +72,8 @@ enough to matter. Both are supported, but switch the template before launch.
 
 ## Before launch
 
-- [ ] **Custom SMTP.** Authentication → Emails → SMTP Settings. The built-in
+- [x] **Custom SMTP.** Done 10-16: smtp.resend.com:465, user `resend`, a sending-only key named "Supabase auth", sender admin@flscapitaladvisors.com; the email limit rose from 2/hour to 30/hour and a reset email was delivered through the domain.
+  Original note: Authentication → Emails → SMTP Settings. The built-in
       sender does **2 messages per hour** and Supabase documents it as being for
       demonstration purposes only. Custom SMTP raises this to 30/hour.
 - [ ] **Turn "Confirm email" back on.** Authentication → Sign In / Providers →
@@ -84,9 +85,9 @@ enough to matter. Both are supported, but switch the template before launch.
         Confirm your email
       </a>
       ```
-- [ ] **URL Configuration.** Site URL and the redirect allow-list must contain
+- [x] **URL Configuration.** Site URL and the redirect allow-list must contain
       the production domain. Keep `http://localhost:3000` for development.
-- [ ] **`NEXT_PUBLIC_SITE_URL`** must be the production URL in the deployed
+- [x] **`NEXT_PUBLIC_SITE_URL`** must be the production URL in the deployed
       environment. `/auth/confirm` prefers it over the request origin so a
       rewritten host cannot redirect an applicant somewhere unintended.
 - [ ] **MFA for staff.** Platform spec §22. Password-only is not sufficient for
