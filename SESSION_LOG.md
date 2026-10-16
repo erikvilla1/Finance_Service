@@ -636,6 +636,16 @@ fallback everywhere else.
   designed and legible when inverted. Rendered and checked at phone and
   desktop widths with light and dark schemes emulated.
 
+- **Launch state (10-16, evening).** With Kai in the dashboards: the test
+  data is gone (SQL from §17 run by Kai, bucket emptied from Storage;
+  counts verified at zero, one login left, sequence back at 1); Supabase
+  Auth now sends through Resend (custom SMTP on the admin@ sender; the
+  email limit rose from 2/hour to 30/hour, and a password-reset email was
+  delivered through the domain at 19:35 UTC); the auth redirect allow-list
+  carries both site hosts with wildcards. Erik has been asked to make the
+  repository private (Kai has write, not admin). Remaining items are
+  Robert's decisions in `QUESTIONS.md` and the Outlook junk training.
+
 ## What is left
 
 1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,

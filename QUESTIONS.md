@@ -345,7 +345,15 @@ what was missing, what is collected at signing — put there so a funder
 could see a debt schedule was waived rather than lost. It is gone. The same
 facts are on the admin page the download comes from.
 
-## 17. The test-data reset has to be run from the SQL editor
+## 17. The test-data reset — done 10-16
+
+**Done.** Kai ran the SQL below (minus the storage line, which Supabase
+refuses from SQL) in the dashboard on 10-16 and emptied the
+`application-documents` bucket from the Storage page; counts verified at
+zero afterwards, one login left, reference sequence back at 1. Kept for
+the next time a reset is wanted.
+
+### Original note
 
 The Supabase connector attached to this session holds every `delete` for
 a confirmation it never gets here, so each attempt timed out and nothing
@@ -361,7 +369,12 @@ delete from public.businesses;
 delete from public.contact_submissions;
 delete from public.audit_logs;
 delete from auth.users where email <> 'admin@flscapitaladvisors.com';
+alter sequence public.application_reference_seq restart with 1;
 ```
+
+The `storage.objects` line fails ("Direct deletion from storage tables is
+not allowed"); skip it and clear the bucket from Storage → application-documents
+instead (right-click the folder → Delete).
 
 Deleting `storage.objects` rows by SQL leaves the file bytes orphaned in
 the bucket; to remove those too, open Storage → `application-documents`,
