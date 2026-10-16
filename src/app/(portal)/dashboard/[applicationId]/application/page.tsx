@@ -42,7 +42,7 @@ export default async function ApplicationPage({
 
   if (!user) redirect("/sign-in?next=/dashboard");
 
-  const { data: application } = await supabase
+  const { data: application, error } = await supabase
     .from("applications")
     .select("id, financing_goal, signature_requested_at")
     .eq("id", applicationId)
@@ -50,6 +50,11 @@ export default async function ApplicationPage({
     .is("deleted_at", null)
     .maybeSingle();
 
+  // A read that failed is not a file that isn't theirs. Left as `data` alone,
+  // a database or network error here rendered as a 404 and sent someone
+  // looking for a page that exists; thrown, it reaches the portal's error
+  // boundary with a retry.
+  if (error) throw new Error(`Could not load the application: ${error.message}`);
   if (!application) notFound();
 
   const form = await loadApplicationForm(applicationId);

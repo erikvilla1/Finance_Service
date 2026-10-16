@@ -79,7 +79,7 @@ export default async function SignInPage({
           shows, and nothing is broken in the meantime. */}
       <GrainGradient className="absolute inset-0" {...LIGHT_GRADIENT} />
       <HeroVideo
-        src="/video/sign-in.mp4"
+        clip={{ src: "/video/sign-in.mp4" }}
         className="absolute inset-0 h-full w-full object-cover opacity-35 blur-[2px]"
       />
       {/* NO FULL-PAGE VEIL. There was one, and it was the reason this screen

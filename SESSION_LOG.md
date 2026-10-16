@@ -582,6 +582,42 @@ fallback everywhere else.
   own answers so the financials section cannot bring it up. The sign-now
   card keeps its layout when it shows an error.
 
+- **Three reports from the live pass (10-16, later).** The sender switch
+  first: all three Vercel variables now carry `admin@flscapitaladvisors.com`
+  (the root domain verified in Resend once its four records were created
+  in Vercel DNS), and production was redeployed and is READY, so email
+  from here on is from the admin address.
+  - **"Drone vids taking forever to load."** The results page's clip was
+    1080p at 5.9 Mbps (7MB) and the home page's 2.4 Mbps; a phone on
+    cellular cannot keep up, so the page sat on its dark fallback. Each is
+    now two encodes, 1280-wide under 2 Mbps and 854-wide under 1 Mbps,
+    picked by `<source media>`, plus a poster (first frame, WebP, under
+    90KB) that paints with the HTML, and `autoPlay` on the element so the
+    browser starts before the JavaScript arrives. 7MB → 2MB on a laptop,
+    850KB on a phone, and never black while it buffers. Verified the
+    source selection and poster locally (Playwright's Chromium has no
+    H.264 decoder, so playback itself was checked with ffprobe and will
+    show in Chrome, Safari and Firefox); the heavy originals are removed
+    from `public/video` and remain in git history.
+  - **"Immense lag clicking Start Application."** The account page is
+    dynamic with no loading boundary, so it was not prefetched and the
+    click waited for a cold function plus a database read before anything
+    moved. `create-account/loading.tsx` now gives it an instant shell (the
+    footage, a skeleton of the heading and form); measured locally, the
+    route is prefetched from the results page and the click swaps screens
+    in about 160ms.
+  - **"Application and Documents returning 404."** Not reproduced. Both
+    routes exist in the build and answer on production (unauthenticated
+    they redirect to sign-in, as they should), both test accounts own
+    their applications and RLS passes, and Supabase logged no failed
+    requests in the window. Two things changed anyway: the five portal
+    pages and the template route no longer turn a failed database read
+    into a 404 (they throw, and a new `(portal)/error.tsx` shows a retry
+    inside the shell), and the question of which account and URL it was
+    is in `QUESTIONS.md` §21. The likeliest cause is the two production
+    deployments that landed while Kai was clicking through (05:40 and
+    05:53 UTC); Vercel's skew protection is not on this plan.
+
 ## What is left
 
 1. ~~Apply migrations 0035 and 0036~~ — applied to production on 10-08,
