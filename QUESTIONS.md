@@ -477,3 +477,32 @@ was the deployment; a refresh that still 404s is a bug I can then find.
 Either way the pages now show a retry screen inside the dashboard, not a
 404, when a database read fails.
 
+
+## 22. Handoff state (10-16): what is on whom
+
+Sent to Robert and Erik as "FLS Website Completion". Recorded here so the
+open items live in one place.
+
+**Erik, before the first real applicant.** Supabase organization to Pro
+(free has no backups, a 1 GB document cap, and pauses when idle). Vercel
+team to Pro if it is on Hobby (Hobby is non-commercial under Vercel's
+terms). Repository to private. Email sending moved to an FLS-owned Resend
+account on the free tier, login admin@flscapitaladvisors.com; the DKIM
+record name is the same for every Resend account, so the move replaces the
+`resend._domainkey` TXT in Vercel DNS and the old account's verification
+breaks by design. New keys go straight into Vercel (`RESEND_API_KEY`) and
+Supabase SMTP, never into chat or email. When Erik says it is done I run
+the delivery tests and remove both FLS domains from the IWA account.
+
+**Kai.** The admin@ password to Robert out of band. info@ must exist in
+Google Workspace.
+
+**Robert.** Left out of the email at Kai's request but still his to
+decide: counsel's read of the legal pages (§12) and licensing (§9); the
+$20M+ claim, which rests on 25 catalog rows none of which is verified
+(§5); the funded email wording and commission split (§20). Programs
+publish only after he verifies their terms.
+
+**Not a launch blocker.** Engine deep-dive items 2–9, the per-product
+question and rule rework; the prequal runs on the general banding for
+those branches and labels itself indicative.
