@@ -235,7 +235,7 @@ Questions? Reply to this email or write to ${CONTACT_ADDRESS}.`,
         heading: "Please review and sign again",
         body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
                <p style="margin:0 0 12px;">Your specialist looked at your signed application and needs you to review it and sign again. It takes a couple of minutes.</p>
-               <p style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;">${reason}</p>`,
+               <p class="fls-note" style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;color:#3f3f3d;">${reason}</p>`,
         cta: { label: "Review and sign", href: url },
       }),
     });
@@ -261,7 +261,7 @@ Questions? Reply to this email or write to ${CONTACT_ADDRESS}.`,
       heading: "One document needs another copy",
       body: `<p style="margin:0 0 12px;">${greeting(recipient)}</p>
              <p style="margin:0 0 12px;">Your specialist looked at the <strong>${documentLabel}</strong> you sent and needs another copy.</p>
-             <p style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;">${reason}</p>`,
+             <p class="fls-note" style="margin:0;padding:12px 14px;background:#f4f2ee;border-radius:8px;color:#3f3f3d;">${reason}</p>`,
       cta: { label: "Send a replacement", href: url },
     }),
   });

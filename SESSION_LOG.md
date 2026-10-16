@@ -625,6 +625,13 @@ fallback everywhere else.
   default and the legal pages is admin@ (help@ was never confirmed to
   exist), and the junk placement is reputation rather than authentication,
   with the checks and the two mailbox-side steps in `QUESTIONS.md` §19.
+  Then dark mode: Apple Mail had inverted the cream design itself and
+  left the black mark on a dark ground. The template now declares its
+  own dark version (charcoal page, near-black card, light type and
+  button) and swaps in the white mark; clients that ignore that and
+  invert anyway (Gmail's apps) get the black mark on a cream plate, which
+  is invisible in light mode and stays legible when inverted. Rendered
+  and checked in both schemes at phone and desktop widths.
 
 ## What is left
 
