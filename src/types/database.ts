@@ -194,6 +194,8 @@ export type ProfileRow = {
   email: string | null;
   phone: string | null;
   is_active: boolean;
+  /** When the first-run dashboard tour was shown (0038). Null: not yet. */
+  tour_seen_at: string | null;
   created_at: string;
   updated_at: string;
 }

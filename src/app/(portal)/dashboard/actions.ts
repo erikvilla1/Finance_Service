@@ -108,3 +108,33 @@ export async function requestOwnSignature(
   revalidatePath(`/dashboard/${applicationId}/sign`);
   redirect(`/dashboard/${applicationId}/sign`);
 }
+
+/**
+ * The first-run tour has been shown to this account.
+ *
+ * Once per account, not per browser. The flag used to live in localStorage,
+ * so every new device and every cleared cache ran the welcome tour again —
+ * over a file that was weeks old. It is written the moment the tour appears
+ * rather than when it ends (see first-run-tour.tsx): the brief is one
+ * showing, right after the account is created, and a reload partway through
+ * must not start it over.
+ *
+ * Runs on the caller's own client under "users update own profile". Nothing
+ * here can fail in a way the applicant needs to hear about: if the write is
+ * lost, the worst case is the tour once more on the next visit.
+ */
+export async function markTourSeen(): Promise<void> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  await supabase
+    .from("profiles")
+    .update({ tour_seen_at: new Date().toISOString() })
+    .eq("id", user.id)
+    .is("tour_seen_at", null);
+}

@@ -59,7 +59,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/sign-in?next=/dashboard");
 
   const [{ data: profile }, { data: applications }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+    supabase.from("profiles").select("full_name, tour_seen_at").eq("id", user.id).single(),
     supabase
       .from("applications")
       .select(
@@ -72,6 +72,9 @@ export default async function DashboardPage() {
 
   const list = applications ?? [];
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] ?? null;
+  // Once per account (0038). A missing profile row reads as seen: never trap
+  // anyone in a welcome tour because a lookup failed.
+  const tourSeen = profile ? Boolean(profile.tour_seen_at) : true;
 
   if (list.length === 0) {
     return (
@@ -92,7 +95,7 @@ export default async function DashboardPage() {
             </ButtonLink>
           </div>
         </div>
-        <FirstRunTour userId={user.id} firstName={firstName} />
+        <FirstRunTour seen={tourSeen} firstName={firstName} />
       </div>
     );
   }
@@ -228,7 +231,7 @@ export default async function DashboardPage() {
 
       {/* The first-visit spotlight. It lives here, on the page it points at,
           so everything it highlights is already on screen when it starts. */}
-      <FirstRunTour userId={user.id} firstName={firstName} />
+      <FirstRunTour seen={tourSeen} firstName={firstName} />
     </div>
   );
 }

@@ -503,7 +503,12 @@ export default async function ApplicationDetailPage({
               <label htmlFor="status" className="sr-only">
                 Status
               </label>
-              <Select id="status" name="status" defaultValue={application.status}>
+              {/* Keyed on the status: React 19 resets the form after the
+                  action, and an uncontrolled select resets to the default it
+                  MOUNTED with — the status at page load — so after "Update
+                  status" it read the old status while the badge above read
+                  the new one. A new key remounts it with the new default. */}
+              <Select key={application.status} id="status" name="status" defaultValue={application.status}>
                 {STATUS_ORDER.map((status) => (
                   <option key={status} value={status}>
                     {STATUS_LABELS[status]}
