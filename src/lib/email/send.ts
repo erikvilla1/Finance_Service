@@ -1,12 +1,5 @@
 import { Resend } from "resend";
-import {
-  EMAIL_LOGO_BASE64,
-  EMAIL_LOGO_CID,
-  EMAIL_LOGO_FILENAME,
-  EMAIL_LOGO_LIGHT_BASE64,
-  EMAIL_LOGO_LIGHT_CID,
-  EMAIL_LOGO_LIGHT_FILENAME,
-} from "./logo";
+import { EMAIL_LOGO_BASE64, EMAIL_LOGO_CID, EMAIL_LOGO_FILENAME } from "./logo";
 
 /**
  * Sending mail.
@@ -130,12 +123,10 @@ export async function sendEmail(message: EmailMessage): Promise<SendOutcome> {
       text: message.text,
       html: message.html,
       replyTo: message.replyTo ?? REPLY_TO,
-      // The logo, inside the message, in both versions (see logo.ts).
-      // Referenced from wrapHtml by Content-ID, so it shows with remote
-      // images still blocked; the white one is drawn only in dark mode.
+      // The logo, inside the message (see logo.ts). Referenced from wrapHtml
+      // by Content-ID, so it shows with remote images still blocked.
       attachments: [
         { filename: EMAIL_LOGO_FILENAME, content: EMAIL_LOGO_BASE64, contentId: EMAIL_LOGO_CID },
-        { filename: EMAIL_LOGO_LIGHT_FILENAME, content: EMAIL_LOGO_LIGHT_BASE64, contentId: EMAIL_LOGO_LIGHT_CID },
       ],
     });
 
@@ -182,116 +173,118 @@ export function wrapHtml(options: {
   footer?: string;
   /** Staff mail: internal, so no help line and no legal foot. */
   internal?: boolean;
+  /** The small capitals above the heading, as on the portal's cards. */
+  eyebrow?: string;
 }): string {
   const font =
     "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
+  // THE PORTAL'S PALETTE, so a message reads as the dashboard it links to
+  // (client, 10-16: "make consistent with the client dashboard theme").
+  // The page is the portal's cream, the card its white panel with the same
+  // hairline, the button its primary (brand-900), the eyebrow its
+  // accent-800 small capitals, the type its ink scale. Hex rather than the
+  // site's oklch tokens because mail clients read neither CSS variables nor
+  // oklch; the values are those tokens converted, and are listed with their
+  // names so a palette change on the site can be carried over by hand.
+  const page = "#f6efe0"; // LIGHT_GRADIENT.base
+  const card = "#ffffff";
+  const hairline = "#e7e2d6"; // ink-200 at 70% over the cream
+  const heading = "#121211"; // ink-900
+  const text = "#424241"; // ink-700
+  const muted = "#7d7d7d"; // ink-500
+  const eyebrow = "#6a573e"; // accent-800
+  const button = "#1f201b"; // brand-900
+  const divider = "#dededd"; // ink-200
+
   // The mark the site uses, as an image, with the name as its alt text (the
-  // styled alt text is the brand for anyone who has images off).
-  //
-  // Both marks are in the message as inline attachments (sendEmail, logo.ts)
-  // and referenced here by Content-ID, so they show with remote content
-  // blocked. The black one is the default; the white one is hidden and
-  // shown by the dark-mode rules below, in clients that honour them. The
-  // conditional comment keeps the hidden one away from Outlook on Windows,
-  // which ignores display:none on images. Width and height are attributes
-  // as well as styles because Outlook ignores the styles.
-  const wordmark = `<img src="cid:${EMAIL_LOGO_CID}" alt="FLS Capital Advisors" class="fls-logo-dark"
+  // styled alt text is the brand for anyone who has images off). It is in
+  // the message as an inline attachment (sendEmail, logo.ts) and referenced
+  // by Content-ID, so it shows with remote content blocked. Width and height
+  // are attributes as well as styles because Outlook ignores the styles.
+  const wordmark = `<img src="cid:${EMAIL_LOGO_CID}" alt="FLS Capital Advisors"
        width="112" height="58"
        style="display:block;width:112px;height:58px;border:0;outline:none;text-decoration:none;
-              font-family:${font};font-size:12px;line-height:1.25;font-weight:700;letter-spacing:0.04em;color:#1f201b;" />
-<!--[if !mso]><!--><img src="cid:${EMAIL_LOGO_LIGHT_CID}" alt="" class="fls-logo-light"
-       width="96" height="46"
-       style="display:none;width:96px;height:46px;border:0;outline:none;text-decoration:none;mso-hide:all;" /><!--<![endif]-->`;
+              font-family:${font};font-size:12px;line-height:1.25;font-weight:700;letter-spacing:0.04em;color:${button};" />`;
 
   const cta = options.cta
-    ? `<tr><td style="padding:4px 0 8px;">
+    ? `<tr><td style="padding:6px 0 10px;">
          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-           <tr><td class="fls-btn" style="background:#1f201b;border-radius:10px;">
+           <tr><td style="background:${button};border-radius:12px;">
              <a href="${options.cta.href}"
                 style="display:inline-block;font-family:${font};color:#ffffff;
-                       text-decoration:none;padding:13px 24px;font-weight:600;
-                       font-size:15px;line-height:1;">${options.cta.label}</a>
+                       text-decoration:none;padding:14px 22px;font-weight:600;
+                       font-size:14px;line-height:1;">${options.cta.label}</a>
            </td></tr>
          </table>
        </td></tr>
-       <tr><td class="fls-muted" style="padding:0 0 24px;font-family:${font};font-size:12px;
-                      line-height:1.6;color:#7e7d7d;word-break:break-all;">
+       <tr><td style="padding:0 0 24px;font-family:${font};font-size:12px;
+                      line-height:1.6;color:${muted};word-break:break-all;">
          Or copy this link into your browser:<br>
-         <a href="${options.cta.href}" style="color:#5d5e5d;">${options.cta.href}</a>
+         <a href="${options.cta.href}" style="color:${muted};">${options.cta.href}</a>
        </td></tr>`
     : "";
 
   const foot = options.internal
-    ? `<tr><td class="fls-foot fls-muted" style="border-top:1px solid #e6e3dc;padding-top:16px;
-                      font-family:${font};font-size:12px;line-height:1.6;color:#7e7d7d;">
+    ? `<tr><td style="border-top:1px solid ${divider};padding-top:16px;
+                      font-family:${font};font-size:12px;line-height:1.6;color:${muted};">
          ${options.footer ?? "Internal notification."}
        </td></tr>`
-    : `<tr><td class="fls-foot" style="border-top:1px solid #e6e3dc;padding-top:18px;
-                      font-family:${font};font-size:14px;line-height:1.6;color:#3f3f3d;">
+    : `<tr><td style="border-top:1px solid ${divider};padding-top:18px;
+                      font-family:${font};font-size:14px;line-height:1.6;color:${text};">
          ${options.footer ? `<p style="margin:0 0 14px;">${options.footer}</p>` : ""}
          <p style="margin:0;">Questions? Reply to this email or write to
-           <a href="mailto:${CONTACT_ADDRESS}" style="color:#1f201b;font-weight:600;">${CONTACT_ADDRESS}</a>.
+           <a href="mailto:${CONTACT_ADDRESS}" style="color:${button};font-weight:600;">${CONTACT_ADDRESS}</a>.
          </p>
        </td></tr>`;
 
   const legal = options.internal
     ? ""
-    : `<tr><td align="center" class="fls-legal" style="padding:20px 24px 0;font-family:${font};
-                                     font-size:11px;line-height:1.6;color:#9a9893;">
+    : `<tr><td align="center" style="padding:20px 24px 0;font-family:${font};
+                                     font-size:11px;line-height:1.6;color:${muted};">
          Financial Lending Specialists D.B.A. FLS Capital Advisors.
          You are receiving this because you have a financing application with us.
        </td></tr>`;
 
-  // DARK MODE, ON OUR TERMS. Without the two meta tags and these rules, a
-  // client in dark mode inverts the light design itself: the cream page and
-  // white card go dark, the type goes light, and the black mark, being an
-  // image, stays black on the new dark ground (the client's screenshot,
-  // 10-16). Declaring support puts the dark version in our hands: the
-  // firm's near-black on charcoal, light type, a light button, and the
-  // white mark. Clients that ignore all this (Gmail's apps) still invert on
-  // their own, which is what the cream plate under the black mark is for.
+  const kicker = options.eyebrow
+    ? `<tr><td style="padding-bottom:10px;font-family:${font};font-size:11px;font-weight:700;
+                      letter-spacing:0.12em;text-transform:uppercase;color:${eyebrow};">${options.eyebrow}</td></tr>`
+    : "";
+
+  // LIGHT ONLY, DECLARED. Left undeclared, a client in dark mode inverts
+  // the design itself: the cream and white go dark, and the black mark,
+  // being an image, stays black on the new dark ground. A dark version of
+  // our own was tried and the client preferred the dashboard's look
+  // everywhere, so the message declares that it supports light only, which
+  // Apple Mail and the Outlook apps respect. Gmail's apps invert regardless;
+  // the cream plate under the mark (logo.ts) is for them.
   return `<!doctype html>
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
 <style>
-  :root { color-scheme: light dark; supported-color-schemes: light dark; }
+  :root { color-scheme: light; supported-color-schemes: light; }
   @media only screen and (max-width: 480px) {
     .fls-outer { padding: 20px 12px !important; }
     .fls-card { padding: 26px 22px 24px !important; }
     .fls-heading { font-size: 20px !important; }
   }
-  @media (prefers-color-scheme: dark) {
-    .fls-page, .fls-outer { background: #141413 !important; }
-    .fls-card { background: #1f201b !important; border-color: #34342f !important; }
-    .fls-heading { color: #f4f2ee !important; }
-    .fls-text, .fls-text p { color: #d9d7d1 !important; }
-    .fls-text p.fls-note { background: #2c2c28 !important; color: #ecebe6 !important; }
-    .fls-btn { background: #f4f2ee !important; }
-    .fls-btn a { color: #1f201b !important; }
-    .fls-muted, .fls-muted a { color: #9b9a95 !important; }
-    .fls-foot { border-top-color: #3a3a35 !important; color: #d9d7d1 !important; }
-    .fls-foot a { color: #f4f2ee !important; }
-    .fls-legal { color: #8a8985 !important; }
-    .fls-logo-dark { display: none !important; }
-    .fls-logo-light { display: block !important; }
-  }
 </style></head>
-<body class="fls-page" style="margin:0;padding:0;background:#f4f2ee;">
+<body style="margin:0;padding:0;background:${page};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-         class="fls-outer" style="background:#f4f2ee;padding:32px 16px;">
+         class="fls-outer" style="background:${page};padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
              style="max-width:560px;">
-        <tr><td style="padding:0 0 12px;">${wordmark}</td></tr>
-        <tr><td class="fls-card" style="background:#ffffff;border:1px solid #e6e3dc;border-radius:14px;
+        <tr><td style="padding:0 0 14px;">${wordmark}</td></tr>
+        <tr><td class="fls-card" style="background:${card};border:1px solid ${hairline};border-radius:20px;
                        padding:34px 36px 30px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${kicker}
             <tr><td class="fls-heading" style="padding-bottom:14px;font-family:${font};font-size:22px;
-                           font-weight:700;color:#121211;line-height:1.3;">${options.heading}</td></tr>
-            <tr><td class="fls-text" style="padding-bottom:22px;font-family:${font};font-size:15px;
-                           line-height:1.65;color:#3f3f3d;">${options.body}</td></tr>
+                           font-weight:700;letter-spacing:-0.01em;color:${heading};line-height:1.3;">${options.heading}</td></tr>
+            <tr><td style="padding-bottom:22px;font-family:${font};font-size:15px;
+                           line-height:1.65;color:${text};">${options.body}</td></tr>
             ${cta}
             ${foot}
           </table>
