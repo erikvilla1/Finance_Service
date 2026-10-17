@@ -139,6 +139,12 @@ divergent accounts of the same process is a content decision, not a bug fix.
 I'd suggest (b) or (c). This is also a plausible cause of the client's
 confusion, so worth settling before you reply to him.
 
+**10-17 update.** Still undecided, and the page became indexable when the
+site-wide noindex was lifted. It now carries its own `noindex` and is out of
+the sitemap; the URL still works. Pick (b) or (c) and the noindex comes off
+(or the route goes). `/about`, which was a bare placeholder, now redirects
+to the home page's Who We Are section.
+
 ---
 
 ## 5. The $20M stat — I did not comply literally, and you should check I was right

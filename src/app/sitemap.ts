@@ -5,8 +5,9 @@ const SITE = "https://www.flscapitaladvisors.com";
 
 /**
  * Every public page, so search engines find the guides without having to
- * crawl for them. Signed-in and token-gated routes are deliberately absent;
- * see robots.ts.
+ * crawl for them. Signed-in and token-gated routes are deliberately absent
+ * (see robots.ts), as is /how-it-works while it is noindex (QUESTIONS.md §4);
+ * /about redirects to the home page section.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -18,9 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     page("/", "weekly", 1),
-    page("/how-it-works", "monthly", 0.8),
     page("/financing-options", "monthly", 0.8),
-    page("/about", "monthly", 0.6),
     page("/contact", "monthly", 0.6),
     ...RESOURCE_GUIDES.map((guide) => page(`/resources/${guide.slug}`, "monthly", 0.7)),
     page("/privacy", "yearly", 0.2),
