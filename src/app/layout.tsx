@@ -12,12 +12,10 @@ export const metadata: Metadata = {
   },
   description:
     "FLS Capital Advisors helps businesses, investors, and professionals explore financing options for opportunities that don't always fit neatly into traditional lending programs.",
-  robots: {
-    // Nothing is indexed until the content is verified and legal review is done
-    // (BUSINESS_CONTEXT §12, platform spec §29). Flip this at launch.
-    index: false,
-    follow: false,
-  },
+  // Site-wide noindex was lifted at launch (10-17). Pages that must never be
+  // indexed carry their own `robots` metadata: sign-in and the auth routes,
+  // the prequal flow, create-account, and the portal and admin layouts.
+  // app/robots.ts keeps crawlers out of those paths as well.
 };
 
 export default function RootLayout({

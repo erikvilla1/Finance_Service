@@ -699,6 +699,22 @@ fallback everywhere else.
   Instantly's `{{firstName}}`. Deliverable is
   `newsletter-relaunch-instantly.html` in the scratchpad.
 
+- **Search indexing switched on (10-17).** Kai relayed an audit finding:
+  every page carried `noindex, nofollow`. It was the pre-launch guard in
+  the root layout's metadata ("flip this at launch"), inherited by the
+  home page, the guides and the legal pages. Removed it there; the pages
+  that must stay out (sign-in, auth, create-account, the prequal flow and
+  its token result pages) keep their own `robots`, and the portal and
+  admin layouts now declare it explicitly as well. Added `app/robots.ts`
+  (allow all; disallow /admin, /dashboard, /auth, /sign-in,
+  /create-account, /start; sitemap link) and `app/sitemap.ts` (the 19
+  public pages: home, how-it-works, financing-options, about, contact,
+  the eleven guides, privacy, terms, disclosures). Verified on the
+  production build locally: no robots tag on /, /privacy, a guide and
+  /financing-options; noindex still on /sign-in, /start, /create-account;
+  /dashboard and /admin 307 to sign-in. Google will take days to weeks to
+  pick the site up; submitting the sitemap in Search Console speeds it up.
+
 ## What is left
 
 Code: nothing open. Everything below is a decision or an account setting.
