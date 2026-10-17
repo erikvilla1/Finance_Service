@@ -670,6 +670,24 @@ fallback everywhere else.
   day-to-day operation, and maintenance through IWA. Kai chose to leave
   the counsel review and the $20M claim out of the email.
 
+- **Newsletter re-launch edition (10-17).** Robert sends a plain-text
+  monthly ("FLS Capital Insights", Gmail mail merge: recent transactions,
+  market spotlight, financing solutions, tip, let's talk) and asked for it
+  expanded for the re-launch while keeping the format. Wrote the October
+  edition in his structure with the new name, flscapitaladvisors.com,
+  info@, a "What's new" block for the prequal and portal, a spotlight on
+  getting a file ready (the universal document set), a new tip, and two
+  CTAs (/start and his calendar link). His September transactions stay in
+  as the pattern with a note to swap; nothing invented. Footer carries the
+  site's own disclaimer line with "site" read as "email", the street
+  address, and a reply-to-unsubscribe line, which his current send lacks.
+  Also built a branded HTML version on the dashboard palette with the
+  inline logo (table layout, 600px, light-only, stacks at phone width),
+  rendered at 720 and 390, and sent it to Kai as a preview. Both live in
+  the session scratchpad under newsletter/ (build.mjs regenerates text,
+  HTML and screenshots from one content object); nothing in the repo
+  changed. Scanned the copy against FORBIDDEN_CUSTOMER_WORDS: clean.
+
 ## What is left
 
 Code: nothing open. Everything below is a decision or an account setting.
