@@ -715,6 +715,15 @@ fallback everywhere else.
   /dashboard and /admin 307 to sign-in. Google will take days to weeks to
   pick the site up; submitting the sitemap in Search Console speeds it up.
 
+- **Indexing follow-up (10-17).** Lifting the noindex exposed two pages
+  it had been hiding. `/about` was an unlinked dashed-box placeholder
+  ("company story pending, do not publish claims"); it now 308s to
+  `/#about`, the section the nav has always used, and the page file is
+  gone. `/how-it-works` is the five-step page that disagrees with the
+  home page's eight steps (QUESTIONS.md §4, still Kai's call); it keeps
+  its URL but carries `noindex, follow` and is out of the sitemap until
+  (b) or (c) is chosen. Sitemap is 17 URLs.
+
 ## What is left
 
 Code: nothing open. Everything below is a decision or an account setting.

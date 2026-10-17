@@ -12,6 +12,14 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
 
+  // /about was an unlinked placeholder page ("company story pending") that
+  // became indexable when the site-wide noindex was lifted (10-17). The nav's
+  // "Who We Are" has always pointed at the home page section, so send old
+  // links and crawlers there. Remove once a real About page exists.
+  async redirects() {
+    return [{ source: "/about", destination: "/#about", permanent: true }];
+  },
+
   // Security headers. Platform spec §28 requires HTTPS everywhere and
   // hardened defaults. Review with a security professional before launch.
   async headers() {

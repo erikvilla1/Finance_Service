@@ -4,6 +4,10 @@ import { ButtonLink, Card, Container, Section, SectionHeading } from "@/componen
 export const metadata: Metadata = {
   title: "How It Works",
   description: "How the financing process works, from first question to funding.",
+  // Out of the index until QUESTIONS.md §4 is settled: this five-step page
+  // and the home page's eight-step section tell the process differently, and
+  // the home page's copy is the one the client reviewed. The URL stays live.
+  robots: { index: false, follow: true },
 };
 
 const STEPS = [
