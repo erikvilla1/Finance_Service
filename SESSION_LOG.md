@@ -688,6 +688,17 @@ fallback everywhere else.
   HTML and screenshots from one content object); nothing in the repo
   changed. Scanned the copy against FORBIDDEN_CUSTOMER_WORDS: clean.
 
+- **Newsletter, second pass (10-17).** Robert sends the newsletter through
+  Instantly.ai from his existing financiallendingspecialists.com address,
+  which stays live for a year; admin@ is for client coordination only, so
+  the newsletter never touches Resend. Instantly cannot carry an inline
+  image, so the email logo (the 224x116 plate PNG that `logo.ts` embeds)
+  now also ships as `public/brand/fls-capital-email.png` and the HTML
+  references it by URL on the site. Logo moved out of the white card onto
+  the page background (Kai: "get rid of the gold box"); merge tag is
+  Instantly's `{{firstName}}`. Deliverable is
+  `newsletter-relaunch-instantly.html` in the scratchpad.
+
 ## What is left
 
 Code: nothing open. Everything below is a decision or an account setting.
