@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GrainGradient, LIGHT_GRADIENT } from "@/components/marketing/grain-gradient";
@@ -14,6 +15,12 @@ import { PortalShell } from "@/components/portal/portal-shell";
  * its Application / Documents / Sign links), filtered to their own profile
  * for the same reason the overview is: RLS answers "may see", not "is theirs".
  */
+export const metadata: Metadata = {
+  // Signed-in pages. Crawlers are redirected to sign-in anyway; this makes
+  // the intent explicit if that ever changes.
+  robots: { index: false, follow: false },
+};
+
 export default async function PortalLayout({
   children,
 }: {

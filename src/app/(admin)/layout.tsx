@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -17,6 +18,12 @@ import { signOut } from "@/app/sign-in/actions";
  * mean every navigation renders the sidebar open and the theme light for a
  * frame before correcting itself.
  */
+export const metadata: Metadata = {
+  // Signed-in pages. Crawlers are redirected to sign-in anyway; this makes
+  // the intent explicit if that ever changes.
+  robots: { index: false, follow: false },
+};
+
 export default async function AdminLayout({
   children,
 }: {
