@@ -724,6 +724,21 @@ fallback everywhere else.
   its URL but carries `noindex, follow` and is out of the sitemap until
   (b) or (c) is chosen. Sitemap is 17 URLs.
 
+- **Dependency patch (10-21).** Kai asked whether the site was patched for
+  "the PHP exploit". There is no PHP anywhere in the stack (Next.js on
+  Vercel, Supabase, Resend), so nothing to patch there. `npm audit` on the
+  production dependencies, run to answer properly, showed four advisories:
+  Next.js 16.3.0 (critical: unauthenticated RCE in the image optimizer with
+  AVIF input, RCE in next/og, SSRF in image optimization, plus cache
+  poisoning and metadata-route disclosure), sharp 0.35.3 (libheif and
+  librsvg), nanoid 3.3.17, source-map-js 1.2.1. Upgraded next to 16.3.8
+  (patch line, not 16.4), sharp 0.35.5, nanoid 3.3.20, source-map-js 1.2.2.
+  `npm audit --omit=dev` now reports zero. Typecheck, lint, tests and the
+  production build pass unchanged. Vercel serves image optimization from
+  its own service, which likely narrowed exposure, but the app is patched
+  regardless. Worth running `npm audit` as part of the quarterly check-in
+  promised in the handoff email.
+
 ## What is left
 
 Code: nothing open. Everything below is a decision or an account setting.
