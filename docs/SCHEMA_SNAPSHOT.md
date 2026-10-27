@@ -1,10 +1,10 @@
-# Schema snapshot — 2026-08-14
+# Schema snapshot, 2026-08-14
 
 What the live database looked like at a known-good moment, recorded before an
 unsupervised working session.
 
 **This is not a backup.** It restores nothing. What it does is let you answer
-"what changed?" tomorrow without relying on anyone's memory — regenerate it,
+"what changed?" tomorrow without relying on anyone's memory: regenerate it,
 diff against this file, and any line that appears or disappears is a schema
 change. A schema change with no migration file is drift, which is the thing that
 has gone wrong twice.
@@ -149,12 +149,12 @@ TRIGGER question_rules :: set_updated_at
 
 If any of these disappear, something is wrong regardless of what else changed.
 
-- `applications :: guard_customer_application_fields` — keeps status, owner,
+- `applications :: guard_customer_application_fields`: keeps status, owner,
   assignee and the signature release out of a customer's reach. RLS grants a
   row, never a column, so without this an applicant can march their own file
   through the pipeline.
-- `profiles :: guard_role_changes` — stops anyone making themselves an admin.
-- `documents :: sync_document_request_status` — the checklist is derived from
+- `profiles :: guard_role_changes`: stops anyone making themselves an admin.
+- `documents :: sync_document_request_status`: the checklist is derived from
   this. Drop it and every request freezes at whatever it last said.
-- `customer_may_edit(status)` — the window in which an applicant may edit their
+- `customer_may_edit(status)`: the window in which an applicant may edit their
   own file. Referenced by nine policies; changing it changes all of them.

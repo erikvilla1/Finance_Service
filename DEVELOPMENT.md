@@ -1,4 +1,4 @@
-# FLS Platform — Development Setup
+# FLS Platform: Development Setup
 
 ## Documents to read first
 
@@ -18,7 +18,7 @@ npm run dev
 
 ### Environment values
 
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are already filled in `.env.example` — the anon key is designed to be public and is safe in the browser, because Row Level Security is the real boundary.
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are already filled in `.env.example`. The anon key is designed to be public and is safe in the browser, because Row Level Security is the real boundary.
 
 `SUPABASE_SERVICE_ROLE_KEY` is **not** included and must never be committed. Get it from the Supabase dashboard → Project Settings → API. It bypasses RLS entirely.
 
@@ -75,7 +75,7 @@ Note: row types must be `type` aliases, not `interface`. Interfaces have no impl
 
 ## Two things that are enforced, not just documented
 
-**Unverified terms cannot be published.** `financing_products` carries a `terms_verified` flag and a CHECK constraint: `is_published = false or terms_verified = true`. All 25 products are currently unverified, so nothing is publishable. This is why `/financing-options` renders an empty state — that is correct behaviour until Robert confirms the figures.
+**Unverified terms cannot be published.** `financing_products` carries a `terms_verified` flag and a CHECK constraint: `is_published = false or terms_verified = true`. All 25 products are currently unverified, so nothing is publishable. This is why `/financing-options` renders an empty state, which is correct behaviour until Robert confirms the figures.
 
 To verify a product after the Phase-0 session:
 
@@ -96,12 +96,12 @@ update public.financing_products
 
 Every product carries both:
 
-- **`category`** — goal-based, drives site navigation (5 categories)
-- **`track`** — underwriting-based, drives prequal rules and document lists (9 tracks)
+- **`category`**: goal-based, drives site navigation (5 categories)
+- **`track`**: underwriting-based, drives prequal rules and document lists (9 tracks)
 
 They deliberately cross. `working-capital-equipment-equity` sits under Business Cash Flow for navigation but underwrites on the equipment track.
 
-`startup-growth-capital` is a **proposed** fifth category not in the platform spec — added because the unsecured term-loan, credit-line, and startup programs had no home in the spec's four. Flag for review.
+`startup-growth-capital` is a **proposed** fifth category not in the platform spec, added because the unsecured term-loan, credit-line, and startup programs had no home in the spec's four. Flag for review.
 
 ---
 
@@ -121,7 +121,7 @@ Two advisor warnings remain, both for those functions, both intentional and docu
 
 ## Creating a staff account
 
-Sign-in is wired, but every new signup defaults to the `customer` role — staff roles must be granted explicitly (spec §22). To get into the CRM at `/admin`:
+Sign-in is wired, but every new signup defaults to the `customer` role. Staff roles must be granted explicitly (spec §22). To get into the CRM at `/admin`:
 
 1. Register the account. Supabase dashboard → Authentication → Users → **Add user**, with "auto confirm" checked so you skip the email step in development.
 2. Promote it. SQL Editor:
@@ -132,7 +132,7 @@ update public.profiles
  where email = 'you@example.com';
 ```
 
-Roles are `customer`, `specialist`, `manager`, `admin`. A non-admin cannot change their own role — the `guard_role_changes` trigger blocks it, so this has to be done here.
+Roles are `customer`, `specialist`, `manager`, `admin`. A non-admin cannot change their own role: the `guard_role_changes` trigger blocks it, so this has to be done here.
 
 **Before any real applicant data exists**, turn on MFA for staff in Supabase → Authentication → Providers → enable TOTP enrolment. Spec §22 requires it and password-only is not sufficient for production.
 

@@ -19,7 +19,7 @@ items here are configuration, not development.
 ```
 
 The account wall sits **after** the estimate, never before. The estimate is what
-earns the account — asking someone to register before they know whether it was
+earns the account. Asking someone to register before they know whether it was
 worth their time is how a lead-capture form gets abandoned.
 
 ---
@@ -32,7 +32,7 @@ exists at that point. The RLS policy `users update own draft applications` has
 no user and **cannot be claimed by the very person it belongs to**.
 
 `src/lib/applications/claim.ts` therefore runs on the service role.
-Authorization is possession of `public_token` — the unguessable uuid from
+Authorization is possession of `public_token`, the unguessable uuid from
 migration 0009, only ever handed to the person who submitted the form. This is
 the same trust model the result page already runs on.
 
@@ -49,7 +49,7 @@ refused rather than reassigned.
 
 **Confirmation is the intended production behaviour.** It is currently switched
 off only so the funnel can be tested without fighting the send limit. The code
-handles both states with no changes required — `signUp` always passes
+handles both states with no changes required: `signUp` always passes
 `emailRedirectTo`, and the action redirects to `/create-account/check-your-email`
 when no session comes back.
 
@@ -61,7 +61,7 @@ waiting for the applicant whenever they confirm.
 | Shape | Produced by | Works across devices |
 |---|---|---|
 | `token_hash` + `type` | template using `{{ .TokenHash }}` | **Yes** |
-| `code` | default template (PKCE) | No — same browser only |
+| `code` | default template (PKCE) | No, same browser only |
 
 PKCE needs the code-verifier cookie written at signup, so it fails when someone
 fills in the form on a laptop and opens the email on their phone. That is common
@@ -90,7 +90,7 @@ enough to matter. Both are supported, but switch the template before launch.
       environment. `/auth/confirm` prefers it over the request origin so a
       rewritten host cannot redirect an applicant somewhere unintended.
 - [ ] **MFA for staff.** Platform spec §22. Password-only is not sufficient for
-      internal users and this is still outstanding — see `src/app/sign-in/actions.ts`.
+      internal users and this is still outstanding. See `src/app/sign-in/actions.ts`.
 - [ ] **Password policy.** The 8-character floor in
       `create-account/actions.ts` is a minimum, not a policy. Add breach-list
       checking (Supabase supports HIBP under Authentication → Attack Protection).
@@ -100,7 +100,7 @@ enough to matter. Both are supported, but switch the template before launch.
 ## Where this stops
 
 This work covers the pipeline **up to** the dashboard, not the dashboard itself.
-`src/app/(portal)/dashboard/page.tsx` is untouched and remains the scaffold —
+`src/app/(portal)/dashboard/page.tsx` is untouched and remains the scaffold.
 Erik is building the checklist UI and status tracker on his own branch.
 
 ### What the dashboard can rely on
@@ -108,7 +108,7 @@ Erik is building the checklist UI and status tracker on his own branch.
 By the time an applicant lands on `/dashboard`:
 
 - `applications.profile_id` is set, so RLS lets them read their own row.
-- `document_requests` is already populated for that application — one row per
+- `document_requests` is already populated for that application, one row per
   required document for their track, status `requested`. Seeded by
   `claimApplication()`, sourced from `document_type_definitions`.
 - `qualification_results` has their engine output from the prequal step.
@@ -121,7 +121,7 @@ be two sources of truth for what an applicant is asked for. Read from
 `document_type_definitions` at render time, or a specialist's edits to a
 request will be invisible.
 
-### Uploads — built
+### Uploads: built
 
 All three items previously listed here as missing exist. The storage object
 policies were in `0005` all along (four of them, keyed on the first path
@@ -136,10 +136,10 @@ documents. The action records the row afterwards.
 
 `document_requests.status` is **derived, not written**. Migration `0021`
 recomputes it from the documents attached to the request. Nothing in the
-application should set that column by hand — the one exception is waiving,
+application should set that column by hand. The one exception is waiving,
 which is a decision about the request rather than a fact about any document.
 
-### Notification email — built
+### Notification email: built
 
 `src/lib/email/send.ts` sends through Resend (`RESEND_API_KEY`), with a
 development safety catch (`EMAIL_REDIRECT_TO`) that reroutes every message to
@@ -157,7 +157,7 @@ address until a domain is verified; see `.env.example`.
 Applicant mail never carries the reference code. It is the file's name inside
 the admin and in staff mail, and means nothing to the person receiving it.
 
-### E-signature — built
+### E-signature: built
 
 `signed_application` is produced by signing, not uploading:
 `/dashboard/[applicationId]/sign` draws the funding application from what the
@@ -166,7 +166,7 @@ tax ID, and agrees to the FCRA and ESIGN consents (`src/lib/funding-application/
 The signed PDF becomes a `documents` row with `source = 'e_signature'` and
 appears on the specialist's checklist like any other document.
 
-The SSN and tax ID are drawn into the PDF and not kept — no column, no log.
+The SSN and tax ID are drawn into the PDF and not kept: no column, no log.
 `fields.ts` marks them `source: "signer"` and the merge payload excludes them
 structurally. The full number is collected on the signed document, exactly
 as the client asked, and never stored.
