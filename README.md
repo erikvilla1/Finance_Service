@@ -221,5 +221,3 @@ portal and admin console are built and working. Outstanding before launch:
   declares, per field, whether it is a hard gate, a ranking factor, or
   informational — rather than one universal scorecard penalising every product
   for the same inputs.
-
-See `QUESTIONS.md` for open decisions and `SESSION_LOG.md` for recent work.

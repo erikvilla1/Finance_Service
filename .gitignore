@@ -45,10 +45,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# ---------------------------------------------------------------
-# Sensitive business material.
-# Uncomment before making this repository public or adding outside
-# collaborators. See docs/BUSINESS_CONTEXT.md §15.
-# ---------------------------------------------------------------
-# docs/BUSINESS_CONTEXT.md
+# video masters; public/video holds the encoded copies
 *.mov
