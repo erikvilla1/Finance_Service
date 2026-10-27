@@ -4,7 +4,7 @@ Written 2026-10-07, against commit `5b6fe1f`.
 
 **This is analysis, not a change.** The client's deep-dive punch list
 (`FLS_Qualification_Engine_Deep_Dive_Punch_List_IWA.docx`) never reached the
-session that produced it — see `QUESTIONS.md` §3 — so the per-product field
+session that produced it, so the per-product field
 lists, the fields marked "Missing", and the document-checklist corrections are
 all unread. Nothing here guesses at them.
 

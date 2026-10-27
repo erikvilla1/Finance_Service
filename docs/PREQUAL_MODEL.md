@@ -97,7 +97,7 @@ Two values were never observed and are assumptions:
   failed the product for want of an asset. It was assumed equal to SBA because
   both are collateral-backed.
 - The **SBA two-year minimum** is not on the competitor's form. It comes from
-  `BUSINESS_CONTEXT` §5.1, which is itself marked UNVERIFIED.
+  the client's own notes, where it is itself marked UNVERIFIED.
 
 **What this means in practice:** the ranges are a faithful reproduction of one
 competitor's undisclosed formula, fitted to one data point. They are not FLS

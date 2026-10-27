@@ -5,9 +5,6 @@
 | File | What it governs |
 |---|---|
 | `docs/PLATFORM_SPEC.md` | Architecture, build order, coding rules, copy constraints |
-| `docs/BUSINESS_CONTEXT.md` | Business facts, product terms, application fields, open conflicts |
-
-`docs/BUSINESS_CONTEXT.md` §14 lists the four unresolved decisions. Check it before building anything that touches products, the CRM, or phasing.
 
 ---
 
