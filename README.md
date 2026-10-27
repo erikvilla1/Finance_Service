@@ -221,3 +221,9 @@ portal and admin console are built and working. Outstanding before launch:
   declares, per field, whether it is a hard gate, a ranking factor, or
   informational — rather than one universal scorecard penalising every product
   for the same inputs.
+
+---
+
+## Built by
+
+Built by [Kai Saucedo](https://github.com/ka1saucedo) ([kaisaucedo.com](https://kaisaucedo.com)) and [Erik Villa](https://github.com/erikvilla1) for FLS Capital Advisors. Kai's side of it was the qualification engine, the prequalification flow, the result and account pages, the admin analytics console, the brand, and the migrations. Parts of the October work were done in Claude Code cloud sessions that Kai briefed and reviewed.
