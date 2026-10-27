@@ -525,7 +525,7 @@ export type ApplicationStatusHistoryRow = {
  * One document the applicant has been asked for.
  *
  * Seeded from document_type_definitions when an application is claimed, then
- * owned by staff — BUSINESS_CONTEXT §8 models the request/fulfil loop
+ * owned by staff. The request/fulfil loop is modelled
  * explicitly because the checklist is where deals currently die.
  */
 export type DocumentRequestRow = {
@@ -582,7 +582,7 @@ export type DocumentRow = {
  * One of Robert's funding sources.
  *
  * Staff-only, and not as a privacy nicety — the lender list is the business
- * (BUSINESS_CONTEXT §2: "direct access to 115+ lenders … matches each borrower
+ * ("direct access to 115+ lenders … matches each borrower
  * to a custom lender"). There is no customer-facing policy on this table and no
  * reason to add one.
  */

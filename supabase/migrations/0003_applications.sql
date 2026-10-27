@@ -1,10 +1,10 @@
 -- =============================================================================
 -- 0003 — PROFILES, BUSINESSES, APPLICATIONS
 --
--- Field map from docs/BUSINESS_CONTEXT.md §6, extracted from Robert's actual
+-- Field map extracted from Robert's actual
 -- application PDFs.
 --
--- PII handling (spec §20, §28; BUSINESS_CONTEXT §12): sensitive owner/guarantor
+-- PII handling (spec §20, §28): sensitive owner/guarantor
 -- data is segregated into its own table with its own RLS policy so that a bug
 -- in application access cannot leak it.
 -- =============================================================================
@@ -118,7 +118,7 @@ create table public.applications (
   use_of_funds     text,
 
   -- Banded lead metadata. Mirrors the shape US Fund Advisors already sends so
-  -- Robert's mental model transfers on day one (BUSINESS_CONTEXT §6).
+  -- Robert's mental model transfers on day one.
   revenue_band         public.revenue_band,
   credit_band          public.credit_band,
   time_in_business     public.time_in_business_band,

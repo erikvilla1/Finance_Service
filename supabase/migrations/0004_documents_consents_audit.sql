@@ -3,7 +3,7 @@
 --
 -- Platform spec §23: private object storage, signed time-limited URLs, never
 -- public URLs for sensitive documents.
--- BUSINESS_CONTEXT §8: the document checklist is where deals currently die, so
+-- The document checklist is where deals currently die, so
 -- the request/fulfil loop is modelled explicitly rather than inferred.
 -- =============================================================================
 
@@ -69,7 +69,7 @@ create index documents_request_idx on public.documents(document_request_id);
 -- CONSENTS
 --
 -- Robert's existing application PDFs already carry compliant FCRA authorization
--- language. BUSINESS_CONTEXT §12: reuse it, do not improvise. This table records
+-- language. Reuse it, do not improvise. This table records
 -- which version was shown and accepted, which is the part that matters if it is
 -- ever questioned.
 -- -----------------------------------------------------------------------------
@@ -99,7 +99,7 @@ create index consents_type_idx on public.consents(consent_type);
 -- AUDIT LOG
 --
 -- Spec §28 and §39: audit logs for important internal actions.
--- BUSINESS_CONTEXT §12: audit logging on PII access is non-negotiable from v1.
+-- Audit logging on PII access is non-negotiable from v1.
 -- -----------------------------------------------------------------------------
 create table public.audit_logs (
   id                uuid primary key default gen_random_uuid(),

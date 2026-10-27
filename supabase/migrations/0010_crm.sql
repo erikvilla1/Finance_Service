@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 0010 — CRM: NOTES, TASKS, STATUS HISTORY
 --
--- The CRM scope question logged as open in docs/BUSINESS_CONTEXT.md §14.1 is
+-- The CRM scope question that 0001 left open is
 -- now settled: built in-house, not an off-the-shelf tool. The platform is
 -- replacing Airtable outright, so the pipeline lives here.
 --

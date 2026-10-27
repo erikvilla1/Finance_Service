@@ -23,8 +23,8 @@ import { OpenDocument } from "./open-document";
 /**
  * Document review.
  *
- * BUSINESS_CONTEXT §8 names the checklist as where deals die, and §3 describes
- * the current process: documents arrive by email, get read somewhere else, and
+ * The checklist is where deals die, and the current process is why:
+ * documents arrive by email, get read somewhere else, and
  * the state of the checklist lives in Robert's head. This is the screen that
  * replaces that — every file that has arrived, openable, with the two decisions
  * that matter attached to it.

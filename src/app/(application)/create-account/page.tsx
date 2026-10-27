@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  * Placed AFTER the applicant has seen their indicative options, never before.
  * The estimate is what earns the account — asking someone to register before
  * they know whether it was worth their time is how a lead-capture form gets
- * abandoned (BUSINESS_CONTEXT §2).
+ * abandoned.
  *
  * Lives in the (application) group so it keeps the stripped-down flow chrome.
  * This is step five of one continuous journey, not a detour into an auth area.

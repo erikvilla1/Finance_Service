@@ -1067,7 +1067,7 @@ export function RadioCardGroup({
 /**
  * Standing disclaimer for anything resembling a prequalification result.
  *
- * BUSINESS_CONTEXT §12 and platform spec §26: results are indicative only and
+ * Platform spec §26: results are indicative only and
  * never a commitment to fund. This component exists so that requirement is met
  * by construction rather than by remembering.
  */

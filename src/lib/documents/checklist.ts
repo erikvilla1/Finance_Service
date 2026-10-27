@@ -4,7 +4,7 @@ import type { Database, DocumentSource, DocumentStatus } from "@/types/database"
 /**
  * The applicant's document checklist.
  *
- * BUSINESS_CONTEXT §8: the checklist is where deals currently die — not because
+ * The checklist is where deals currently die — not because
  * people refuse to send documents, but because nobody can see what is still
  * outstanding without asking. This assembles that view from three tables and
  * says one thing clearly: what is left for you to do.

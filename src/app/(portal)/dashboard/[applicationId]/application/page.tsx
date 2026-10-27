@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  *
  * The prequal answered six questions to produce an indicative result. This is
  * the rest — the information a lender actually needs, and the thing that has
- * been collected by phone and email until now (BUSINESS_CONTEXT §3).
+ * been collected by phone and email until now.
  *
  * Split into sections rather than presented as one long form. Forty fields on a
  * single page is a form people abandon; three named sections with visible

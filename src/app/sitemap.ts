@@ -6,7 +6,7 @@ const SITE = "https://www.flscapitaladvisors.com";
 /**
  * Every public page, so search engines find the guides without having to
  * crawl for them. Signed-in and token-gated routes are deliberately absent
- * (see robots.ts), as is /how-it-works while it is noindex (QUESTIONS.md §4);
+ * (see robots.ts), as is /how-it-works while it is noindex;
  * /about redirects to the home page section.
  */
 export default function sitemap(): MetadataRoute.Sitemap {

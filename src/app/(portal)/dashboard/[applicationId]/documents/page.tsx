@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 /**
  * The document checklist.
  *
- * BUSINESS_CONTEXT §8 puts this bluntly: the checklist is where deals die. Not
+ * Put bluntly: the checklist is where deals die. Not
  * usually because someone refuses to send a document — because nobody can see
  * what is still outstanding without a phone call. So the page answers one
  * question above everything else, in the first line: what is left for you to do.

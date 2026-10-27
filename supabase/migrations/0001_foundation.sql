@@ -12,7 +12,7 @@ create extension if not exists "pgcrypto";
 -- -----------------------------------------------------------------------------
 
 -- Underwriting track. Prequalification rules and required documents cluster by
--- track, not by marketing category. See docs/BUSINESS_CONTEXT.md §5.1 and §14.2.
+-- track, not by marketing category.
 create type public.product_track as enum (
   'equipment',
   'working_capital',
@@ -26,7 +26,7 @@ create type public.product_track as enum (
 );
 
 -- Application pipeline. Mirrors platform spec §18's sixteen stages.
--- NOTE: CRM scope is a deferred decision (BUSINESS_CONTEXT §14.1), so the
+-- NOTE: CRM scope is a deferred decision, so the
 -- pipeline lives as a status column on the application rather than as a set of
 -- dedicated CRM tables. Revisit after the Phase-0 session with Robert.
 create type public.application_status as enum (

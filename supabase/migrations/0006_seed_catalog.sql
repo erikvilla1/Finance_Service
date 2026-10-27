@@ -3,7 +3,7 @@
 --
 -- ⚠️  EVERY PROGRAM FIGURE BELOW IS UNVERIFIED.
 --
--- Sourced from docs/BUSINESS_CONTEXT.md §5.1, which was transcribed from
+-- Sourced from a transcription of
 -- Robert's marketing brochures. Those brochures contain overlapping and
 -- contradictory numbers. Nothing here is a customer-facing claim.
 --
@@ -24,8 +24,7 @@
 -- NOTE: "Startup & Growth Capital" is a PROPOSED fifth category, not in the
 -- platform spec. The spec's four categories have no home for the unsecured
 -- term-loan, credit-line, and startup programs, which have three brochures and
--- a live application between them. Flagged for review — see BUSINESS_CONTEXT
--- §14.2.
+-- a live application between them. Flagged for review.
 -- -----------------------------------------------------------------------------
 insert into public.product_categories (slug, name, headline, description, sort_order) values
   ('equipment-asset-financing', 'Equipment & Asset Financing',
@@ -299,7 +298,7 @@ from (values
 join public.product_categories c on c.slug = v.category_slug;
 
 -- -----------------------------------------------------------------------------
--- DOCUMENT TYPES (BUSINESS_CONTEXT §5.2)
+-- DOCUMENT TYPES
 --
 -- Robert's universal set, in his own words: everything on the application, plus
 -- an Experian report, six months of bank statements, and a business debt
@@ -351,7 +350,7 @@ insert into public.document_type_definitions
 --
 -- These exist so the engine has a shape to evaluate and so the wiring can be
 -- tested end to end. The thresholds are NOT real. They come out of Robert's
--- head in the Phase-0 session (BUSINESS_CONTEXT §13.1).
+-- head in the Phase-0 session.
 --
 -- Every ruleset is is_active = false. The engine treats a track with no active
 -- ruleset as 'requires_review' — which is the correct, honest default: a human

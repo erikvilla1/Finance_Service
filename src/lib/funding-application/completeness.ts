@@ -10,8 +10,8 @@ import {
  * Is this file ready to send to a lender?
  *
  * This is the check that makes Robert's review step fast. Today he reads a
- * form and notices what's blank; BUSINESS_CONTEXT §3 identifies exactly that
- * kind of manual assembly as the throughput ceiling.
+ * form and notices what's blank; exactly that
+ * kind of manual assembly is the throughput ceiling.
  *
  * Deliberately conservative in one direction: it reports what is *missing*, and
  * never claims a file is approvable. A complete file is a file that can be

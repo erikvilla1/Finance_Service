@@ -12,7 +12,7 @@ import type {
  * Prequalification engine — types.
  *
  * Platform spec §26: version 1 is rules-based and auditable. No ML, no AI
- * decisioning. BUSINESS_CONTEXT §7: soft and indicative, never a firm approval.
+ * decisioning. Results are soft and indicative, never a firm approval.
  */
 
 /**

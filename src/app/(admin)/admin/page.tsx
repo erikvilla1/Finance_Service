@@ -44,7 +44,7 @@ function isStatusGroup(value: string | undefined): value is StatusGroup {
  * The pipeline list — the screen Robert opens every morning.
  *
  * Replaces the Airtable view. Ordered newest first because speed to first
- * contact is the thing that converts (BUSINESS_CONTEXT §2), and the counts
+ * contact is the thing that converts, and the counts
  * along the top lead with submittals — the number Robert himself says is the
  * one that matters.
  *

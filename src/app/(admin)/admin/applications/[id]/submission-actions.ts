@@ -98,7 +98,7 @@ export async function addSubmission(formData: FormData) {
  * to. "Declined" on its own tells the next person nothing.
  *
  * Deliberately does not touch applications.status. A decline from one funder is
- * not the file's outcome — BUSINESS_CONTEXT §2, "a denial is not a forever no" —
+ * not the file's outcome — "a denial is not a forever no" —
  * and moving the whole application on the strength of one answer is what made
  * that fact impossible to represent before this table existed.
  */

@@ -46,7 +46,7 @@ export const metadata: Metadata = {
  * The full lead view.
  *
  * Everything a specialist needs before picking up the phone, on one screen.
- * BUSINESS_CONTEXT §3: the current setup makes them assemble this from email,
+ * The current setup makes them assemble this from email,
  * a spreadsheet, and memory.
  *
  * All reads go through the signed-in user's client, so RLS applies. A customer
@@ -201,7 +201,7 @@ export default async function ApplicationDetailPage({
         <div className="space-y-6 lg:col-span-2">
           {/*
             Lender package readiness. This is the screen that replaces reading a
-            form looking for blanks (BUSINESS_CONTEXT §3) — it names what is
+            form looking for blanks — it names what is
             missing, and lists the signer-collected fields separately so they
             read as accounted for rather than absent.
           */}

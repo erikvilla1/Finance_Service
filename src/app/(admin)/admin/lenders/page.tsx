@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 /**
  * Robert's funding sources.
  *
- * BUSINESS_CONTEXT §2 puts the number at 115+, and until now none of them
+ * Robert puts the number at 115+, and until now none of them
  * existed anywhere in the platform. This is the book: who they are, what they
  * write, and what he knows about their appetite.
  *

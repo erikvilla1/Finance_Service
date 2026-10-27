@@ -95,7 +95,7 @@ export const STATUS_ORDER: ApplicationStatus[] = [
 ];
 
 /**
- * The metric Robert says actually matters (BUSINESS_CONTEXT §2): deals packaged
+ * The metric Robert says actually matters: deals packaged
  * and sent to a funder. Everything upstream is noise until it becomes one.
  */
 export const SUBMITTAL_STATUSES: ApplicationStatus[] = [

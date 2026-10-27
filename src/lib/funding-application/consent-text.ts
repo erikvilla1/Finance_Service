@@ -1,7 +1,7 @@
 /**
  * Authorization language from Robert's funding application.
  *
- * BUSINESS_CONTEXT §12: "his applications already carry the correct FCRA
+ * The instruction: "his applications already carry the correct FCRA
  * authorization language — reuse it, don't improvise." This is that text,
  * transcribed verbatim from Funding_Application_Fillable.docx.
  *

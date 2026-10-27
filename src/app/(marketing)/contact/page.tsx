@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Contact" };
  * the only one wired to submitContact.
  *
  * WHAT WAS ON THIS PAGE BEFORE. A dashed placeholder box whose visible copy
- * cited "BUSINESS_CONTEXT §5" and "platform spec §4" — internal references
+ * cited internal documents by section number — internal references
  * rendered to visitors. That is gone; the notes it carried are below so they
  * are not lost:
  *
