@@ -6,7 +6,7 @@ import { CONTACT_ADDRESS, absoluteUrl, sendEmail, wrapHtml, type SendOutcome } f
  *
  * Every one of these replaces a silence. Before this, an applicant learned
  * their application was ready to sign by happening to log in, and Robert
- * learned a document had arrived by happening to look. BUSINESS_CONTEXT §8:
+ * learned a document had arrived by happening to look. And
  * the checklist is where deals die — not because people refuse to send things,
  * but because nobody knows whose turn it is.
  *

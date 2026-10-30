@@ -1,6 +1,6 @@
-# Financial Lending Specialists — Digital Lending Platform
+# Financial Lending Specialists: Digital Lending Platform
 ## Product, UX, Technical Architecture & Development Specification
-### Version 1.0 — Foundation/MVP Build Specification
+### Version 1.0: Foundation/MVP Build Specification
 
 ---
 
@@ -182,19 +182,19 @@ SEE MY FINANCING OPTIONS
 
 Financing Options should be organized by customer goal, not just by technical loan product.
 
-## Category 1 — Equipment & Asset Financing
+## Category 1: Equipment & Asset Financing
 
 - Construction Equipment Financing
 - Equipment Leasing
 - Equipment Equity / Working Capital
 - Sale & Leaseback
 
-## Category 2 — Business Cash Flow
+## Category 2: Business Cash Flow
 
 - Working Capital Loans
 - Accounts Receivable Financing
 
-## Category 3 — Real Estate
+## Category 3: Real Estate
 
 - Real Estate Financing
 - Hard Money / Fix & Flip
@@ -202,7 +202,7 @@ Financing Options should be organized by customer goal, not just by technical lo
 - Ground-Up Construction
 - Commercial Bridge Loans
 
-## Category 4 — Specialized Financing
+## Category 4: Specialized Financing
 
 - Medical Working Capital
 - Business Acquisition Financing
@@ -248,7 +248,7 @@ Cards:
 - Fund a Fix & Flip
 - Acquire a Business
 - Finance a Medical Practice
-- I'm Not Sure — Help Me Find an Option
+- I'm Not Sure - Help Me Find an Option
 
 Clicking a card launches a dynamic application/qualification flow.
 
@@ -288,19 +288,19 @@ Do NOT display one giant form.
 
 Recommended flow:
 
-STEP 1 — Financing Goal
+STEP 1: Financing Goal
 
 "What are you looking to accomplish?"
 
-STEP 2 — Financing Type
+STEP 2: Financing Type
 
 "What are you financing?"
 
-STEP 3 — Amount
+STEP 3: Amount
 
 "How much financing are you looking for?"
 
-STEP 4 — Business / Applicant Profile
+STEP 4: Business / Applicant Profile
 
 - Business name
 - Applicant name
@@ -310,31 +310,31 @@ STEP 4 — Business / Applicant Profile
 - Business location
 - Contact information
 
-STEP 5 — Financial Profile
+STEP 5: Financial Profile
 
 Only ask questions relevant to the selected product.
 
-STEP 6 — Credit Profile
+STEP 6: Credit Profile
 
 Use ranges where possible during early qualification.
 
-STEP 7 — Asset / Property Information
+STEP 7: Asset / Property Information
 
 Only when applicable.
 
-STEP 8 — Existing Financing
+STEP 8: Existing Financing
 
 Only when applicable.
 
-STEP 9 — Documents
+STEP 9: Documents
 
 Only request documents when appropriate.
 
-STEP 10 — Consent
+STEP 10: Consent
 
 Collect appropriate consent and disclosures.
 
-STEP 11 — Submission
+STEP 11: Submission
 
 Display:
 
@@ -835,7 +835,7 @@ Future analytics:
 
 ---
 
-# 20. DATABASE ARCHITECTURE — SUPABASE
+# 20. DATABASE ARCHITECTURE: SUPABASE
 
 Recommended initial database:
 
@@ -1030,7 +1030,7 @@ Do not hard-code the platform to one vendor unnecessarily.
 
 ---
 
-# 25. AI — FUTURE, NOT MVP DECISION MAKER
+# 25. AI: FUTURE, NOT MVP DECISION MAKER
 
 AI may eventually support:
 
@@ -1297,7 +1297,7 @@ CTA
 
 ---
 
-# 33. TECH STACK — INITIAL RECOMMENDATION
+# 33. TECH STACK: INITIAL RECOMMENDATION
 
 Frontend:
 

@@ -15,7 +15,7 @@ import { addSubmission, recordResponse } from "./submission-actions";
 /**
  * Where this file has been, and where it goes next.
  *
- * BUSINESS_CONTEXT §2: Robert "matches each borrower to a custom lender — a real
+ * Robert "matches each borrower to a custom lender — a real
  * differentiator in commercial finance". Until now the platform could record
  * exactly one fact about that: submitted, or not. No lender, no date, no
  * response.

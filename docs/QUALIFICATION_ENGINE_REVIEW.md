@@ -1,4 +1,4 @@
-# Qualification engine — review against the client's punch list
+# Qualification engine: review against the client's punch list
 
 Written 2026-10-07, against commit `5b6fe1f`.
 
@@ -22,7 +22,7 @@ There are two, and only one runs.
 | `src/lib/matching/` | **Live.** `start/prequal/actions.ts` imports `match()` from `matching/engine` |
 | `src/lib/qualification/engine.ts` | **Not reachable.** No file in `src/` imports it |
 
-`src/lib/qualification/` is not entirely dead — `amount-ranges.ts` is used by
+`src/lib/qualification/` is not entirely dead: `amount-ranges.ts` is used by
 the prequal wizard and `types.ts` exports the `ProductMatch` type used by the
 result page and the admin view. But `engine.ts` in that folder, a
 rules-from-the-database design marked `ENGINE_VERSION = "2.0.0-rules"`, has no
@@ -34,7 +34,7 @@ is dead code that will mislead the next reader. It should not stay ambiguous.
 
 ---
 
-## 2. Priority 1 — "kill the single universal scorecard"
+## 2. Priority 1: "kill the single universal scorecard"
 
 > Every product must independently declare, per field, whether it is a hard
 > gate, a soft/ranking factor, informational only, or not applicable. Do not
@@ -46,10 +46,10 @@ kill.
 `evaluateProgram()` in `matching/engine.ts` evaluates each program against
 *that program's own* declared rules. The `Program` type carries:
 
-- `hardRules` — failure excludes the program, or routes it to review if the
+- `hardRules`: failure excludes the program, or routes it to review if the
   rule sets `onFail: "manual_review"`
-- `softRules` — failure moves Strong down to Potential and flags it for staff
-- `requiredInputs` — facts that must be present to evaluate the program at all
+- `softRules`: failure moves Strong down to Potential and flags it for staff
+- `requiredInputs`: facts that must be present to evaluate the program at all
 - `amountMin` / `amountMax`, and `ruleConfidence`
 
 That is the A/B/C/D distinction the client is asking for, in a different
@@ -71,12 +71,12 @@ None of the four `invoice_factoring` programs has a credit hard rule:
 | Program | Hard rules |
 |---|---|
 | `qualifi_factoring` | none |
-| `orange_commercial_factoring` | business/government debtors only — notes: "Weak company credit OK with a strong debtor base" |
-| `us_financial_factoring` | business/government debtors only — notes: "low credit scores OK" |
+| `orange_commercial_factoring` | business/government debtors only; notes: "Weak company credit OK with a strong debtor base" |
+| `us_financial_factoring` | business/government debtors only; notes: "low credit scores OK" |
 | `hedaya_factoring` | business debtors only |
 
-And `matching/engine.test.ts:123` already asserts exactly the client's case —
-a staffing company, owner credit band `550_599`, sound receivables — and checks
+And `matching/engine.test.ts:123` already asserts exactly the client's case
+(a staffing company, owner credit band `550_599`, sound receivables) and checks
 that the `invoice_factoring` family does **not** come back
 `no_current_match`, that the overall state is not a decline, and that
 `national_ar_line` stays `potential`. It is named for the principle: *"A/R /
@@ -96,13 +96,13 @@ collected"), but it is what a reviewer sees.
 
 ---
 
-## 3. Priority 2 — "keep prequal light"
+## 3. Priority 2: "keep prequal light"
 
 > Only add a prequal question if its answer can change the family, match state,
 > lender route, or next step.
 
 That is a testable property, so it was tested. Tracing all 81 prequal fields
-through `buildFacts()` into every consumer — rule `fact:` references, `is(...)`
+through `buildFacts()` into every consumer, meaning rule `fact:` references, `is(...)`
 helpers, direct `facts.*` reads in the engine and family mapping, and the
 `showIf` conditions that steer the form itself:
 
@@ -129,7 +129,7 @@ step or `showIf` currently takes up.
 **Read this as a candidate list, not a verdict.** Three caveats:
 
 1. The analysis is static. A field could still earn its place through the staff
-   view, the document checklist, or result copy — it only establishes that no
+   view, the document checklist, or result copy. It only establishes that no
    *matching* logic consumes it.
 2. Some are collected deliberately for the specialist. `prequal-layout.ts`
    records exactly this reasoning for asset value and asset debt: "no rule
@@ -139,7 +139,7 @@ step or `showIf` currently takes up.
    start reading it, not a substitute for it.
 
 Several do look like the underwriting detail the client explicitly places
-after account creation — `cre_noi`, `cre_gross_income`, `cre_existing_debt`,
+after account creation: `cre_noi`, `cre_gross_income`, `cre_existing_debt`,
 `debt_total_monthly_payment`, `re_monthly_rent`, `re_taxes_insurance`,
 `acq_target_cashflow`. Confirm against the docx before moving any of them.
 
@@ -156,9 +156,9 @@ All four exist, with the client's names, in `matching/copy.ts`:
 | `specialist_review` | Specialist Review | Specialist Review |
 | `no_current_match` | No Current Match | **"May not fit"** |
 
-The client's requirement for the last one — explain that FLS cannot identify a
+The client's requirement for the last one (explain that FLS cannot identify a
 path *from the information provided*, never imply the borrower is
-unfinanceable — is met:
+unfinanceable) is met:
 
 > Your profile does not currently match the preliminary criteria in our
 > automated program library. Financing guidelines vary and change frequently,
@@ -171,13 +171,13 @@ not fit".
 One wording gap worth raising with the client: that copy says "does not match
 our automated program library" where the client's phrasing is "from the
 information provided". The results disclaimer does open with "Based on the
-information provided", so the idea is present on the page — but if the client
+information provided", so the idea is present on the page, but if the client
 wants the no-match card itself to carry it, that is a one-line change in
 `NO_CURRENT_MATCH_COPY`.
 
 Borderline cases do not become false approvals. The live engine's `MatchState`
-has no "approved" in it at all — the four states above are the whole
-vocabulary — and `review_required: true` is written on every submission
+has no "approved" in it at all (the four states above are the whole
+vocabulary), and `review_required: true` is written on every submission
 (`start/prequal/actions.ts:299`). The unreachable rules engine holds the same
 commitment independently (`qualification/engine.ts:282`), which is worth
 knowing if it is ever brought into service. They do not become hard declines
@@ -190,7 +190,7 @@ either: `applyPolicies()` caps a current default or 4+ positions at
 
 Everything product-specific:
 
-- Per-product field lists for all nine branches — which fields to add, which to
+- Per-product field lists for all nine branches: which fields to add, which to
   move to the application
 - Document-checklist corrections, including the items the client marked
   "Missing"

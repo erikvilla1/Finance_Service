@@ -47,3 +47,7 @@ yarn-error.log*
 
 # video masters; public/video holds the encoded copies
 *.mov
+
+# agent config files; next dev regenerates AGENTS.md locally
+AGENTS.md
+CLAUDE.md

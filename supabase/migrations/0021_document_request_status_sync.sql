@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 0021 — THE CHECKLIST KEEPS ITSELF HONEST
 --
--- BUSINESS_CONTEXT §8: the document checklist is where deals currently die. The
+-- The document checklist is where deals currently die. The
 -- request/fulfil loop was modelled in 0004, but nothing ever closed it — a row
 -- landing in public.documents left its document_requests row still reading
 -- 'requested'. The customer sees "still needed" beside a file they uploaded

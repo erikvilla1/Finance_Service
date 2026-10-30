@@ -13,7 +13,7 @@ import type { ApplicationStatus } from "@/types/database";
  *  1. A DECLINE NEVER RENDERS AS A STATUS. Someone reading "declined" alone at
  *     11pm has been given bad news by a web page with no one to ask about it.
  *     A decline from one funder also isn't the end of the file — Robert's own
- *     framing is that it's a "no right now" (BUSINESS_CONTEXT §2). It shows as
+ *     framing is that it's a "no right now". It shows as
  *     "we're reviewing your options", and the real conversation happens on the
  *     phone.
  *

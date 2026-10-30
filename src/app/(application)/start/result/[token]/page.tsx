@@ -511,7 +511,7 @@ export default async function ResultPage({
             </section>
           )}
 
-          {/* "A denial is not a forever no" (BUSINESS_CONTEXT §2) — telling
+          {/* "A denial is not a forever no" — telling
               someone they were 20 points short is what brings them back, so
               every blocker stays on the card. */}
           {notEligible.length > 0 && (

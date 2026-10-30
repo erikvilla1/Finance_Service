@@ -43,7 +43,7 @@
 -- and a deposit trend that is one of growing, seasonal or declining by
 -- definition — so requiring an answer asks nobody to guess.
 --
--- CONVERSION COST, ACKNOWLEDGED. Spec §8 and BUSINESS_CONTEXT §13 both say every
+-- CONVERSION COST, ACKNOWLEDGED. Spec §8 says every
 -- prequal field costs conversion, and this makes three optional fields
 -- mandatory. Accepted deliberately: a lead that converts on an incomplete form
 -- and is then shown the wrong products is worse than a lead that answered three

@@ -22,7 +22,7 @@ export type FieldSource =
   | "collection"
   /**
    * Filled by the signer on the executed document. NEVER stored by us.
-   * BUSINESS_CONTEXT §14.1b — full SSN and Tax ID live on the signed PDF only.
+   * Full SSN and Tax ID live on the signed PDF only.
    */
   | "signer";
 

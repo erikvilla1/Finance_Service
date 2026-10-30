@@ -13,7 +13,7 @@ import { loadFundingApplication } from "@/lib/funding-application/load";
 /**
  * The specialist's side of the document loop.
  *
- * BUSINESS_CONTEXT §2 step 4: "requests missing docs through the portal (not
+ * The requirement: "requests missing docs through the portal (not
  * email tag)". Everything here exists so that a document arriving, being read,
  * and being accepted or sent back is one screen rather than a thread.
  *

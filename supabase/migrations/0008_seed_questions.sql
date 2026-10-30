@@ -1,14 +1,14 @@
 -- =============================================================================
 -- 0008 — SEED: APPLICATION QUESTION CONFIGURATION
 --
--- Seeded from the verified field map in docs/BUSINESS_CONTEXT.md §6, which was
+-- Seeded from the verified field map, which was
 -- extracted from Robert's actual application PDFs.
 --
 -- IMPORTANT: unlike migration 0006, nothing here needs verification. These are
 -- field names and answer options, not program terms. No rates, no limits, no
 -- eligibility thresholds.
 --
--- Structure (BUSINESS_CONTEXT §6): one unified intake, shared core plus
+-- Structure: one unified intake, shared core plus
 -- product-specific modules. Six separate forms would make the prequalification
 -- impossible to compute, because the engine reads the same core fields
 -- regardless of product.

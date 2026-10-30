@@ -1,11 +1,11 @@
-# FLS Capital Advisors — financing platform
+# FLS Capital Advisors: financing platform
 
 A commercial financing platform for FLS Capital Advisors (legal entity:
 Financial Lending Specialists, Inc.), replacing a brochure website with a
 working pipeline: a prospective borrower describes a goal in plain language,
 gets an indicative view of which financing families might fit, creates an
 account, completes an adaptive application, uploads documents, and tracks the
-file to funding — while the broker works the same file from an admin console.
+file to funding, while the broker works the same file from an admin console.
 
 Three surfaces, one Next.js application.
 
@@ -21,15 +21,16 @@ funding sources and makes no credit decisions.
 That is not a disclaimer bolted on at the end; it decides what the software is
 allowed to say. The qualification engine has no "approved" in its outcome
 vocabulary, hard-codes `review_required = true`, and the customer-facing copy
-was written against it — "what may be available" rather than "what you're
+was written against it: "what may be available" rather than "what you're
 prequalified for", "if a lender approves" rather than "get loan". A step list
 that ends in a promise is a promise however small the type underneath it.
 
-The same rule governs the legal pages. They ship with a visible
-`DRAFT — NOT REVIEWED BY COUNSEL` banner and bracketed `[CONFIRM]` placeholders
-for facts nobody has supplied. A "Licensing" section was **removed rather than
-filled in**, because inventing state licence numbers is a false regulatory
-claim, not boilerplate. The principle is recorded in the code itself:
+The same rule governs the legal pages. Their copy has not been reviewed by
+counsel. The source says so in a comment at the top of each legal page rather
+than presenting the text as settled, and the pages do not yet show a notice to
+visitors. A "Licensing" section was **removed rather than filled in**, because
+inventing state licence numbers is a false regulatory claim, not boilerplate.
+The principle behind that:
 
 > writing plausible-sounding disclosure language for a regulated activity is
 > worse than leaving the gap visible.
@@ -41,13 +42,13 @@ claim, not boilerplate. The principle is recorded in the code itself:
 | Surface | Route group | Who uses it |
 |---|---|---|
 | Marketing site and prequalification | `(marketing)`, `(application)` | Prospective borrowers |
-| Client portal | `(portal)` — `/dashboard` | Applicants tracking a file |
-| Admin console | `(admin)` — `/admin/*` | The broker, daily |
+| Client portal | `(portal)` at `/dashboard` | Applicants tracking a file |
+| Admin console | `(admin)` at `/admin/*` | The broker, daily |
 
 ### Goal-first prequalification
 
-The flow opens with what someone is trying to do — *buy equipment*, *get paid
-faster*, *refinance business debt* — not with a product name. Borrowers do not
+The flow opens with what someone is trying to do (*buy equipment*, *get paid
+faster*, *refinance business debt*), not with a product name. Borrowers do not
 arrive knowing whether they want an equipment lease or a working-capital line;
 that mapping is the broker's job, so the software does it.
 
@@ -68,7 +69,7 @@ keeps the first screen short without dropping anything that is collected.
 ![The prequalification form](docs/screenshots/prequal.jpg)
 
 Because the question set is data, nothing in the UI hard-codes how many
-questions there are — marketing copy that once said "eight quick questions" had
+questions there are. Marketing copy that once said "eight quick questions" had
 quietly been wrong for several migrations by the time it was caught.
 
 ### Qualification and matching
@@ -76,8 +77,8 @@ quietly been wrong for several migrations by the time it was caught.
 `src/lib/qualification/` and `src/lib/matching/` turn answers into facts, facts
 into conditions, and conditions into matches against **68 lender programs**
 across families like equipment, SBA, commercial real estate, fix-and-flip,
-factoring and working capital. Outcomes are deliberately four-valued — strong
-match, potential match, specialist review, no current match — and the last one
+factoring and working capital. Outcomes are deliberately four-valued: strong
+match, potential match, specialist review, no current match. The last one
 explains that FLS cannot identify a path *from the information provided*,
 never that the borrower is unfinanceable.
 
@@ -96,13 +97,13 @@ between related categories.
 - **Next.js 16** (App Router, Turbopack) and **React 19**
 - **TypeScript**, strict
 - **Tailwind CSS v4**
-- **Supabase** — Postgres, Auth, Storage, and Row Level Security as the real
+- **Supabase**: Postgres, Auth, Storage, and Row Level Security as the real
   authorization boundary
 - **Resend** for transactional email
 - **Vercel** for hosting
 - `pdf-lib`, `gsap`, `embla-carousel`, `lucide-react`, `zod`
 
-34 SQL migrations; 25 tables.
+40 SQL migrations; 26 tables.
 
 ---
 
@@ -111,23 +112,24 @@ between related categories.
 The things in this codebase that were not obvious, and are commented in place
 with the reasoning rather than just the result.
 
-**No component library.** There is no shadcn, no `class-variance-authority`,
-no `clsx`/`tailwind-merge`, no Radix. `src/components/ui/index.tsx` is a
+**No styled component library.** There is no shadcn, no `class-variance-authority`,
+no `clsx`/`tailwind-merge`, no Radix. The one dependency in that space is Ark UI's
+headless primitives, used in `src/app/(portal)/dashboard/[applicationId]/sign/sign-form.tsx`. `src/components/ui/index.tsx` is a
 hand-rolled kit. When a shadcn snippet was handed over for integration, the
-idea was ported and the dependencies were not — taking one literally would have
+idea was ported and the dependencies were not. Taking one literally would have
 added five packages for a card and a button.
 
 **Two different questions about status, kept apart.** `applications.status` is a
 16-value enum. `STATUS_GROUP` buckets it into *where a file sits*;
 `src/lib/leads.ts` computes an orthogonal *what this file needs from a human*.
-Conflating them is the single easiest mistake on this surface — the admin
+Conflating them is the single easiest mistake on this surface. The admin
 pipeline once showed twelve identical-looking tiles silently filtering on two
 different axes, and it is now split into two labelled rows.
 
 **Money means what the funder wrote, not what the borrower asked.** "Amount
 funded" is `SUM(lender_submissions.offered_amount)` on funded submissions, not
 `requested_amount` on funded applications. "Deals won" is status `funded`, not
-`approved` — an approval that never funds is not a deal.
+`approved`: an approval that never funds is not a deal.
 
 **Tailwind v4's `translate`/`scale` are standalone properties**, not the
 composite `transform`. A `transition-[transform,…]` list silently watches a
@@ -174,7 +176,7 @@ Four checks, all expected to pass before any commit:
 ```bash
 npm run typecheck   # tsc --noEmit
 npm run lint        # eslint — 0 errors
-npm test            # 36 tests
+npm test            # 49 tests
 npm run build       # catches server/client boundary errors the others miss
 ```
 
@@ -201,7 +203,7 @@ src/
     questions/       question model and prequal layout
     resource-guides/ guide content and cross-links
     supabase/ auth/ email/ documents/ applications/
-supabase/migrations/ 34 SQL migrations
+supabase/migrations/ 40 SQL migrations
 docs/                PLATFORM_SPEC.md, schema snapshot, auth and email notes
 ```
 
@@ -212,18 +214,18 @@ docs/                PLATFORM_SPEC.md, schema snapshot, auth and email notes
 Pre-launch. The marketing site, resource guides, prequalification flow, client
 portal and admin console are built and working. Outstanding before launch:
 
-- Legal pages need review by counsel, and the bracketed business facts
-  (address, phone, licensing) need supplying. They are deliberately visible.
+- Legal pages need review by counsel, and the business facts they depend on
+  (address, phone, licensing) need supplying.
 - The `$20M+` figure on the home page is marked `UNVERIFIED` in the source and
-  needs the principal's sign-off — every lender row it rests on is
+  needs the principal's sign-off: every lender row it rests on is
   `terms_verified = false`.
 - Per-product qualification weighting is being reworked so that each program
   declares, per field, whether it is a hard gate, a ranking factor, or
-  informational — rather than one universal scorecard penalising every product
+  informational, rather than one universal scorecard penalising every product
   for the same inputs.
 
 ---
 
 ## Built by
 
-Built by [Kai Saucedo](https://github.com/ka1saucedo) ([kaisaucedo.com](https://kaisaucedo.com)) and [Erik Villa](https://github.com/erikvilla1) for FLS Capital Advisors. Kai's side of it was the qualification engine, the prequalification flow, the result and account pages, the admin analytics console, the brand, and the migrations. Parts of the October work were done in Claude Code cloud sessions that Kai briefed and reviewed.
+Built by [Kai Saucedo](https://github.com/ka1saucedo) ([kaisaucedo.com](https://kaisaucedo.com)) and [Erik Villa](https://github.com/erikvilla1) for FLS Capital Advisors. Kai's side of it was the qualification engine, the prequalification flow, the result and account pages, the admin analytics console, the brand, and the migrations.

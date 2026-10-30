@@ -16,7 +16,7 @@ one**.
 
 Which products appear is decided almost entirely by **credit score**, with time
 in business as a second gate on four of the six. How large each range is, is
-decided **entirely by average monthly revenue** — nothing else moves the number,
+decided **entirely by average monthly revenue**. Nothing else moves the number,
 including how much the applicant said they wanted.
 
 ---
@@ -43,15 +43,15 @@ per product. It is a lookup table with a multiplier attached.
 
 | Product | Min credit score | Min time in business | Other | Revenue multiple |
 |---|---|---|---|---|
-| Revenue-Based Financing | 500 | — | — | 0.5× – 1.5× |
-| Equipment Leasing | 550 | — | — | 0.3× – 1.2× |
-| Unsecured Term Loans | 600 | 1 year | — | 1.0× – 3.0× |
-| Unsecured Credit Lines | 620 | 1 year | — | 0.5× – 2.0× |
+| Revenue-Based Financing | 500 | none | none | 0.5× – 1.5× |
+| Equipment Leasing | 550 | none | none | 0.3× – 1.2× |
+| Unsecured Term Loans | 600 | 1 year | none | 1.0× – 3.0× |
+| Unsecured Credit Lines | 620 | 1 year | none | 0.5× – 2.0× |
 | Commercial Real Estate | 620 | 1 year | must pledge real property | 3.0× – 8.0× |
-| SBA Loan Program | 650 | 2 years | — | 3.0× – 8.0× |
+| SBA Loan Program | 650 | 2 years | none | 3.0× – 8.0× |
 
 Six products out of a catalog of twenty-five. The other nineteen are never
-matched by the prequal at all — they exist in the catalog and on the marketing
+matched by the prequal at all. They exist in the catalog and on the marketing
 pages, but no rule references them, so they can only reach an applicant through
 a specialist.
 
@@ -71,7 +71,7 @@ A business with **$50,000 average monthly revenue**, a **640 credit score**,
 | Commercial Real Estate | no property pledged ✗ | not eligible |
 | SBA Loan Program | 640 < 650 ✗ | not eligible |
 
-Headline figure: **$150,000** — the largest maximum among matched products.
+Headline figure: **$150,000**, the largest maximum among matched products.
 
 Change the credit score to 650 and SBA appears at $150,000 – $400,000, which
 moves the headline to $400,000. **A ten-point credit difference more than
@@ -88,7 +88,7 @@ public referral-partner tool, captured 2026-08-03: a business with $138,000
 monthly revenue and a 630 credit score.
 
 The multiples were recovered by dividing the ranges that tool displayed by
-$138,000. That arithmetic is exact and reproducible — see the header of
+$138,000. That arithmetic is exact and reproducible. See the header of
 `0017_qualification_ruleset_v2.sql`.
 
 Two values were never observed and are assumptions:
@@ -130,7 +130,7 @@ work; the applicant cannot tell that from looking at the form.
 
 Ordered by how likely each is to produce a wrong answer in front of an applicant.
 
-### 1. A migration that silently never ran — FIXED
+### 1. A migration that silently never ran (FIXED)
 
 `0022_require_prequal_scored_fields.sql` was written to make asset type, prior
 defaults, and deposit trend required. It shared its `0022` prefix with
@@ -143,7 +143,7 @@ them required and that its own safety net "changes nothing on a current
 database." That safety net was the only reason those questions were on screen
 at all.
 
-Renumbered to `0024`. **Not yet applied** — see "What to do next".
+Renumbered to `0024`. **Not yet applied**. See "What to do next".
 
 ### 2. The requested amount does not affect anything
 
@@ -153,13 +153,13 @@ has `terms_verified = false`. The check therefore never runs.
 
 An applicant asking for $25,000 with $138,000 monthly revenue is shown
 "$69,000 – $207,000" for revenue-based financing. The engine never notices the
-mismatch. This is defensible — the multiples model capacity, not demand — but it
+mismatch. This is defensible (the multiples model capacity, not demand), but it
 is not what the form implies when it asks the question first.
 
 ### 3. Annual sales is collected and ignored
 
 `prequal_revenue_band` is a required question, is stored, and is resolvable by
-the engine — but no rule in v2 references it. It is asked, and it does nothing.
+the engine, but no rule in v2 references it. It is asked, and it does nothing.
 Either a rule should use it or it should stop being required, because right now
 it costs conversion and buys nothing.
 
@@ -181,7 +181,7 @@ Unsecured Credit Lines, a product whose own catalog record says 680 minimum.
 ### 5. Unverified catalog maximums cap the estimate but cannot disqualify
 
 The engine refuses to use `amount_max` to rule a product out, on the grounds
-that nobody has verified it — then uses that same unverified `amount_max` to cap
+that nobody has verified it, then uses that same unverified `amount_max` to cap
 the estimate. The code acknowledges this and argues erring low is safer, which
 is reasonable. Flagged so the inconsistency is a choice rather than an accident.
 
@@ -253,8 +253,8 @@ is the one with the least underwriting behind it.
    instead of a division.
 3. **More competitor samples.** Cheap, and immediately useful: running three or
    four more profiles through the same UCS tool at different revenue levels
-   would show whether the relationship is actually linear — which the current
-   model assumes on the strength of a single point — and whether the SBA gate is
+   would show whether the relationship is actually linear (which the current
+   model assumes on the strength of a single point) and whether the SBA gate is
    really 650.
 4. **Outcomes from FLS's own funded deals.** The only thing that closes the loop.
    Not available yet; worth structuring the data now so it can be.
@@ -281,7 +281,7 @@ supabase db push
    or move the question later so it stops implying that it does.
 3. Give annual sales a job or stop requiring it (finding 3).
 4. Get Robert's own thresholds and multiples, and replace `0017` wholesale
-   rather than tuning it — otherwise nobody will be able to tell which numbers
+   rather than tuning it. Otherwise nobody will be able to tell which numbers
    are his and which are a competitor's.
 
 ---

@@ -24,7 +24,7 @@
 --     sample failed that product for want of a listed asset. It is assumed
 --     equal to SBA because both are collateral-backed.
 --   • The SBA time-in-business minimum (2-5 years) is not on the form. It comes
---     from BUSINESS_CONTEXT §5.1, which is itself marked UNVERIFIED.
+--     from the brochure transcription, which is itself marked UNVERIFIED.
 --
 -- CONSEQUENCE: every figure this ruleset produces is a modelled estimate built
 -- on a competitor's undisclosed formula. The result page labels it illustrative

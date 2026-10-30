@@ -22,7 +22,7 @@ import type { ExistingDebtRow } from "@/types/database";
  * SIGNER FIELDS ARE RENDERED BLANK ON PURPOSE. Tax ID, both SSNs, and the
  * signatures are ruled lines: on paper the applicant completes them by hand,
  * and in the portal they are typed at signing and drawn straight into the
- * signed PDF. We do not hold those values (BUSINESS_CONTEXT §14.1b), so there
+ * signed PDF. We do not hold those values, so there
  * is nothing here to accidentally render.
  */
 export function FundingApplicationSheet({

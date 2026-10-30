@@ -333,8 +333,8 @@ export default function HomePage() {
                   twice in one small box, which reads as a bug. Putting the
                   caption first uses the client's exact words, states the figure
                   once, and still fixes the claim, so it does what the request
-                  was for rather than what it literally said. Flagged in
-                  QUESTIONS.md; if the copy owner wants the literal version back
+                  was for rather than what it literally said. Flagged for
+                  review; if the copy owner wants the literal version back
                   it is a two-line swap. */}
               <p className="max-w-[13rem] text-sm leading-snug text-brand-100/80">
                 Financing solutions up to

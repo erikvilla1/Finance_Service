@@ -1,7 +1,7 @@
 # Working on this repo
 
 Two people and two AI agents share this codebase and one database. Everything
-below exists because it already went wrong once — none of it is generic advice.
+below exists because it already went wrong once. None of it is generic advice.
 
 ---
 
@@ -20,7 +20,7 @@ git push -u origin yourname/what-youre-doing
 Then open a pull request. Current branches: `erik/phase-1`, and Kai's work.
 
 **Pull `main` before starting anything.** A branch cut from a stale `main`
-silently loses whatever landed in between — that happened once already, and the
+silently loses whatever landed in between. That happened once already, and the
 missing work included database migrations that were already live.
 
 ---
@@ -45,7 +45,7 @@ This broke a second time on 13 Aug, worse than the first. Both of us applied
 migrations from branches the other could not see, so both of us reached for
 `0024` and then `0025` on the same afternoon. Two files ended up numbered `0022`
 in the repo, and three migrations reached the live database with no file
-anywhere — including one that created the `contact_submissions` table.
+anywhere, including one that created the `contact_submissions` table.
 
 The rule is not "pick the next free number". Nothing on your machine knows what
 the other person is about to apply.
@@ -75,7 +75,7 @@ the entire reason the files exist.
 Setting `is_active = false` on an `application_questions` row is a schema change
 in disguise. `prequal_credit_band` was deactivated and replaced with
 `prequal_credit_score`; the qualification engine reads `credit_band`, so it
-silently stopped receiving credit data. Nothing errored — the signal just
+silently stopped receiving credit data. Nothing errored. The signal just
 stopped arriving.
 
 If a question needs replacing, say so before doing it, or add a derivation so
@@ -108,12 +108,12 @@ Empty output means nothing actually changed.
 | Area | Owner |
 |---|---|
 | Prequal steps 1–3, marketing UI, brand | Kai |
-| Everything after the prequal — customer dashboard, admin CRM, funding application, documents | Erik |
+| Everything after the prequal: customer dashboard, admin CRM, funding application, documents | Erik |
 | Schema, migrations, RLS | Erik, but say so before changing it |
 
 The seam is the database. Kai's form writes an `applications` row; everything
 downstream reads it. Neither side calls the other, so both can be built in any
-order — as long as the field names match.
+order, as long as the field names match.
 
 **Use the question keys already in `application_questions`.** A form field
 called `businessName` instead of `business_legal_name` doesn't error. It just
@@ -147,7 +147,7 @@ Vercel team:
 > `seatBlock: { blockCode: "TEAM_ACCESS_REQUIRED" }`
 
 Kai commits to GitHub but holds no Vercel seat, so **every build of a commit Kai
-authored is `BLOCKED`** — including one sitting on `main`, when Kai is the one
+authored is `BLOCKED`**, including one sitting on `main`, when Kai is the one
 who merged the PR. It fails quietly: the push succeeds, CI goes green, and
 nothing reaches production.
 
@@ -163,8 +163,8 @@ npm run deploy
 ```
 
 `npm run deploy` goes through the Vercel CLI. A CLI deploy carries no commit
-author — Vercel records it as `source: cli`, attributed to whoever is logged in
-— so the seat check never applies and Kai's commits ship like anyone else's.
+author. Vercel records it as `source: cli`, attributed to whoever is logged in,
+so the seat check never applies and Kai's commits ship like anyone else's.
 
 It refuses to run if the working tree is dirty, or if `HEAD` is not
 `origin/main`, because the CLI uploads the working directory rather than a git
@@ -186,7 +186,7 @@ git push
 ```
 
 A fast-forward merge leaves Kai's commit at the tip and the build is blocked, so
-`--no-ff` is the entire trick. Prefer `npm run deploy` anyway — it does not
+`--no-ff` is the entire trick. Prefer `npm run deploy` anyway. It does not
 depend on who happened to write the last commit.
 
 ### Reviewing a branch before it merges
@@ -204,7 +204,7 @@ signed in to Vercel or they will just redirect.
 ### The permanent fix
 
 Give Kai a seat on the Vercel team. That is precisely what
-`TEAM_ACCESS_REQUIRED` is asking for, and it retires everything above — his
+`TEAM_ACCESS_REQUIRED` is asking for, and it retires everything above: his
 pushes would build and preview on their own. It costs a paid seat, which is the
 only reason this workaround exists.
 

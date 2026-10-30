@@ -7,7 +7,7 @@
 --
 -- Deliberately NOT added here: full Tax ID and full SSN. Those stay off the
 -- database entirely and are collected as signer-input fields on the executed
--- document (BUSINESS_CONTEXT §14.1b). We hold ein_last4 and ssn_last4 for
+-- document. We hold ein_last4 and ssn_last4 for
 -- identification only.
 -- =============================================================================
 
@@ -48,8 +48,8 @@ comment on column public.application_owners.full_name is
 --
 -- The paper form has room for exactly two lenders. That ceiling is an artefact
 -- of paper, not of underwriting — funders routinely want the full debt
--- schedule, which is also one of the universal documents (BUSINESS_CONTEXT
--- §5.2). A table removes the limit and makes the schedule queryable.
+-- schedule, which is also one of the universal documents.
+-- A table removes the limit and makes the schedule queryable.
 -- -----------------------------------------------------------------------------
 create table public.existing_debts (
   id              uuid primary key default gen_random_uuid(),

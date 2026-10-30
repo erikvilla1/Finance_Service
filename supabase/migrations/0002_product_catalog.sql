@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 0002 — PRODUCT CATALOG & DYNAMIC QUESTION ENGINE
 --
--- Resolves the taxonomy conflict in docs/BUSINESS_CONTEXT.md §14.2 with a dual
+-- Resolves the taxonomy conflict with a dual
 -- model:
 --   • category  → goal-based, drives site navigation and the goal selector
 --   • track     → underwriting-based, drives prequal rules and document lists
@@ -49,7 +49,6 @@ create table public.financing_products (
   -- Indicative program terms.
   -- WARNING: every value here is UNVERIFIED until terms_verified = true.
   -- Sourced from marketing brochures that contain contradictory figures.
-  -- See BUSINESS_CONTEXT.md §5 critical notice.
   amount_min       numeric(14, 2),
   amount_max       numeric(14, 2),
   min_fico         integer,
@@ -92,7 +91,7 @@ comment on column public.financing_products.terms_verified is
   'False until Robert confirms the figures. Blocks publication via CHECK constraint.';
 
 -- -----------------------------------------------------------------------------
--- QUESTIONS — the adaptive application (BUSINESS_CONTEXT §6)
+-- QUESTIONS — the adaptive application
 --
 -- One unified intake: a shared core plus product-specific modules. Building it
 -- as six separate forms would make the prequalification impossible to compute,
@@ -181,7 +180,7 @@ create table public.question_rules (
 -- result to be stored for audit — see qualification_results.rules_evaluated.
 --
 -- Rulesets are seeded INACTIVE with placeholder thresholds. They stay inactive
--- until the Phase-0 session produces real numbers (BUSINESS_CONTEXT §13.1).
+-- until the Phase-0 session produces real numbers.
 -- -----------------------------------------------------------------------------
 create table public.qualification_rulesets (
   id          uuid primary key default gen_random_uuid(),
@@ -202,7 +201,7 @@ comment on table public.qualification_rulesets is
   'Versioned prequal thresholds. Seeded inactive with placeholders until Robert confirms real numbers.';
 
 -- -----------------------------------------------------------------------------
--- DOCUMENT TYPE DEFINITIONS (BUSINESS_CONTEXT §5.2)
+-- DOCUMENT TYPE DEFINITIONS
 --
 -- The universal set applies to nearly every deal; track-specific types layer on.
 -- -----------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import type { Question } from "@/lib/questions";
  * Migration 0016 took the prequal from six questions to fifteen. Every one of
  * them is worth having, but asking for all fifteen in one stacked column asks
  * the applicant to scroll through a form that looks like the paperwork they came
- * here to avoid — on the single page where BUSINESS_CONTEXT §13 says every extra
+ * here to avoid — on the single page where every extra
  * field costs conversion.
  *
  * So the page shows what the qualification engine actually reads, and folds the

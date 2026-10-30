@@ -5,7 +5,7 @@
 -- file left the building is `applications.status = 'submitted_to_funder'`: one
 -- flag, no name, no date, nothing that came back.
 --
--- BUSINESS_CONTEXT §2 says Robert "has direct access to 115+ lenders and matches
+-- Robert "has direct access to 115+ lenders and matches
 -- each borrower to a custom lender — a real differentiator in commercial
 -- finance." That matching is the thing he is good at, and the platform has been
 -- unable to record any of it.
