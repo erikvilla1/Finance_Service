@@ -25,11 +25,12 @@ was written against it: "what may be available" rather than "what you're
 prequalified for", "if a lender approves" rather than "get loan". A step list
 that ends in a promise is a promise however small the type underneath it.
 
-The same rule governs the legal pages. They ship with a visible
-`DRAFT — NOT REVIEWED BY COUNSEL` banner and bracketed `[CONFIRM]` placeholders
-for facts nobody has supplied. A "Licensing" section was **removed rather than
-filled in**, because inventing state licence numbers is a false regulatory
-claim, not boilerplate. The principle is recorded in the code itself:
+The same rule governs the legal pages. Their copy has not been reviewed by
+counsel. The source says so in a comment at the top of each legal page rather
+than presenting the text as settled, and the pages do not yet show a notice to
+visitors. A "Licensing" section was **removed rather than filled in**, because
+inventing state licence numbers is a false regulatory claim, not boilerplate.
+The principle behind that:
 
 > writing plausible-sounding disclosure language for a regulated activity is
 > worse than leaving the gap visible.
@@ -102,7 +103,7 @@ between related categories.
 - **Vercel** for hosting
 - `pdf-lib`, `gsap`, `embla-carousel`, `lucide-react`, `zod`
 
-34 SQL migrations; 25 tables.
+40 SQL migrations; 26 tables.
 
 ---
 
@@ -111,8 +112,9 @@ between related categories.
 The things in this codebase that were not obvious, and are commented in place
 with the reasoning rather than just the result.
 
-**No component library.** There is no shadcn, no `class-variance-authority`,
-no `clsx`/`tailwind-merge`, no Radix. `src/components/ui/index.tsx` is a
+**No styled component library.** There is no shadcn, no `class-variance-authority`,
+no `clsx`/`tailwind-merge`, no Radix. The one dependency in that space is Ark UI's
+headless primitives, used in `src/app/(portal)/dashboard/[applicationId]/sign/sign-form.tsx`. `src/components/ui/index.tsx` is a
 hand-rolled kit. When a shadcn snippet was handed over for integration, the
 idea was ported and the dependencies were not. Taking one literally would have
 added five packages for a card and a button.
@@ -174,7 +176,7 @@ Four checks, all expected to pass before any commit:
 ```bash
 npm run typecheck   # tsc --noEmit
 npm run lint        # eslint — 0 errors
-npm test            # 36 tests
+npm test            # 49 tests
 npm run build       # catches server/client boundary errors the others miss
 ```
 
@@ -201,7 +203,7 @@ src/
     questions/       question model and prequal layout
     resource-guides/ guide content and cross-links
     supabase/ auth/ email/ documents/ applications/
-supabase/migrations/ 34 SQL migrations
+supabase/migrations/ 40 SQL migrations
 docs/                PLATFORM_SPEC.md, schema snapshot, auth and email notes
 ```
 
@@ -212,8 +214,8 @@ docs/                PLATFORM_SPEC.md, schema snapshot, auth and email notes
 Pre-launch. The marketing site, resource guides, prequalification flow, client
 portal and admin console are built and working. Outstanding before launch:
 
-- Legal pages need review by counsel, and the bracketed business facts
-  (address, phone, licensing) need supplying. They are deliberately visible.
+- Legal pages need review by counsel, and the business facts they depend on
+  (address, phone, licensing) need supplying.
 - The `$20M+` figure on the home page is marked `UNVERIFIED` in the source and
   needs the principal's sign-off: every lender row it rests on is
   `terms_verified = false`.
